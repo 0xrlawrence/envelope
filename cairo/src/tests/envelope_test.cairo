@@ -513,3 +513,72 @@ fn release_message_hash_is_stable() {
     let hash = release_message_hash(addr('CONTRACT'), MODE_NOTE, 'PUBKEY', 'TARGET');
     println!("release_message_hash = {}", hash);
 }
+
+// ─── Funding without the pool ───────────────────────────────────────────────
+
+/// Mirrors an ordinary wallet: approve the anonymizer, then call it. No pool,
+/// no viewing key, no STRK20 support in the wallet.
+fn fund_publicly(
+    envelope: IEnvelopeDispatcher, token: IMockErc20Dispatcher, funder: ContractAddress, key: Key,
+) {
+    start_cheat_caller_address(token.contract_address, funder);
+    token.approve(envelope.contract_address, FUNDED_AMOUNT.into());
+    stop_cheat_caller_address(token.contract_address);
+
+    start_cheat_caller_address(envelope.contract_address, funder);
+    envelope
+        .fund_public(
+            key.public_key, token.contract_address, FUNDED_AMOUNT, 0, 0, 0, MEMO,
+        );
+    stop_cheat_caller_address(envelope.contract_address);
+}
+
+#[test]
+fn a_public_funder_can_seal_an_envelope() {
+    let key = new_key();
+    // Nothing pre-minted to the anonymizer: the funder's own tokens pay for it.
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+
+    fund_publicly(envelope, token, addr(ALICE), key);
+
+    let stored = envelope.get_envelope(key.public_key);
+    assert!(stored.status == status::FUNDED, "envelope should be funded");
+    assert!(stored.amount == FUNDED_AMOUNT, "amount should be recorded");
+    assert!(
+        token.balance_of(envelope.contract_address) == FUNDED_AMOUNT.into(),
+        "tokens should have moved to the anonymizer",
+    );
+    assert!(token.balance_of(addr(ALICE)) == 0, "funder should have paid");
+}
+
+#[test]
+fn a_publicly_funded_envelope_claims_exactly_like_any_other() {
+    let key = new_key();
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+    fund_publicly(envelope, token, addr(ALICE), key);
+
+    let (r, s) = sign(
+        key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(MALLORY).into(),
+    );
+    envelope.claim_to_address(key.public_key, addr(MALLORY), r, s);
+
+    assert!(token.balance_of(addr(MALLORY)) == FUNDED_AMOUNT.into(), "claimant should be paid");
+    assert!(envelope.reserved_of(token.contract_address) == 0, "reservation released");
+}
+
+/// The public path must not become a way to write claims against value that
+/// belongs to somebody else's envelope.
+#[test]
+#[should_panic(expected: 'ERC20: insufficient allowance')]
+fn public_funding_cannot_seal_without_paying() {
+    let key = new_key();
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+
+    // No approval given.
+    start_cheat_caller_address(envelope.contract_address, addr(ALICE));
+    envelope
+        .fund_public(key.public_key, token.contract_address, FUNDED_AMOUNT, 0, 0, 0, MEMO);
+}

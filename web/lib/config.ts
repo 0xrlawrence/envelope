@@ -50,7 +50,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     pool: "0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91",
     anonymizer:
       process.env.NEXT_PUBLIC_ANONYMIZER_SEPOLIA ??
-      "0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604",
+      "0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211",
     explorer: "https://sepolia.starkscan.co",
   },
 };

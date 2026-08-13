@@ -62,7 +62,7 @@ pub mod MockErc20 {
         ) -> bool {
             let spender = get_caller_address();
             let allowed = self.allowances.read((sender, spender));
-            assert(allowed >= amount, 'INSUFFICIENT_ALLOWANCE');
+            assert(allowed >= amount, 'ERC20: insufficient allowance');
             let balance = self.balances.read(sender);
             assert(balance >= amount, 'INSUFFICIENT_BALANCE');
             self.allowances.write((sender, spender), allowed - amount);

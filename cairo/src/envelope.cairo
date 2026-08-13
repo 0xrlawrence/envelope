@@ -31,6 +31,30 @@ pub trait IEnvelope<TState> {
         note_id: felt252,
     ) -> Span<OpenNoteDeposit>;
 
+    /// Seal an envelope without going through the pool.
+    ///
+    /// The pool route is the private one: it spends a shielded note, so nobody
+    /// learns who funded the envelope. It also requires a wallet that
+    /// implements the STRK20 methods, and most do not. This path needs only an
+    /// ERC-20 approval and an ordinary transaction, so an envelope can be sent
+    /// from any Starknet wallet.
+    ///
+    /// The trade is the funder's privacy, and only the funder's: the transfer
+    /// into this contract is a public one from a public address. Everything
+    /// else an envelope does is unchanged, including the claim link, the
+    /// time lock, the refund, and the fact that a claim cannot be front-run.
+    /// A recipient claiming into the pool is still unobservable.
+    fn fund_public(
+        ref self: TState,
+        claim_pubkey: felt252,
+        token: ContractAddress,
+        amount: u128,
+        refund_pubkey: felt252,
+        unlock_at: u64,
+        expiry: u64,
+        memo: felt252,
+    );
+
     /// Release an envelope as an ordinary public ERC-20 transfer.
     ///
     /// This is the path for a recipient who has never touched the privacy pool:
@@ -215,6 +239,28 @@ pub mod EnvelopeAnonymizer {
                 EnvelopeOp::Claim => self.release_to_note(pool, claim_pubkey, note_id, sig_r, sig_s),
                 EnvelopeOp::Refund => self.refund_to_note(pool, claim_pubkey, note_id, sig_r, sig_s),
             }
+        }
+
+        fn fund_public(
+            ref self: ContractState,
+            claim_pubkey: felt252,
+            token: ContractAddress,
+            amount: u128,
+            refund_pubkey: felt252,
+            unlock_at: u64,
+            expiry: u64,
+            memo: felt252,
+        ) {
+            assert(token.is_non_zero(), errors::ZERO_TOKEN);
+            assert(amount.is_non_zero(), errors::ZERO_AMOUNT);
+
+            // Pull the funder's tokens in first, so the solvency check in
+            // `fund` sees them exactly as it sees the pool's withdrawal.
+            let ok = IErc20Dispatcher { contract_address: token }
+                .transfer_from(get_caller_address(), get_contract_address(), amount.into());
+            assert(ok, errors::TRANSFER_FAILED);
+
+            self.fund(claim_pubkey, token, amount, refund_pubkey, unlock_at, expiry, memo);
         }
 
         fn claim_to_address(

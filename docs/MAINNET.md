@@ -16,8 +16,9 @@ memory.
 
 | Network | | |
 |---|---|---|
-| Sepolia | Class hash | `0x3be9a8abdbb16514d2ba2220098e256e3c5589b0b3288977a4f74d761ea6819` |
-| Sepolia | Contract | [`0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604`](https://sepolia.starkscan.co/contract/0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604) |
+| Sepolia | Class hash | `0x3e66d5a37c26b61535da41b6a5878f327ce0a2f148570e2b263095e6ee9f4d5` |
+| Sepolia | Contract | [`0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211`](https://sepolia.starkscan.co/contract/0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211) |
+| Sepolia | Previous, pool route only | `0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604` |
 | Mainnet | | Not yet deployed |
 
 Verified after deployment:

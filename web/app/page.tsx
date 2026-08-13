@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   buildFundActions,
+  buildPublicFundCalls,
   buildShieldActions,
   felt,
   feltTokens,
@@ -29,6 +30,8 @@ interface SealedEnvelope {
   refund: EnvelopeKeyPair;
   amount: bigint;
   transactionHash: string;
+  /** Whether the pool hid the funder, or the funding leg was public. */
+  private: boolean;
 }
 
 export default function CreatePage() {
@@ -149,7 +152,7 @@ export default function CreatePage() {
       }
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
-      setSealed({ claim, refund, amount, transactionHash: transaction_hash });
+      setSealed({ claim, refund, amount, transactionHash: transaction_hash, private: true });
       void refreshBalance();
     } catch (cause) {
       // The wallet's own wording is rarely actionable, so it is translated and
@@ -272,21 +275,20 @@ export default function CreatePage() {
           ) : null}
 
           {address && !supportsStrk20 ? (
-            <Callout tone="warn" title={`${walletName || "This wallet"} cannot do STRK20`}>
+            <Callout tone="warn" title="Funding publicly">
               <p>
-                Shielding and sealing are served by the wallet, and this one does not
-                implement them. <strong>Ready</strong> is the wallet with STRK20
-                privacy live. Braavos and Xverse do not expose it to dapps yet.
+                {walletName || "This wallet"} does not serve the STRK20 methods, so the
+                pool cannot hide who funded this. The envelope still works: the claim
+                link, the expiry, the refund and the guarantee that a claim cannot be
+                front-run are unchanged, and whoever claims it into a shielded balance
+                is still unobservable. Only <strong>your</strong> address is public on
+                the funding leg.
               </p>
               {strk20Reason ? (
                 <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
                   {walletName || "Wallet"} said: {strk20Reason}
                 </p>
               ) : null}
-              <p className="mt-2">
-                This wallet can still <a href="/claim">claim an envelope</a> to a public
-                address.
-              </p>
             </Callout>
           ) : null}
 
@@ -347,9 +349,7 @@ export default function CreatePage() {
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={seal}
-              disabled={
-                !address || !supportsStrk20 || notDeployed || busy !== "" || !funded
-              }
+              disabled={!address || notDeployed || busy !== "" || !funded}
             >
               {busy === "sealing" ? "Sealing…" : "Seal envelope"}
             </Button>

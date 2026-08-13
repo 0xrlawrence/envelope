@@ -149,6 +149,66 @@ export function feltTokens(tokens: string[]): string[] {
   return tokens.map(felt);
 }
 
+/** An ordinary Starknet call, as `account.execute` takes them. */
+export interface Call {
+  contractAddress: string;
+  entrypoint: string;
+  calldata: string[];
+}
+
+/**
+ * Seal an envelope without the pool, from any Starknet wallet.
+ *
+ * The pool route hides the funder, and needs a wallet that implements the
+ * STRK20 methods. Most wallets do not, which leaves the whole product
+ * unreachable for the people most likely to want it. These two calls need
+ * nothing but an ERC-20 approval, so an envelope can be sent from any wallet
+ * at all.
+ *
+ * What is given up is the funder's privacy, and only the funder's. The claim
+ * link, the time lock, the refund and the guarantee that a claim cannot be
+ * front-run are all unchanged, and a recipient claiming into the pool is still
+ * unobservable.
+ */
+export function buildPublicFundCalls({
+  anonymizer,
+  token,
+  amount,
+  claimPublicKey,
+  refundPublicKey = "0x0",
+  unlockAt = 0,
+  expiry = 0,
+  memo = "",
+}: Omit<FundEnvelopeParams, "fundFrom">): Call[] {
+  if (amount <= 0n) throw new Error("Envelope amount must be positive.");
+  if (expiry !== 0 && refundPublicKey === "0x0") {
+    throw new Error(
+      "An expiring envelope needs a refund key, or its value strands on expiry.",
+    );
+  }
+
+  return [
+    {
+      contractAddress: felt(token),
+      entrypoint: "approve",
+      calldata: [felt(anonymizer), felt(amount), "0x0"],
+    },
+    {
+      contractAddress: felt(anonymizer),
+      entrypoint: "fund_public",
+      calldata: [
+        felt(claimPublicKey),
+        felt(token),
+        felt(amount),
+        felt(refundPublicKey),
+        felt(unlockAt),
+        felt(expiry),
+        memo ? felt(shortString.encodeShortString(memo)) : "0x0",
+      ],
+    },
+  ];
+}
+
 export interface ClaimToNoteParams extends AnonymizerTarget {
   /** The claim key from the link. Stays in the claimant's browser. */
   claimPrivateKey: string;
