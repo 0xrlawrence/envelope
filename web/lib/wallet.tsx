@@ -24,6 +24,10 @@ interface WalletState {
   specs: string[];
   /** Whether STRK20 actions actually work, confirmed rather than advertised. */
   strk20: boolean;
+  /** What the wallet said when STRK20 was probed, if it objected. */
+  strk20Reason: string;
+  /** Display name of the connected wallet. */
+  walletName: string;
   connecting: boolean;
   error: string;
 }
@@ -47,6 +51,8 @@ const INITIAL: WalletState = {
   network: NETWORKS.sepolia,
   specs: [],
   strk20: false,
+  strk20Reason: "",
+  walletName: "",
   connecting: false,
   error: "",
 };
@@ -102,9 +108,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // the method. Anything else it might complain about, an unregistered
       // viewing key or an empty balance, still means STRK20 is there.
       let strk20 = true;
+      let strk20Reason = "";
       try {
         await account.strk20Balances([]);
       } catch (probe) {
+        strk20Reason =
+          probe instanceof Error ? probe.message : String(probe ?? "unknown error");
         if (looksUnimplemented(probe)) strk20 = false;
         else console.debug("[envelope] STRK20 probe returned", probe);
       }
@@ -116,6 +125,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         network,
         specs,
         strk20,
+        strk20Reason,
+        walletName: wallet.name,
         connecting: false,
       }));
     } catch (error) {
@@ -153,7 +164,11 @@ export function looksUnimplemented(error: unknown): boolean {
   const message =
     error instanceof Error ? error.message : typeof error === "string" ? error : "";
   const code = (error as { code?: unknown })?.code;
-  return /not implemented|unsupported|unknown method/i.test(message) || code === 163;
+  return (
+    /not implemented|not_implemented|method not found|unknown method|unsupported method|does not support/i.test(
+      message,
+    ) || code === -32601
+  );
 }
 
 export function useWallet(): WalletContextValue {

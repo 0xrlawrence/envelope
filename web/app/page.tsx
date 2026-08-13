@@ -27,7 +27,8 @@ interface SealedEnvelope {
 }
 
 export default function CreatePage() {
-  const { account, address, network, supportsStrk20 } = useWallet();
+  const { account, address, network, supportsStrk20, strk20Reason, walletName } =
+    useWallet();
 
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
   const [expirySeconds, setExpirySeconds] = useState(EXPIRY_CHOICES[2]!.seconds);
@@ -210,10 +211,21 @@ export default function CreatePage() {
           ) : null}
 
           {address && !supportsStrk20 ? (
-            <Callout tone="warn" title="Wallet cannot do STRK20">
-              This wallet does not serve the STRK20 methods, so it cannot shield or
-              seal. Ready has privacy live on mainnet. It can still{" "}
-              <a href="/claim">claim an envelope</a> to a public address.
+            <Callout tone="warn" title={`${walletName || "This wallet"} cannot do STRK20`}>
+              <p>
+                Shielding and sealing are served by the wallet, and this one does not
+                implement them. <strong>Ready</strong> is the wallet with STRK20
+                privacy live. Braavos and Xverse do not expose it to dapps yet.
+              </p>
+              {strk20Reason ? (
+                <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
+                  {walletName || "Wallet"} said: {strk20Reason}
+                </p>
+              ) : null}
+              <p className="mt-2">
+                This wallet can still <a href="/claim">claim an envelope</a> to a public
+                address.
+              </p>
             </Callout>
           ) : null}
 
