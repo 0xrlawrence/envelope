@@ -113,16 +113,16 @@ export default function CreatePage() {
   const short = shieldedBalance !== null && shieldedBalance < amount;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center">
       <div className="order-2 lg:sticky lg:top-10 lg:order-first">
         <EnvelopeCard
           amount={denomination.toString()}
           symbol={STRK.symbol}
           reference={memo || undefined}
-          caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents: into their own shielded balance, or to any address."
+          caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents."
         />
 
-        <dl className="mt-8 space-y-3 text-sm">
+        <dl className="mt-[clamp(1rem,4vh,2.5rem)] space-y-[clamp(0.35rem,1.8vh,0.9rem)] text-sm">
           <HiddenRow hidden>Who funded it</HiddenRow>
           <HiddenRow hidden>Who claims it, if they claim privately</HiddenRow>
           <HiddenRow>The amount, on both legs</HiddenRow>
@@ -131,16 +131,16 @@ export default function CreatePage() {
       </div>
 
       <div className="order-1">
-        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em] text-balance">
+        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em] text-balance">
           Private money you can send as a link.
         </h1>
-        <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[62ch] text-[var(--paper-dim)]">
           A STRK20 private transfer needs a registered recipient. An envelope does not.
           It pays someone who has never touched Starknet, and the pool still hides who
           paid.
         </p>
 
-        <div className="mt-10">
+        <div className="mt-[clamp(0.75rem,3vh,2rem)]">
           <Field label="Amount" hint="Round sizes share a crowd">
             <div className="grid grid-cols-5 gap-2">
               {DENOMINATIONS.map((value) => (
@@ -188,11 +188,10 @@ export default function CreatePage() {
           </Field>
         </div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-[clamp(0.75rem,3vh,2rem)] space-y-[clamp(0.4rem,1.8vh,1rem)]">
           {!address ? (
             <Callout title="Not connected">
-              Connect a STRK20-capable wallet to seal an envelope. Ready has privacy live
-              on mainnet.
+              Connect a STRK20 wallet, such as Ready, to seal an envelope.
             </Callout>
           ) : null}
 
@@ -249,7 +248,7 @@ export default function CreatePage() {
 
 function HiddenRow({ children, hidden = false }: { children: string; hidden?: boolean }) {
   return (
-    <div className="flex items-baseline gap-3 border-b border-dotted border-[var(--ink-line)] pb-3">
+    <div className="flex items-baseline gap-3 border-b border-dotted border-[var(--ink-line)] pb-[clamp(0.35rem,1.8vh,0.9rem)]">
       <span
         className="font-display text-xs font-semibold tracking-[0.2em] uppercase"
         style={{ color: hidden ? "var(--frank)" : "var(--paper-faint)" }}
@@ -272,20 +271,20 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
     : "";
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-12 px-6 py-14 lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto w-full grid max-w-5xl gap-[clamp(1.5rem,3.6vh,2.5rem)] px-6 py-[clamp(0.75rem,2.2vh,2rem)] lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
       <div className="animate-flap">
         <EnvelopeCard amount={formatAmount(sealed.amount)} symbol={STRK.symbol} sealed />
       </div>
 
       <div>
-        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">Hand it over.</h1>
-        <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">Hand it over.</h1>
+        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[62ch] text-[var(--paper-dim)]">
           The key lives in the part of the URL after the <Mono>#</Mono>, which browsers
           never send to a server. It has not reached ours, and it will not reach the
           recipient&rsquo;s either.
         </p>
 
-        <div className="mt-8 space-y-6">
+        <div className="mt-6 space-y-4">
           <LinkBlock
             label="Claim link"
             hint="Anyone holding this can take the contents. Send it the way you would send cash."
@@ -298,7 +297,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           />
         </div>
 
-        <div className="mt-8 border-t border-[var(--ink-line)] pt-6">
+        <div className="mt-6 border-t border-[var(--ink-line)] pt-4">
           <Eyebrow>Funding transaction</Eyebrow>
           <div className="mt-2">
             <ExplorerLink explorer={network.explorer} kind="tx" value={sealed.transactionHash}>
@@ -307,7 +306,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-6">
           <Button variant="outline" onClick={onReset}>
             Seal another
           </Button>

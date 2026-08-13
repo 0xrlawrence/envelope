@@ -7,7 +7,7 @@ export function SiteHeader() {
   return (
     <header className="border-b border-[var(--ink-line)]">
       <div className="airmail-edge h-1.5" />
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-[clamp(0.6rem,1.7vh,1.15rem)]">
         <Link href="/" className="group flex items-baseline gap-3">
           <span className="font-display text-xl font-bold tracking-[0.22em] uppercase">
             Envelope

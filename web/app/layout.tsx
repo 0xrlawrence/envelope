@@ -36,11 +36,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={`${condensed.variable} ${sans.variable} ${mono.variable} antialiased`}>
         <WalletProvider>
           <SecurityField />
-          <div className="min-h-dvh">
+          <div className="flex min-h-dvh flex-col">
             <SiteHeader />
-            <main>{children}</main>
-            <footer className="mt-24 border-t border-[var(--ink-line)]">
-              <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between">
+            <main className="flex flex-1 items-center">{children}</main>
+            <footer className="border-t border-[var(--ink-line)]">
+              <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-[clamp(0.6rem,1.7vh,1.25rem)] text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between">
                 <p>
                   Unaudited. It moves real money on mainnet. Read it before you trust it.
                 </p>

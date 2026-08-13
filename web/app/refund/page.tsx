@@ -82,7 +82,7 @@ export default function RefundPage() {
 
   if (!refundKey && !loading) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20">
+      <div className="mx-auto max-w-2xl px-6 py-14">
         <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">
           Nothing to return.
         </h1>
@@ -96,7 +96,7 @@ export default function RefundPage() {
 
   if (transactionHash) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20">
+      <div className="mx-auto max-w-2xl px-6 py-14">
         <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">
           Returned to sender.
         </h1>
@@ -115,14 +115,14 @@ export default function RefundPage() {
 
   if (loading || !envelope) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20">
+      <div className="mx-auto max-w-2xl px-6 py-14">
         <p className="text-sm text-[var(--paper-faint)]">Reading the envelope…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-12 px-6 py-14 lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto grid max-w-5xl gap-8 px-6 py-4 lg:grid-cols-[1fr_1fr] lg:items-start">
       <EnvelopeCard
         amount={formatAmount(envelope.amount)}
         symbol={STRK.symbol}

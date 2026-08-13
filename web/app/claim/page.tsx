@@ -190,7 +190,7 @@ export default function ClaimPage() {
   const reference = decodeMemo(envelope.memo);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
       <div className="order-2 lg:order-first lg:sticky lg:top-10">
         <EnvelopeCard
           amount={formatAmount(envelope.amount)}
@@ -215,18 +215,18 @@ export default function ClaimPage() {
         </h1>
 
         {spent ? (
-          <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+          <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
             This envelope has been settled. An envelope releases exactly once, which is
             what makes the link safe to send over a channel you do not control.
           </p>
         ) : (
           <>
-            <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
               Whoever funded this stays hidden either way. What changes between the two
               routes below is what becomes public about <em>you</em>.
             </p>
 
-            <div className="mt-8 space-y-3">
+            <div className="mt-5 space-y-2">
               {!envelope.claimable && envelope.unlockAt > Date.now() / 1000 ? (
                 <Callout tone="warn" title="Not open yet">
                   Time-locked until {formatDeadline(envelope.unlockAt)}.
@@ -247,7 +247,7 @@ export default function ClaimPage() {
             </div>
 
             {!address ? (
-              <div className="mt-8 flex flex-wrap items-center gap-4">
+              <div className="mt-5 flex flex-wrap items-center gap-4">
                 <ConnectButton />
                 <p className="text-sm text-[var(--paper-faint)]">
                   Any Starknet wallet works for the public route.
@@ -255,7 +255,7 @@ export default function ClaimPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 grid gap-3">
+            <div className="mt-4 grid gap-3">
               <ClaimRoute
                 title="Into a shielded balance"
                 reveals="Nothing. No observer learns who claimed it."
@@ -318,7 +318,7 @@ function ClaimRoute({
 }) {
   return (
     <div
-      className={`border p-5 transition-colors duration-150 ${
+      className={`border p-4 transition-colors duration-150 ${
         preferred
           ? "border-[var(--frank)]/40 bg-[var(--ink-raised)]"
           : "border-[var(--ink-line)]"
@@ -329,7 +329,7 @@ function ClaimRoute({
         {preferred ? <p className="field-label !text-[var(--frank)]">Recommended</p> : null}
       </div>
 
-      <dl className="mt-3 space-y-1.5 text-sm">
+      <dl className="mt-2.5 space-y-1 text-sm">
         <div className="flex gap-3">
           <dt className="field-label w-24 shrink-0 pt-0.5">Reveals</dt>
           <dd className="text-[var(--paper-dim)]">{reveals}</dd>
@@ -340,7 +340,7 @@ function ClaimRoute({
         </div>
       </dl>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button
           variant={preferred ? "frank" : "outline"}
           onClick={onClick}

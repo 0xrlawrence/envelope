@@ -32,7 +32,7 @@ export function EnvelopeCard({
     <div className="relative border border-[var(--ink-line)] bg-[var(--ink)]">
       <div className="airmail-edge h-2" />
 
-      <div className="security-tint relative px-7 pt-9 pb-7">
+      <div className="security-tint relative px-7 pt-[clamp(1rem,4vh,2.75rem)] pb-[clamp(0.9rem,3.2vh,2.25rem)]">
         {/* The flap seam, folded down over the top of the interior. */}
         <div
           aria-hidden
@@ -47,7 +47,7 @@ export function EnvelopeCard({
 
         <div className="relative">
           <p className="field-label">Contents</p>
-          <p className="mt-2 font-display text-6xl leading-none font-bold tracking-[-0.03em] tabular-nums">
+          <p className="mt-2 font-display text-[clamp(2.25rem,6.4vh,4.25rem)] leading-none font-bold tracking-[-0.03em] tabular-nums">
             {amount}
             <span className="ml-3 align-baseline font-display text-lg font-semibold tracking-[0.18em] text-[var(--paper-dim)]">
               {symbol}
@@ -61,10 +61,10 @@ export function EnvelopeCard({
 
         {/* The address block. On a real envelope this is the only part anyone
             reads, and here it is the whole point: it is addressed to no one. */}
-        <div className="relative mt-10 flex items-end justify-between gap-6 border-t border-dashed border-[var(--ink-line)] pt-5">
+        <div className="relative mt-[clamp(1rem,4.2vh,2.5rem)] flex items-end justify-between gap-6 border-t border-dashed border-[var(--ink-line)] pt-[clamp(0.6rem,1.5vh,1rem)]">
           <div className="min-w-0">
             <p className="field-label">Addressed to</p>
-            <p className="mt-1.5 font-display text-2xl font-semibold tracking-[0.04em] uppercase">
+            <p className="mt-1.5 font-display text-[clamp(1.15rem,2.7vh,1.5rem)] font-semibold tracking-[0.04em] uppercase">
               {addressee}
             </p>
             {reference ? (
@@ -76,7 +76,7 @@ export function EnvelopeCard({
 
           {sealed ? (
             <div
-              className="animate-strike flex h-24 w-24 shrink-0 -rotate-[9deg] items-center justify-center rounded-full border-[3px] font-display text-[0.7rem] leading-tight font-bold tracking-[0.12em] uppercase"
+              className="animate-strike flex h-[clamp(3.25rem,7vh,5rem)] w-[clamp(3.25rem,7vh,5rem)] shrink-0 -rotate-[9deg] items-center justify-center rounded-full border-[3px] font-display text-[0.7rem] leading-tight font-bold tracking-[0.12em] uppercase"
               style={{ borderColor: "var(--seal)", color: "var(--seal)" }}
             >
               <span className="text-center">

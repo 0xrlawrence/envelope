@@ -20,7 +20,7 @@ export function Field({
   hint?: string;
 }) {
   return (
-    <div className="grid gap-2 border-b border-dotted border-[var(--ink-line)] py-4 sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6">
+    <div className="grid gap-2 border-b border-dotted border-[var(--ink-line)] py-[clamp(0.4rem,2.2vh,1.25rem)] sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6">
       <div>
         <Eyebrow>{label}</Eyebrow>
         {hint ? <p className="mt-1 text-xs text-[var(--paper-faint)]">{hint}</p> : null}
@@ -50,7 +50,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function Button({ variant = "frank", className = "", ...props }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center gap-2 px-5 py-3 font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
+    "inline-flex items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
 
   const variants = {
     frank:
@@ -79,7 +79,7 @@ export function Callout({
   }[tone];
 
   return (
-    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-4 py-3 text-sm`}>
+    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-4 py-[clamp(0.45rem,1.4vh,0.75rem)] text-sm`}>
       {title ? (
         <p className="field-label mb-1 !text-[var(--paper-dim)]">{title}</p>
       ) : null}
