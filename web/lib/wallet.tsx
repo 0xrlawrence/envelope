@@ -39,27 +39,6 @@ interface WalletContextValue extends WalletState {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
-/** STRK20 landed in Wallet API 0.10.3. */
-const STRK20_SPEC = [0, 10, 3] as const;
-
-/**
- * Compare dotted versions numerically.
- *
- * The obvious `spec >= "0.10.3"` is wrong and fails open, which is the worst
- * direction: string comparison puts "0.9.0" above "0.10.3" because "9" sorts
- * after "1", so a wallet with no STRK20 support passes the check, the action
- * is offered, and the wallet answers "Not implemented" only once the user has
- * committed to it.
- */
-function meetsSpec(spec: string, minimum: readonly number[]): boolean {
-  const parts = spec.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let index = 0; index < minimum.length; index += 1) {
-    const found = parts[index] ?? 0;
-    const required = minimum[index] ?? 0;
-    if (found !== required) return found > required;
-  }
-  return true;
-}
 
 const INITIAL: WalletState = {
   wallets: [],
@@ -111,17 +90,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       const specs = (await walletV6.supportedSpecs(wallet)) as string[];
 
-      // The reported spec list is a claim; this is the fact. Wallets have been
-      // known to advertise a version whose methods they do not actually serve,
-      // so the capability is confirmed against a harmless read before any
-      // STRK20 action is offered.
-      let strk20 = specs.some((spec) => meetsSpec(spec, STRK20_SPEC));
-      if (strk20) {
-        try {
-          await account.strk20Balances([]);
-        } catch (probe) {
-          if (looksUnimplemented(probe)) strk20 = false;
-        }
+      // `wallet_supportedSpecs` reports supported Starknet JSON-RPC versions
+      // (0.7, 0.8, ...), not Wallet API versions, so it cannot say whether
+      // STRK20 exists. Reading it as a Wallet API version is why this check has
+      // been wrong in both directions: compared as strings it let every wallet
+      // through and failed at signing time, and compared numerically it locked
+      // every wallet out, including ones that do support STRK20.
+      //
+      // The only reliable answer is to call a STRK20 method and see. Assume
+      // support, and withdraw it only when the wallet says it does not serve
+      // the method. Anything else it might complain about, an unregistered
+      // viewing key or an empty balance, still means STRK20 is there.
+      let strk20 = true;
+      try {
+        await account.strk20Balances([]);
+      } catch (probe) {
+        if (looksUnimplemented(probe)) strk20 = false;
+        else console.debug("[envelope] STRK20 probe returned", probe);
       }
 
       setState((previous) => ({

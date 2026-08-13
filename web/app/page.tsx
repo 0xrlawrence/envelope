@@ -211,8 +211,9 @@ export default function CreatePage() {
 
           {address && !supportsStrk20 ? (
             <Callout tone="warn" title="Wallet cannot do STRK20">
-              This wallet does not report Wallet API 0.10.3, so it cannot shield or seal.
-              It can still <a href="/claim">claim an envelope</a> to a public address.
+              This wallet does not serve the STRK20 methods, so it cannot shield or
+              seal. Ready has privacy live on mainnet. It can still{" "}
+              <a href="/claim">claim an envelope</a> to a public address.
             </Callout>
           ) : null}
 
