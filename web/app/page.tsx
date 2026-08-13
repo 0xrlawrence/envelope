@@ -17,7 +17,7 @@ import {
   formatAmount,
   toSmallestUnit,
 } from "@/lib/config";
-import { useWallet } from "@/lib/wallet";
+import { looksUnimplemented, useWallet } from "@/lib/wallet";
 
 interface SealedEnvelope {
   claim: EnvelopeKeyPair;
@@ -68,7 +68,13 @@ export default function CreatePage() {
       ]);
       await refreshBalance();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Shielding failed.");
+      setError(
+        looksUnimplemented(cause)
+          ? "This wallet does not serve the STRK20 methods, so it cannot shield."
+          : cause instanceof Error
+            ? cause.message
+            : "Shielding failed.",
+      );
     } finally {
       setBusy("");
     }
@@ -99,7 +105,15 @@ export default function CreatePage() {
       setSealed({ claim, refund, amount, transactionHash: transaction_hash });
       void refreshBalance();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Sealing failed.");
+      // "Not implemented" comes from the wallet, not from us, and on its own it
+      // tells the user nothing they can act on.
+      setError(
+        looksUnimplemented(cause)
+          ? "This wallet does not serve the STRK20 methods, so it cannot seal an envelope. Ready has privacy live on mainnet; the claim page still works with any Starknet wallet."
+          : cause instanceof Error
+            ? cause.message
+            : "Sealing failed.",
+      );
     } finally {
       setBusy("");
     }
