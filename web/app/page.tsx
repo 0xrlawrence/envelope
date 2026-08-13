@@ -301,6 +301,20 @@ export default function CreatePage() {
             </Callout>
           ) : null}
 
+          {error && network.id === "sepolia" ? (
+            <Callout tone="warn" title="This may be the network, not you">
+              Both privacy wallets are documented as having in-wallet privacy live{" "}
+              <strong>on mainnet</strong>. The pool is deployed on Sepolia, but the
+              wallet also needs its prover and the mandatory deposit screening wired up
+              for the network, and a failure there arrives as a generic error like the
+              one below. To tell that apart from a bug in this app, try shielding in the{" "}
+              <a href="https://strk20.starknet.io/app" target="_blank" rel="noreferrer">
+                official STRK20 app
+              </a>{" "}
+              with the same wallet. If that fails too, it is not this app.
+            </Callout>
+          ) : null}
+
           {error ? (
             <Callout tone="bad" title="Failed">
               <p>{error}</p>
