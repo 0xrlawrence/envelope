@@ -11,6 +11,7 @@ import {
   generateEnvelopeKey,
   type EnvelopeKeyPair,
 } from "strk20-envelope";
+import { Diagnose } from "@/components/Diagnose";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
@@ -330,6 +331,15 @@ export default function CreatePage() {
                 <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
                   Wallet said: {errorDetail}
                 </p>
+              ) : null}
+              {account && address ? (
+                <Diagnose
+                  account={account}
+                  address={address}
+                  anonymizer={network.anonymizer}
+                  token={STRK.address}
+                  amount={amount}
+                />
               ) : null}
             </Callout>
           ) : null}
