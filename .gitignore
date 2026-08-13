@@ -11,3 +11,8 @@ cairo/target/
 .vercel
 .agents/
 .next/
+
+# Design reference kits dropped into the tree. Large binaries, and not
+# something a build or a reader needs.
+Dark_Materials*/
+*.fig

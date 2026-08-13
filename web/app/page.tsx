@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   buildFundActions,
   encodeClaimLink,
@@ -9,10 +9,6 @@ import {
   type EnvelopeKeyPair,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
-import {
-  EnvelopeStage,
-  type EnvelopeStageHandle,
-} from "@/components/EnvelopeStage";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
   DENOMINATIONS,
@@ -37,7 +33,6 @@ export default function CreatePage() {
   const [expirySeconds, setExpirySeconds] = useState(EXPIRY_CHOICES[2]!.seconds);
   const [memo, setMemo] = useState("");
 
-  const stageRef = useRef<EnvelopeStageHandle | null>(null);
   const [shieldedBalance, setShieldedBalance] = useState<bigint | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   const [error, setError] = useState("");
@@ -101,12 +96,6 @@ export default function CreatePage() {
       });
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
-
-      // Strike the seal before the links appear. The envelope closing is the
-      // acknowledgement that the money has moved; showing the links first would
-      // make the animation a decoration played over an already finished job.
-      await stageRef.current?.seal();
-
       setSealed({ claim, refund, amount, transactionHash: transaction_hash });
       void refreshBalance();
     } catch (cause) {
@@ -126,8 +115,7 @@ export default function CreatePage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
       <div className="order-2 lg:sticky lg:top-10 lg:order-first">
-        <EnvelopeStage
-          handleRef={stageRef}
+        <EnvelopeCard
           amount={denomination.toString()}
           symbol={STRK.symbol}
           reference={memo || undefined}
