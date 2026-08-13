@@ -76,14 +76,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(async (wallet: WalletWithStarknetFeatures) => {
     setState((previous) => ({ ...previous, connecting: true, error: "" }));
     try {
-      const chainId = (await walletV6.requestChainId(wallet)) as string;
-      const network = networkForChainId(chainId);
-
-      const account = await WalletAccountV6.connect(
-        new RpcProvider({ nodeUrl: network.rpcUrl }),
-        wallet,
-      );
-
+      // Order matters, and it is not obvious. Ready and Argent X answer almost
+      // nothing until the dapp is authorised, and authorisation is what
+      // `wallet_requestAccounts` asks for. Leading with any other call, even
+      // one as innocuous as asking which chain we are on, is refused with
+      // "Not preauthorized" before the user is ever shown a prompt.
       const accounts = await walletV6.requestAccounts(wallet);
       if (!Array.isArray(accounts) || accounts.length === 0) {
         throw new Error("This wallet did not return an account.");
@@ -94,19 +91,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new Error("Account access was declined.");
       }
 
+      // Only now is the wallet willing to talk, so the chain can be read and
+      // the account built against the matching provider.
+      const chainId = (await walletV6.requestChainId(wallet)) as string;
+      const network = networkForChainId(chainId);
+
+      const account = await WalletAccountV6.connect(
+        new RpcProvider({ nodeUrl: network.rpcUrl }),
+        wallet,
+      );
+
       const specs = (await walletV6.supportedSpecs(wallet)) as string[];
 
       // `wallet_supportedSpecs` reports supported Starknet JSON-RPC versions
       // (0.7, 0.8, ...), not Wallet API versions, so it cannot say whether
-      // STRK20 exists. Reading it as a Wallet API version is why this check has
-      // been wrong in both directions: compared as strings it let every wallet
-      // through and failed at signing time, and compared numerically it locked
-      // every wallet out, including ones that do support STRK20.
-      //
-      // The only reliable answer is to call a STRK20 method and see. Assume
-      // support, and withdraw it only when the wallet says it does not serve
-      // the method. Anything else it might complain about, an unregistered
-      // viewing key or an empty balance, still means STRK20 is there.
+      // STRK20 exists. The only reliable answer is to call a STRK20 method and
+      // see. Assume support, and withdraw it only when the wallet says it does
+      // not serve the method; an unregistered viewing key or an empty balance
+      // still means STRK20 is there.
       let strk20 = true;
       let strk20Reason = "";
       try {
@@ -133,7 +135,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setState((previous) => ({
         ...previous,
         connecting: false,
-        error: error instanceof Error ? error.message : "Could not connect to that wallet.",
+        error: describeConnectFailure(error),
       }));
     }
   }, []);
@@ -157,6 +159,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+/** Turn a wallet's connection refusal into something actionable. */
+function describeConnectFailure(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  if (/preauthor/i.test(message)) {
+    return "The wallet refused before prompting. Unlock it, then try again; if it still refuses, remove this site from the wallet's connected dapps and reconnect.";
+  }
+  if (/reject|refused|denied|declined/i.test(message)) {
+    return "Connection was declined in the wallet.";
+  }
+  return message || "Could not connect to that wallet.";
 }
 
 /** Recognise a wallet saying it does not serve a method. */
