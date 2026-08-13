@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
 import type { ReactNode } from "react";
+import { SecurityField } from "@/components/SecurityField";
 import { SiteHeader } from "@/components/SiteHeader";
 import { WalletProvider } from "@/lib/wallet";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className={`${condensed.variable} ${sans.variable} ${mono.variable} antialiased`}>
         <WalletProvider>
+          <SecurityField />
           <div className="min-h-dvh">
             <SiteHeader />
             <main>{children}</main>
