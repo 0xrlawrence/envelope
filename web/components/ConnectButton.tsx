@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { shortHex } from "@/lib/config";
 import { useWallet } from "@/lib/wallet";
 import { Button } from "./ui";
@@ -8,6 +8,30 @@ import { Button } from "./ui";
 export function ConnectButton() {
   const { wallets, address, network, connect, disconnect, connecting, error } = useWallet();
   const [open, setOpen] = useState(false);
+  const [injected, setInjected] = useState<string[]>([]);
+
+  // Discovery only listens for `wallet-standard:register-wallet`. A wallet that
+  // still announces itself the old way, by hanging an object off `window`, is
+  // invisible to it and to the picker, which then looks broken rather than
+  // incomplete. Listing what is on `window` turns "nothing happened" into
+  // something diagnosable.
+  useEffect(() => {
+    if (!open) return;
+    const scan = () =>
+      setInjected(
+        Object.keys(window).filter((key) => key.toLowerCase().startsWith("starknet")),
+      );
+    scan();
+    // Extensions commonly inject only after the user unlocks them.
+    const timer = setInterval(scan, 1000);
+    return () => clearInterval(timer);
+  }, [open]);
+
+  const standardNames = new Set(wallets.map((w) => w.name.toLowerCase()));
+  const unbridged = injected.filter((key) => {
+    const name = key.replace(/^starknet_?/i, "").toLowerCase();
+    return name && !standardNames.has(name) && name !== "";
+  });
 
   // Braavos is filtered out of the starter kit's picker; here every detected
   // wallet is offered and the STRK20 capability check happens after connecting,
@@ -54,7 +78,7 @@ export function ConnectButton() {
               <div className="mt-4 grid gap-2">
                 {pickable.length === 0 ? (
                   <p className="text-sm text-[var(--paper-dim)]">
-                    No Starknet wallet detected. Install{" "}
+                    No Starknet wallet announced itself.{" "}
                     <a
                       className="text-[var(--frank)] underline"
                       href="https://www.ready.co/"
@@ -63,7 +87,9 @@ export function ConnectButton() {
                     >
                       Ready
                     </a>{" "}
-                    is the wallet with STRK20 privacy live on mainnet.
+                    is the wallet with STRK20 privacy live. If it is installed, unlock
+                    it and reopen this list, since extensions usually inject only once
+                    unlocked.
                   </p>
                 ) : null}
 
@@ -87,6 +113,19 @@ export function ConnectButton() {
               </div>
 
               {error ? <p className="mt-4 text-sm text-[var(--seal)]">{error}</p> : null}
+
+              <div className="mt-4 border-t border-[var(--ink-line)] pt-3">
+                <p className="font-mono text-[0.65rem] tracking-widest text-[var(--paper-faint)] uppercase">
+                  {pickable.length} announced
+                  {injected.length ? ` · ${injected.length} on window` : ""}
+                </p>
+                {unbridged.length ? (
+                  <p className="mt-1.5 font-mono text-[0.65rem] break-all text-[var(--paper-faint)]">
+                    Present but not announcing itself the modern way, so it cannot be
+                    connected here: {unbridged.join(", ")}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
