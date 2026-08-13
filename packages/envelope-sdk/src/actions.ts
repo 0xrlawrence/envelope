@@ -48,6 +48,20 @@ export interface FundEnvelopeParams extends AnonymizerTarget {
   expiry?: number;
   /** Short string (≤31 chars) echoed in the funding event. */
   memo?: string;
+  /**
+   * Where the value comes from.
+   *
+   * `shielded` spends a note that is already in the pool. `wallet` prepends a
+   * deposit, so public tokens are shielded and sealed in the same transaction.
+   *
+   * The second is possible because a STRK20 transaction is a batch of actions
+   * running in a fixed phase order, and deposit, withdraw and invoke fall in
+   * that order already. It matters for more than convenience: shielding as a
+   * separate transaction leaves a deposit sitting in the pool, visibly yours,
+   * until the next one. Folded in, the deposit and the envelope it funds are
+   * the same transaction, and there is no intermediate state to observe.
+   */
+  fundFrom?: "shielded" | "wallet";
 }
 
 /**
@@ -67,6 +81,7 @@ export function buildFundActions({
   unlockAt = 0,
   expiry = 0,
   memo = "",
+  fundFrom = "shielded",
 }: FundEnvelopeParams): WALLET_API.STRK20_ACTION[] {
   if (amount <= 0n) throw new Error("Envelope amount must be positive.");
   if (expiry !== 0 && refundPublicKey === "0x0") {
@@ -79,6 +94,11 @@ export function buildFundActions({
   }
 
   return [
+    // Phase 3. Only present when funding straight from the wallet.
+    ...(fundFrom === "wallet"
+      ? ([{ type: "deposit", token: felt(token), amount: felt(amount) }] as const)
+      : []),
+    // Phase 6.
     {
       type: "withdraw",
       token: felt(token),

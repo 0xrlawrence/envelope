@@ -123,6 +123,9 @@ export default function CreatePage() {
         anonymizer: network.anonymizer,
         token: STRK.address,
         amount,
+        // Spend a note if one is already there, otherwise shield and seal in
+        // the same transaction rather than making the user do it twice.
+        fundFrom: (shieldedBalance ?? 0n) >= amount ? "shielded" : "wallet",
         claimPublicKey: claim.publicKey,
         refundPublicKey: refund.publicKey,
         expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
@@ -153,8 +156,10 @@ export default function CreatePage() {
   }
 
   const notDeployed = network.anonymizer === "";
-  const shieldedShort = shieldedBalance === null || shieldedBalance < amount;
-  const canShield = publicBalance !== null && publicBalance >= amount;
+  const fromWallet = (shieldedBalance ?? 0n) < amount;
+  // Enough to seal, from wherever it has to come.
+  const funded =
+    (shieldedBalance ?? 0n) >= amount || (publicBalance !== null && publicBalance >= amount);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center">
@@ -274,11 +279,7 @@ export default function CreatePage() {
                   : `${formatAmount(publicBalance)} ${STRK.symbol}`}
               </dd>
               <dt className="field-label">Shielded in the pool</dt>
-              <dd
-                className={`text-right font-mono ${
-                  shieldedShort ? "text-[var(--frank)]" : "text-[var(--paper-dim)]"
-                }`}
-              >
+              <dd className="text-right font-mono text-[var(--paper-dim)]">
                 {shieldedBalance === null
                   ? "unreadable"
                   : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}
@@ -286,18 +287,13 @@ export default function CreatePage() {
             </dl>
           ) : null}
 
-          {address && supportsStrk20 && shieldedShort ? (
-            <Callout tone="warn" title="Nothing to seal yet">
-              An envelope is funded from your <strong>shielded</strong> balance, not
-              from your wallet balance. Shield at least {denomination.toString()}{" "}
-              {STRK.symbol} first.
-              {publicBalance !== null && !canShield ? (
-                <>
-                  {" "}
-                  This account holds {formatAmount(publicBalance)} {STRK.symbol}, so
-                  there is not enough to shield either. Fund it first.
-                </>
-              ) : null}
+          {address && supportsStrk20 && !funded ? (
+            <Callout tone="warn" title="Not enough to seal">
+              This account holds{" "}
+              {publicBalance === null ? "an unreadable balance" : `${formatAmount(publicBalance)} ${STRK.symbol}`}{" "}
+              and nothing shielded, so there is not enough for a{" "}
+              {denomination.toString()} {STRK.symbol} envelope. Choose a smaller
+              amount or fund the account.
             </Callout>
           ) : null}
 
@@ -330,29 +326,20 @@ export default function CreatePage() {
             <Button
               onClick={seal}
               disabled={
-                !address || !supportsStrk20 || notDeployed || busy !== "" || shieldedShort
+                !address || !supportsStrk20 || notDeployed || busy !== "" || !funded
               }
             >
               {busy === "sealing" ? "Sealing…" : "Seal envelope"}
             </Button>
-
-            {address && supportsStrk20 && shieldedShort ? (
-              <Button
-                variant="outline"
-                onClick={shield}
-                disabled={busy !== "" || !canShield}
-              >
-                {busy === "shielding"
-                  ? "Shielding…"
-                  : `Shield ${denomination.toString()} ${STRK.symbol}`}
-              </Button>
-            ) : null}
           </div>
 
           {busy === "sealing" ? (
             <p className="text-sm text-[var(--paper-dim)]">
-              Your wallet is proving the transaction. This takes around half a minute,
-              because a STARK proof is generated before anything is submitted.
+              {fromWallet
+                ? "Shielding and sealing in one transaction. "
+                : "Spending a shielded note. "}
+              Your wallet is proving it, which takes around half a minute, because a
+              STARK proof is generated before anything is submitted.
             </p>
           ) : null}
         </div>
