@@ -5,7 +5,7 @@ import { ec, encode } from "starknet";
  * holds it can release the envelope, and nobody else can.
  */
 export interface EnvelopeKeyPair {
-  /** Hex, 0x-prefixed. Never transmitted — see {@link encodeClaimLink}. */
+  /** Hex, 0x-prefixed. Never transmitted; see {@link encodeClaimLink}. */
   privateKey: string;
   /** Hex, 0x-prefixed. This is the envelope's on-chain identifier. */
   publicKey: string;

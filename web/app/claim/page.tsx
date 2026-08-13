@@ -10,9 +10,16 @@ import {
   toPublicKey,
   type EnvelopeState,
 } from "strk20-envelope";
+import { ConnectButton } from "@/components/ConnectButton";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Button, Callout, ExplorerLink, Mono } from "@/components/ui";
-import { STRK, formatAmount } from "@/lib/config";
+import {
+  STRK,
+  decodeMemo,
+  formatAmount,
+  formatDeadline,
+  timeRemaining,
+} from "@/lib/config";
 import { useWallet } from "@/lib/wallet";
 
 type Outcome = { kind: "private" | "public"; transactionHash: string };
@@ -156,7 +163,7 @@ export default function ClaimPage() {
         <p className="mt-4 text-[var(--paper-dim)]">
           {outcome.kind === "private"
             ? "The value landed as a private note. Nothing on-chain connects it to you."
-            : "Paid to your address. Whoever funded it is still hidden — but this payout is public."}
+            : "Paid to your address. Whoever funded it is still hidden, but this payout is public."}
         </p>
         <div className="mt-6">
           <ExplorerLink explorer={network.explorer} kind="tx" value={outcome.transactionHash}>
@@ -180,21 +187,25 @@ export default function ClaimPage() {
   }
 
   const spent = envelope.status === "claimed" || envelope.status === "refunded";
+  const reference = decodeMemo(envelope.memo);
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-12 px-6 py-14 lg:grid-cols-[1fr_1fr] lg:items-start">
-      <EnvelopeCard
-        amount={formatAmount(envelope.amount)}
-        symbol={STRK.symbol}
-        sealed={!spent}
-        caption={
-          envelope.expiry === 0
-            ? "No expiry. It waits indefinitely."
-            : `Claimable until ${new Date(envelope.expiry * 1000).toLocaleString()}.`
-        }
-      />
+    <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
+      <div className="order-2 lg:order-first lg:sticky lg:top-10">
+        <EnvelopeCard
+          amount={formatAmount(envelope.amount)}
+          symbol={STRK.symbol}
+          sealed={!spent}
+          reference={reference}
+          caption={
+            envelope.expiry === 0
+              ? "No expiry. It waits indefinitely."
+              : `Claimable until ${formatDeadline(envelope.expiry)}, ${timeRemaining(envelope.expiry)}.`
+          }
+        />
+      </div>
 
-      <div>
+      <div className="order-1">
         <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
           {spent
             ? envelope.status === "claimed"
@@ -204,27 +215,21 @@ export default function ClaimPage() {
         </h1>
 
         {spent ? (
-          <p className="mt-4 text-[var(--paper-dim)]">
-            This envelope has been settled. An envelope releases exactly once.
+          <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+            This envelope has been settled. An envelope releases exactly once, which is
+            what makes the link safe to send over a channel you do not control.
           </p>
         ) : (
           <>
-            <p className="mt-4 text-[var(--paper-dim)]">
-              Take it into a shielded balance, or straight to your address. The second
-              needs nothing but a Starknet wallet — no registration, no viewing key.
+            <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
+              Whoever funded this stays hidden either way. What changes between the two
+              routes below is what becomes public about <em>you</em>.
             </p>
 
-            <div className="mt-8 space-y-4">
-              {!address ? (
-                <Callout title="Connect a wallet">
-                  You need somewhere to put it. Any Starknet wallet will do for a public
-                  claim.
-                </Callout>
-              ) : null}
-
+            <div className="mt-8 space-y-3">
               {!envelope.claimable && envelope.unlockAt > Date.now() / 1000 ? (
                 <Callout tone="warn" title="Not open yet">
-                  Time-locked until {new Date(envelope.unlockAt * 1000).toLocaleString()}.
+                  Time-locked until {formatDeadline(envelope.unlockAt)}.
                 </Callout>
               ) : null}
 
@@ -239,32 +244,111 @@ export default function ClaimPage() {
                   {error}
                 </Callout>
               ) : null}
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={claimToNote}
-                  disabled={!address || !supportsStrk20 || !envelope.claimable || busy !== ""}
-                >
-                  {busy === "private" ? "Claiming…" : "Claim privately"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={claimToAddress}
-                  disabled={!address || !envelope.claimable || busy !== ""}
-                >
-                  {busy === "public" ? "Claiming…" : "Claim to my address"}
-                </Button>
-              </div>
-
-              {address && !supportsStrk20 ? (
+            {!address ? (
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <ConnectButton />
                 <p className="text-sm text-[var(--paper-faint)]">
-                  Private claims need a STRK20 wallet. Yours can still take the public
-                  path.
+                  Any Starknet wallet works for the public route.
                 </p>
-              ) : null}
+              </div>
+            ) : null}
+
+            <div className="mt-6 grid gap-3">
+              <ClaimRoute
+                title="Into a shielded balance"
+                reveals="Nothing. No observer learns who claimed it."
+                requires="Needs a STRK20 wallet, such as Ready."
+                action={busy === "private" ? "Claiming…" : "Claim privately"}
+                preferred
+                disabled={
+                  !address || !supportsStrk20 || !envelope.claimable || busy !== ""
+                }
+                note={
+                  !address
+                    ? undefined
+                    : supportsStrk20
+                      ? undefined
+                      : "This wallet does not support STRK20."
+                }
+                onClick={claimToNote}
+              />
+              <ClaimRoute
+                title="To a public address"
+                reveals="Your address, and the amount, on-chain forever."
+                requires="Works with any Starknet wallet."
+                action={busy === "public" ? "Claiming…" : "Claim to my address"}
+                disabled={!address || !envelope.claimable || busy !== ""}
+                onClick={claimToAddress}
+              />
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One of the two ways to take an envelope, stated with its consequence.
+ *
+ * The choice is a privacy decision, and the person making it is usually the one
+ * who knows least about the system. Putting what each route reveals next to its
+ * button is the only honest way to ask.
+ */
+function ClaimRoute({
+  title,
+  reveals,
+  requires,
+  action,
+  note,
+  preferred = false,
+  disabled,
+  onClick,
+}: {
+  title: string;
+  reveals: string;
+  requires: string;
+  action: string;
+  note?: string;
+  preferred?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={`border p-5 transition-colors duration-150 ${
+        preferred
+          ? "border-[var(--frank)]/40 bg-[var(--ink-raised)]"
+          : "border-[var(--ink-line)]"
+      }`}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-display text-xl font-semibold tracking-[-0.01em]">{title}</h2>
+        {preferred ? <p className="field-label !text-[var(--frank)]">Recommended</p> : null}
+      </div>
+
+      <dl className="mt-3 space-y-1.5 text-sm">
+        <div className="flex gap-3">
+          <dt className="field-label w-24 shrink-0 pt-0.5">Reveals</dt>
+          <dd className="text-[var(--paper-dim)]">{reveals}</dd>
+        </div>
+        <div className="flex gap-3">
+          <dt className="field-label w-24 shrink-0 pt-0.5">Requires</dt>
+          <dd className="text-[var(--paper-dim)]">{requires}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          variant={preferred ? "frank" : "outline"}
+          onClick={onClick}
+          disabled={disabled}
+        >
+          {action}
+        </Button>
+        {note ? <p className="text-xs text-[var(--paper-faint)]">{note}</p> : null}
       </div>
     </div>
   );

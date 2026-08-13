@@ -50,13 +50,13 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function Button({ variant = "frank", className = "", ...props }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center gap-2 px-5 py-3 font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+    "inline-flex items-center justify-center gap-2 px-5 py-3 font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
 
   const variants = {
     frank:
-      "bg-[var(--frank)] text-[var(--ink-deep)] hover:bg-[var(--frank-deep)] hover:text-[var(--paper)]",
+      "bg-[var(--frank)] text-[var(--ink-deep)] hover:bg-[var(--frank-deep)] hover:text-[var(--paper)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
     outline:
-      "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)]",
+      "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
     quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",
   } as const;
 

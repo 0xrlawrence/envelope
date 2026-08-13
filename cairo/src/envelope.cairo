@@ -12,7 +12,7 @@ pub trait IEnvelope<TState> {
     /// for a given `op` are passed as 0.
     ///
     /// * `Fund` reads `claim_pubkey`, `token`, `amount`, `refund_pubkey`,
-    ///   `unlock_at`, `expiry`, `memo`, and returns an empty span — the value
+    ///   `unlock_at`, `expiry`, `memo`, and returns an empty span, so the value
     ///   stays parked here rather than being credited to a note.
     /// * `Claim` reads `claim_pubkey`, `sig_r`, `sig_s`, `note_id`.
     /// * `Refund` reads `claim_pubkey`, `sig_r`, `sig_s`, `note_id`.
@@ -34,7 +34,7 @@ pub trait IEnvelope<TState> {
     /// Release an envelope as an ordinary public ERC-20 transfer.
     ///
     /// This is the path for a recipient who has never touched the privacy pool:
-    /// it needs no viewing key, no registration and no STRK20-capable wallet —
+    /// it needs no viewing key, no registration and no STRK20-capable wallet,
     /// only the claim key from the link, and any account able to send a
     /// transaction. The signature is bound to `recipient`, so watching the
     /// mempool and resubmitting with a different recipient does not work.
@@ -63,7 +63,7 @@ pub trait IEnvelope<TState> {
 ///
 /// A funder spends a shielded note, the pool withdraws the value to this
 /// contract, and this contract parks it under a **claim public key**. Whoever
-/// holds the matching private key can release it later — either into a fresh
+/// holds the matching private key can release it later, either into a fresh
 /// open note inside the pool, or as a plain ERC-20 transfer to any address.
 ///
 /// # Why a key and not a secret

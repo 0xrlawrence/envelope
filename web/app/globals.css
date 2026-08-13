@@ -6,7 +6,7 @@
  * The pattern printed inside a paper envelope exists for exactly one reason:
  * to make the contents unreadable when held up to a light. It is privacy
  * technology from before there was any other kind, and it is the visual thesis
- * of this app — so it is a real, dense, repeating print, not a decorative wash.
+ * of this app, so it is a real, dense, repeating print, not a decorative wash.
  */
 :root {
   --ink: #0e141c;
@@ -98,7 +98,7 @@ body {
 /* Form-field vernacular: a customs declaration, not a web form.
  *
  * Set in the condensed display face rather than mono. Mono here is reserved
- * for machine values — hex, keys, amounts — so that seeing it means "this is
+ * for machine values (hex, keys, amounts), so that seeing it means "this is
  * the literal thing on-chain" rather than "this screen is technical".
  */
 .field-label {

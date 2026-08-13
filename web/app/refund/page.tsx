@@ -156,8 +156,8 @@ export default function RefundPage() {
           <div className="mt-8 space-y-4">
             {!address ? (
               <Callout title="Connect a wallet">
-                Connect the wallet that holds your shielded balance — the returned value
-                lands there as a private note.
+                Connect the wallet that holds your shielded balance, since the returned
+                value lands there as a private note.
               </Callout>
             ) : null}
 

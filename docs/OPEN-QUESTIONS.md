@@ -4,7 +4,9 @@ Things this repository does **not** currently know the answer to, in the order
 they need answering. Each one has a fallback so nothing here is load-bearing on
 a reply arriving.
 
-## 1. How does a dapp learn an open note's id before signing? — blocking the private claim path
+## 1. How does a dapp learn an open note's id before signing?
+
+**This blocks the private claim path.**
 
 The private claim path signs over the id of the open note the claim will fill.
 It has to: the note id is the only value in the transaction that says *where the
@@ -29,8 +31,8 @@ by the Wallet API spec:
 **To confirm:** ask in the builders group, and test against Ready on Sepolia.
 
 **Fallback if it does not hold:** ship the public claim path (`claim_to_address`)
-as the primary route — it is complete, front-run-proof and needs none of this —
-and have private claimants shield the proceeds in a second step. Costs
+as the primary route, since it is complete, front-run-proof and needs none of
+this, and have private claimants shield the proceeds in a second step. Costs
 atomicity and leaks the claimant's address; costs nothing else.
 
 ## 2. Are the mainnet discovery and proving endpoints published yet?
@@ -51,7 +53,7 @@ sub-accounts / stealth accounts are out of scope here.
 
 Sub-accounts ship in Privacy SDK `0.14.3-rc.4` via
 `transfers.build().subaccounts(dappName).invoke(...)`, but only on the SDK
-route — no sub-account method is exposed by `@starknet-io/types-js` 0.10.3 or
+route: no sub-account method is exposed by `@starknet-io/types-js` 0.10.3 or
 starknet.js, so a dapp relying on the user's wallet cannot reach them.
 
 The judging criteria name stealth accounts explicitly, so this is worth points
@@ -64,10 +66,10 @@ identity even in the pool's own view.
 
 ## 4. Does the pool tolerate an `invoke` that credits nothing?
 
-`Fund` returns an empty `Span<OpenNoteDeposit>`. The docs say this is valid —
-*"An empty span is valid — it means 'credit nothing' for a step that should not
-release funds yet, such as a stateful helper parking funds until a later
-claim"* — and the reference escrow relies on it for exactly this. Worth
+`Fund` returns an empty `Span<OpenNoteDeposit>`. The docs describe an empty span
+as valid, meaning "credit nothing" for a step that should not release funds yet,
+such as a stateful helper parking funds until a later claim. The reference escrow
+relies on it for exactly this. Worth
 confirming on Sepolia before the first mainnet fund, because the whole design
 rests on it.
 

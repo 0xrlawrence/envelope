@@ -5,7 +5,7 @@ import { type ReleaseSignature, signRelease } from "./message.js";
 
 /**
  * Placeholders the wallet expands while assembling the transaction. They are
- * literal strings on the wire and must never be hex-normalised — a normalised
+ * literal strings on the wire and must never be hex-normalised. A normalised
  * placeholder reaches the pool as a meaningless felt and the call reverts deep
  * inside `privacy_invoke` with nothing pointing at the real cause.
  */
@@ -18,7 +18,7 @@ export interface AnonymizerTarget {
 }
 
 export interface FundEnvelopeParams extends AnonymizerTarget {
-  /** ERC-20 to park. Must already be shielded — funding spends a note. */
+  /** ERC-20 to park. Must already be shielded, since funding spends a note. */
   token: string;
   /** Amount in the token's smallest unit. */
   amount: bigint;
@@ -42,7 +42,7 @@ export interface FundEnvelopeParams extends AnonymizerTarget {
  *
  * Two actions, in the pool's phase order: a `withdraw` moves the value out to
  * the anonymizer, then the `invoke` records what it is for. There is no `OPEN`
- * transfer here — funding deliberately credits no note, which is what leaves
+ * transfer here, because funding deliberately credits no note, which is what leaves
  * the value parked for the recipient rather than handing it back to the funder.
  */
 export function buildFundActions({
@@ -93,7 +93,7 @@ export interface ClaimToNoteParams extends AnonymizerTarget {
   claimPublicKey: string;
   /** Read from the envelope on-chain, not from the link. */
   token: string;
-  /** Who receives the open note — the claimant's own address. */
+  /** Who receives the open note, the claimant's own address. */
   recipient: string;
   /**
    * The id of the open note this claim will fill.
@@ -106,7 +106,7 @@ export interface ClaimToNoteParams extends AnonymizerTarget {
    * it assembles the transaction, so the claimant has to sign a value that does
    * not exist yet.
    *
-   * {@link resolveOpenNoteId} is the way out — a dry run that makes the wallet
+   * {@link resolveOpenNoteId} is the way out: a dry run that makes the wallet
    * substitute the placeholder so the id can be read back and signed.
    */
   noteId: string;
@@ -166,7 +166,7 @@ export interface PreparesInvokes {
  * assemble a transaction and reading back what it substituted.
  *
  * Open-note ids are dense sequential indices over the claimant's own notes, so
- * the id the wallet picks does not depend on what else is in the transaction —
+ * the id the wallet picks does not depend on what else is in the transaction,
  * only on state the dry run leaves untouched. That is what makes it safe to
  * learn the id from one assembly and sign it for another.
  *
@@ -176,13 +176,13 @@ export interface PreparesInvokes {
  *
  * **Unverified against a live wallet.** The extraction below reads the last
  * felt of the assembled calldata, which is where the substitution lands for the
- * probe's shape — but the Wallet API spec does not pin the layout, so this is
+ * probe's shape, but the Wallet API spec does not pin the layout, so this is
  * read off one wallet's behaviour rather than off a guarantee. It is the first
  * thing to confirm against Ready before relying on the private claim path; see
  * `docs/OPEN-QUESTIONS.md`.
  *
  * @returns the substituted note id, or `null` if the wallet's response did not
- * carry recognisable calldata — callers should surface that rather than guess.
+ * carry recognisable calldata. Callers should surface that rather than guess.
  */
 export async function resolveOpenNoteId(
   account: PreparesInvokes,
@@ -208,7 +208,7 @@ export interface RefundParams extends AnonymizerTarget {
   refundPrivateKey: string;
   claimPublicKey: string;
   token: string;
-  /** Where the reclaimed note lands — the funder's own address. */
+  /** Where the reclaimed note lands, the funder's own address. */
   recipient: string;
   noteId: string;
 }

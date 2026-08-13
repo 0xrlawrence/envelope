@@ -1,13 +1,13 @@
 /**
- * Envelope — programmable private claim links for the STRK20 privacy pool.
+ * Envelope: programmable private claim links for the STRK20 privacy pool.
  *
  * Three pieces, usable independently:
  *
- * - **keys / link** — mint an envelope key and put it in a URL fragment, so the
+ * - **keys / link**: mint an envelope key and put it in a URL fragment, so the
  *   bearer instrument never touches a server.
- * - **message** — the signed authorisation, pinned to the Cairo contract by a
+ * - **message**: the signed authorisation, pinned to the Cairo contract by a
  *   shared test vector.
- * - **actions** — the STRK20 action lists to hand to `strk20InvokeTransaction`.
+ * - **actions**: the STRK20 action lists to hand to `strk20InvokeTransaction`.
  *
  * @packageDocumentation
  */

@@ -11,7 +11,7 @@ const KEY_BYTES = 32;
  *
  * The fragment matters. Everything after `#` is stripped by the browser before
  * the request goes out, so the key never reaches the app's server, its logs, or
- * its analytics — it exists only in the recipient's tab. Putting it in the path
+ * its analytics. It exists only in the recipient's tab. Putting it in the path
  * or the query string would quietly hand every envelope to whoever runs the
  * host, which is the opposite of the point.
  *
@@ -42,7 +42,7 @@ export function encodeClaimLink(
  * A refund key alone cannot find its envelope: envelopes are keyed by the
  * *claim* public key, and the refund key is deliberately unrelated to it, so
  * that holding one tells you nothing about the other. The claim public key
- * therefore rides along in the fragment — it is public information, and it is
+ * therefore rides along in the fragment. It is public information, and it is
  * the only way the funder's own link knows what it is reclaiming.
  */
 export function encodeRefundLink(

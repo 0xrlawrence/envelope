@@ -1,10 +1,10 @@
 # Envelope
 
-**Private money you can send as a link — to someone who has never heard of Starknet.**
+**Private money you can send as a link, to someone who has never heard of Starknet.**
 
 Envelope is a [STRK20](https://strk20.starknet.io) anonymizer contract and app.
 You shield tokens, seal an amount into an envelope, and hand over a URL. Whoever
-opens the link takes the money — into their own shielded balance if they have
+opens the link takes the money: into their own shielded balance if they have
 one, or straight to any Starknet address if they do not.
 
 The pool hides who paid. The link means the recipient needs no viewing key, no
@@ -20,7 +20,7 @@ shield  →  seal an envelope  →  send a link  →  claimed
 
 A STRK20 private transfer needs a registered recipient: someone who has set a
 viewing key on-chain and can be sent an encrypted note. That is fine between two
-people already inside the pool, and useless for the case that actually matters —
+people already inside the pool, and useless for the case that actually matters:
 paying a contributor, a bounty winner, or a friend who has never used Starknet.
 
 The documented way around it is an escrow keyed by a hash commitment: park value
@@ -65,12 +65,12 @@ pool hides is the *funder*, which is the property the product is built on:
 "pay someone without anyone knowing how much".
 
 A distinctive amount is therefore its own de-anonymiser. The app nudges toward
-round denominations for this reason — a 10 STRK envelope hides in the crowd of
+round denominations for this reason. A 10 STRK envelope hides in the crowd of
 other 10 STRK envelopes; a 13.7204 STRK envelope does not.
 
 **The link is a bearer instrument.** Whoever holds it can claim. It is carried
 in the URL fragment, so it never reaches this app's server, its logs, or its
-analytics — but a link pasted into a group chat is money pasted into a group
+analytics. But a link pasted into a group chat is money pasted into a group
 chat.
 
 ## Repository
@@ -78,7 +78,7 @@ chat.
 | Path | |
 |---|---|
 | [`cairo/`](cairo/) | The `EnvelopeAnonymizer` contract and its test suite |
-| [`packages/envelope-sdk/`](packages/envelope-sdk/) | `strk20-envelope` — keys, links, signing, STRK20 action builders |
+| [`packages/envelope-sdk/`](packages/envelope-sdk/) | `strk20-envelope`: keys, links, signing, STRK20 action builders |
 | [`web/`](web/) | The app |
 | [`docs/`](docs/) | Protocol notes, mainnet addresses, open questions |
 
@@ -89,7 +89,7 @@ entry point for recipients who are not in the pool:
 
 | Operation | Driven by | Effect |
 |---|---|---|
-| `Fund` | the pool | Parks the value the pool just withdrew. Returns an **empty** span — nothing is credited, which is what leaves it for the recipient. |
+| `Fund` | the pool | Parks the value the pool just withdrew. Returns an **empty** span, so nothing is credited, which is what leaves it for the recipient. |
 | `Claim` | the pool | Releases into an open note. Returns one `OpenNoteDeposit`. |
 | `Refund` | the pool | After expiry only, returns the value to the funder as an open note. |
 | `claim_to_address` | anyone | Releases as a plain ERC-20 transfer. No pool involvement. |
@@ -127,7 +127,7 @@ The SDK is deliberately usable without the app: it builds action lists and
 returns them, so any STRK20 dapp can add claim links without adopting our UI.
 Its message construction is pinned to the Cairo contract by a
 [shared test vector](packages/envelope-sdk/src/message.test.ts) generated from
-the Cairo suite — if the two ever drift, that test fails rather than every
+the Cairo suite. If the two ever drift, that test fails rather than every
 signature silently being rejected on-chain.
 
 ## Build and test
@@ -143,7 +143,7 @@ cd packages/envelope-sdk && npm install && npm test
 ## Status
 
 Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon),
-14–31 August 2026. Mainnet addresses and transaction hashes are in
+14 to 31 August 2026. Mainnet addresses and transaction hashes are in
 [`strk20.json`](strk20.json); what is deployed and what is not is tracked in
 [`docs/STATUS.md`](docs/STATUS.md).
 

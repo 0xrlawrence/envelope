@@ -52,7 +52,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Build the discovery store once on mount so wallets have time to register
   // themselves before anyone opens the picker. `eip1193Adapters: []` keeps
-  // MetaMask out of discovery entirely — its Snap probing throws an unlock
+  // MetaMask out of discovery entirely; its Snap probing throws an unlock
   // popup at people who never asked for it.
   useEffect(() => {
     const store: Store = createStore({ eip1193Adapters: [] });
@@ -114,8 +114,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       disconnect,
       provider: new RpcProvider({ nodeUrl: state.network.rpcUrl }),
       // STRK20 landed in Wallet API 0.10.3. A wallet reporting anything older
-      // can still sign an ordinary call — which is all the public claim path
-      // needs — but cannot shield, seal, or claim privately.
+      // can still sign an ordinary call, which is all the public claim path
+      // needs, but cannot shield, seal, or claim privately.
       supportsStrk20: state.specs.some((spec) => spec >= "0.10.3"),
     }),
     [state, connect, disconnect],

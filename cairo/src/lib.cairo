@@ -1,4 +1,4 @@
-//! Envelope — programmable private claim links for the STRK20 privacy pool.
+//! Envelope: programmable private claim links for the STRK20 privacy pool.
 //!
 //! An *envelope* is a parcel of ERC-20 value parked in this contract by someone
 //! spending a shielded note, released later to whoever holds the envelope's

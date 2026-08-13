@@ -24,7 +24,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Envelope — private money, sent as a link",
+  title: "Envelope: private money, sent as a link",
   description:
     "Seal shielded tokens into an envelope and hand over a link. The STRK20 pool hides who paid; the recipient needs no viewing key, no registration, and no privacy wallet to get paid.",
 };
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <footer className="mt-24 border-t border-[var(--ink-line)]">
               <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between">
                 <p>
-                  Unaudited. It moves real money on mainnet — read it before you trust it.
+                  Unaudited. It moves real money on mainnet. Read it before you trust it.
                 </p>
                 <a
                   className="font-mono text-xs tracking-widest uppercase underline decoration-dotted underline-offset-4 hover:text-[var(--frank)]"

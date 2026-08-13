@@ -25,8 +25,8 @@ export interface EnvelopeState {
 /**
  * Read an envelope straight from the chain.
  *
- * A recipient holds nothing but a key, so everything they are shown — which
- * token, how much, whether it has already been taken, when it expires — is read
+ * A recipient holds nothing but a key, so everything they are shown (which
+ * token, how much, whether it has already been taken, when it expires) is read
  * from here rather than carried in the link. A link that claimed to be worth
  * 100 STRK could otherwise say so without it being true.
  */

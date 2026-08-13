@@ -11,7 +11,7 @@ export interface ReleaseMessage {
   /** The anonymizer the signature is valid against. */
   anonymizer: string;
   mode: ReleaseMode;
-  /** The envelope identifier — the claim public key. */
+  /** The envelope identifier, the claim public key. */
   claimPublicKey: string;
   /**
    * What the release is bound to: an open-note id for the private paths, or a
@@ -25,7 +25,7 @@ export interface ReleaseMessage {
  *
  * Mirrors `envelope::types::release_message_hash`. The two implementations are
  * pinned to each other by a vector in `message.test.ts`, generated from the
- * Cairo test suite — if either side drifts, every signature this SDK produces
+ * Cairo test suite. If either side drifts, every signature this SDK produces
  * starts being rejected on-chain, so the vector is the thing that catches it.
  */
 export function releaseMessageHash({

@@ -63,7 +63,7 @@ export function ConnectButton() {
                     >
                       Ready
                     </a>{" "}
-                    — it is the wallet with STRK20 privacy live on mainnet.
+                    is the wallet with STRK20 privacy live on mainnet.
                   </p>
                 ) : null}
 

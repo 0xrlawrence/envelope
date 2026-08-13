@@ -36,9 +36,9 @@ pub mod status {
     pub const NONE: u8 = 0;
     /// Funded and awaiting a claim.
     pub const FUNDED: u8 = 1;
-    /// Claimed — terminal.
+    /// Claimed. Terminal.
     pub const CLAIMED: u8 = 2;
-    /// Refunded to the funder — terminal.
+    /// Refunded to the funder. Terminal.
     pub const REFUNDED: u8 = 3;
 }
 

@@ -9,7 +9,7 @@ memory.
 
 | Network | Address | Provenance |
 |---|---|---|
-| Mainnet | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` | [Day 0 doc](https://github.com/starkience/strk20-hackathon/blob/main/docs/MAINNET-DAY-0.md), and `PRIVACY_POOL_ADDRESS` in `@avnu/avnu-sdk@4.2.0` — identical |
+| Mainnet | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` | [Day 0 doc](https://github.com/starkience/strk20-hackathon/blob/main/docs/MAINNET-DAY-0.md), and `PRIVACY_POOL_ADDRESS` in `@avnu/avnu-sdk@4.2.0` (identical) |
 | Sepolia | `0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91` | `SEPOLIA_PRIVACY_POOL_ADDRESS` in `@avnu/avnu-sdk@4.2.0` |
 
 ## Envelope anonymizer
@@ -42,7 +42,7 @@ declare time would be an expensive surprise.
 
 ## RPC
 
-Public Sepolia endpoints are unreliable — Blast has been retired outright, and
+Public Sepolia endpoints are unreliable: Blast has been retired outright, and
 Lava's testnet endpoint returns provider-pairing errors. These two answered
 consistently while building:
 

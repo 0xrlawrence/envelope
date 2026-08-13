@@ -118,7 +118,7 @@ export default function CreatePage() {
         <EnvelopeCard
           amount={denomination.toString()}
           symbol={STRK.symbol}
-          caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents — into their own shielded balance, or to any address."
+          caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents: into their own shielded balance, or to any address."
         />
 
         <dl className="mt-8 space-y-3 text-sm">
@@ -134,8 +134,8 @@ export default function CreatePage() {
           Private money you can send as a link.
         </h1>
         <p className="mt-5 max-w-[62ch] text-[var(--paper-dim)]">
-          A STRK20 private transfer needs a registered recipient. An envelope does not —
-          it pays someone who has never touched Starknet, and the pool still hides who
+          A STRK20 private transfer needs a registered recipient. An envelope does not.
+          It pays someone who has never touched Starknet, and the pool still hides who
           paid.
         </p>
 
@@ -211,7 +211,7 @@ export default function CreatePage() {
 
           {shieldedBalance !== null ? (
             <p className="font-mono text-xs tracking-widest text-[var(--paper-faint)] uppercase">
-              Shielded balance — {formatAmount(shieldedBalance)} {STRK.symbol}
+              Shielded balance: {formatAmount(shieldedBalance)} {STRK.symbol}
             </p>
           ) : null}
 
@@ -236,8 +236,8 @@ export default function CreatePage() {
 
           {busy === "sealing" ? (
             <p className="text-sm text-[var(--paper-dim)]">
-              Your wallet is proving the transaction. This takes around half a minute —
-              a STARK proof is being generated before anything is submitted.
+              Your wallet is proving the transaction. This takes around half a minute,
+              because a STARK proof is generated before anything is submitted.
             </p>
           ) : null}
         </div>

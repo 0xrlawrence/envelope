@@ -15,7 +15,7 @@ export interface Network {
 
 /**
  * Addresses are cross-checked in `docs/MAINNET.md`. The mainnet anonymizer is
- * read from the environment so a deploy does not need a code change — but an
+ * read from the environment so a deploy does not need a code change. But an
  * empty value is treated as "not deployed" and disables the network in the UI,
  * rather than silently sending transactions to address zero.
  */
@@ -86,4 +86,43 @@ export const EXPIRY_CHOICES = [
 
 export function shortHex(value: string, lead = 6, tail = 4): string {
   return value.length <= lead + tail + 1 ? value : `${value.slice(0, lead)}…${value.slice(-tail)}`;
+}
+
+/** "21 Aug 2026, 05:08" rather than a raw locale string. */
+export function formatDeadline(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** How long is left, in the largest unit that still reads naturally. */
+export function timeRemaining(unixSeconds: number): string {
+  const seconds = unixSeconds - Math.floor(Date.now() / 1000);
+  if (seconds <= 0) return "closed";
+  const days = Math.floor(seconds / 86_400);
+  if (days >= 1) return `${days} day${days === 1 ? "" : "s"} left`;
+  const hours = Math.floor(seconds / 3_600);
+  if (hours >= 1) return `${hours} hour${hours === 1 ? "" : "s"} left`;
+  const minutes = Math.max(1, Math.floor(seconds / 60));
+  return `${minutes} minute${minutes === 1 ? "" : "s"} left`;
+}
+
+/** Decode a felt memo back to the short string the funder typed. */
+export function decodeMemo(felt: string): string {
+  try {
+    const value = BigInt(felt);
+    if (value === 0n) return "";
+    let hex = value.toString(16);
+    if (hex.length % 2) hex = "0" + hex;
+    const text = (hex.match(/.{2}/g) ?? [])
+      .map((byte) => String.fromCharCode(Number.parseInt(byte, 16)))
+      .join("");
+    return /^[\x20-\x7e]*$/.test(text) ? text : "";
+  } catch {
+    return "";
+  }
 }
