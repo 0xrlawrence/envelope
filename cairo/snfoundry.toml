@@ -1,0 +1,15 @@
+# Networks used for declaring and deploying the anonymizer.
+#
+# The pool addresses these are paired with live in `scripts/deploy.sh`; the
+# mainnet one is cross-checked against both the STRK20 Day-0 doc and the
+# constant AVNU's SDK ships.
+
+[sncast.default]
+url = "https://api.cartridge.gg/x/starknet/sepolia"
+account = "pribado"
+wait-params = { timeout = 500, retry-interval = 5 }
+show-explorer-links = true
+
+[sncast.mainnet]
+url = "https://rpc.starknet.lava.build"
+wait-params = { timeout = 500, retry-interval = 5 }
