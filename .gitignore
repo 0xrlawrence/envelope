@@ -16,3 +16,12 @@ cairo/target/
 # something a build or a reader needs.
 Dark_Materials*/
 *.fig
+
+# Installed agent tooling and generated agent guidance. Not project code, and
+# regenerated locally by whoever installs or runs the same tools.
+.claude/skills/
+.claude/hooks/
+.claude/settings.local.json
+.agents/
+AGENTS.md
+CLAUDE.md
