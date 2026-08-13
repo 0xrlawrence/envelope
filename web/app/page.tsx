@@ -17,6 +17,7 @@ import {
   formatAmount,
   toSmallestUnit,
 } from "@/lib/config";
+import { explainWalletError } from "@/lib/errors";
 import { looksUnimplemented, useWallet } from "@/lib/wallet";
 
 interface SealedEnvelope {
@@ -27,7 +28,7 @@ interface SealedEnvelope {
 }
 
 export default function CreatePage() {
-  const { account, address, network, supportsStrk20, strk20Reason, walletName } =
+  const { account, address, network, provider, supportsStrk20, strk20Reason, walletName } =
     useWallet();
 
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
@@ -35,13 +36,33 @@ export default function CreatePage() {
   const [memo, setMemo] = useState("");
 
   const [shieldedBalance, setShieldedBalance] = useState<bigint | null>(null);
+  const [publicBalance, setPublicBalance] = useState<bigint | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
 
   const amount = toSmallestUnit(denomination);
 
+  // Both balances, because they answer different questions: the public one is
+  // whether there is anything to shield, the shielded one is whether there is
+  // anything to seal. Without them on screen a failed seal is unattributable.
   const refreshBalance = useCallback(async () => {
+    if (!address) return;
+
+    try {
+      const raw = await provider.callContract({
+        contractAddress: STRK.address,
+        entrypoint: "balanceOf",
+        calldata: [address],
+      });
+      const low = BigInt(raw[0] ?? "0x0");
+      const high = BigInt(raw[1] ?? "0x0");
+      setPublicBalance(low + (high << 128n));
+    } catch {
+      setPublicBalance(null);
+    }
+
     if (!account || !supportsStrk20) return;
     try {
       const balances = await account.strk20Balances([STRK.address]);
@@ -53,7 +74,7 @@ export default function CreatePage() {
     } catch {
       setShieldedBalance(null);
     }
-  }, [account, supportsStrk20]);
+  }, [account, address, provider, supportsStrk20]);
 
   useEffect(() => {
     void refreshBalance();
@@ -72,9 +93,7 @@ export default function CreatePage() {
       setError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot shield."
-          : cause instanceof Error
-            ? cause.message
-            : "Shielding failed.",
+          : explainWalletError(cause).message,
       );
     } finally {
       setBusy("");
@@ -85,6 +104,7 @@ export default function CreatePage() {
     if (!account) return;
     setBusy("sealing");
     setError("");
+    setErrorDetail("");
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
     // material, so nothing on-chain ties them to each other.
@@ -106,15 +126,16 @@ export default function CreatePage() {
       setSealed({ claim, refund, amount, transactionHash: transaction_hash });
       void refreshBalance();
     } catch (cause) {
-      // "Not implemented" comes from the wallet, not from us, and on its own it
-      // tells the user nothing they can act on.
+      // The wallet's own wording is rarely actionable, so it is translated and
+      // the original kept alongside for anyone reporting the problem.
+      const explained = explainWalletError(cause);
       setError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot seal an envelope. Ready has privacy live on mainnet; the claim page still works with any Starknet wallet."
-          : cause instanceof Error
-            ? cause.message
-            : "Sealing failed.",
+          : explained.message,
       );
+      setErrorDetail(explained.raw);
+      console.error("[envelope] seal failed", cause);
     } finally {
       setBusy("");
     }
@@ -125,7 +146,8 @@ export default function CreatePage() {
   }
 
   const notDeployed = network.anonymizer === "";
-  const short = shieldedBalance !== null && shieldedBalance < amount;
+  const shieldedShort = shieldedBalance === null || shieldedBalance < amount;
+  const canShield = publicBalance !== null && publicBalance >= amount;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center">
@@ -236,27 +258,72 @@ export default function CreatePage() {
             </Callout>
           ) : null}
 
-          {shieldedBalance !== null ? (
-            <p className="font-mono text-xs tracking-widest text-[var(--paper-faint)] uppercase">
-              Shielded balance: {formatAmount(shieldedBalance)} {STRK.symbol}
-            </p>
+          {address ? (
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 border-y border-[var(--ink-line)] py-2.5 text-sm">
+              <dt className="field-label">In your wallet</dt>
+              <dd className="text-right font-mono text-[var(--paper-dim)]">
+                {publicBalance === null
+                  ? "unreadable"
+                  : `${formatAmount(publicBalance)} ${STRK.symbol}`}
+              </dd>
+              <dt className="field-label">Shielded in the pool</dt>
+              <dd
+                className={`text-right font-mono ${
+                  shieldedShort ? "text-[var(--frank)]" : "text-[var(--paper-dim)]"
+                }`}
+              >
+                {shieldedBalance === null
+                  ? "unreadable"
+                  : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}
+              </dd>
+            </dl>
           ) : null}
 
-          {error ? <Callout tone="bad" title="Failed">{error}</Callout> : null}
+          {address && supportsStrk20 && shieldedShort ? (
+            <Callout tone="warn" title="Nothing to seal yet">
+              An envelope is funded from your <strong>shielded</strong> balance, not
+              from your wallet balance. Shield at least {denomination.toString()}{" "}
+              {STRK.symbol} first.
+              {publicBalance !== null && !canShield ? (
+                <>
+                  {" "}
+                  This account holds {formatAmount(publicBalance)} {STRK.symbol}, so
+                  there is not enough to shield either. Fund it first.
+                </>
+              ) : null}
+            </Callout>
+          ) : null}
+
+          {error ? (
+            <Callout tone="bad" title="Failed">
+              <p>{error}</p>
+              {errorDetail && errorDetail !== error ? (
+                <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
+                  Wallet said: {errorDetail}
+                </p>
+              ) : null}
+            </Callout>
+          ) : null}
 
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={seal}
-              disabled={!address || !supportsStrk20 || notDeployed || busy !== "" || short}
+              disabled={
+                !address || !supportsStrk20 || notDeployed || busy !== "" || shieldedShort
+              }
             >
               {busy === "sealing" ? "Sealing…" : "Seal envelope"}
             </Button>
 
-            {short ? (
-              <Button variant="outline" onClick={shield} disabled={busy !== ""}>
+            {address && supportsStrk20 && shieldedShort ? (
+              <Button
+                variant="outline"
+                onClick={shield}
+                disabled={busy !== "" || !canShield}
+              >
                 {busy === "shielding"
                   ? "Shielding…"
-                  : `Shield ${denomination.toString()} ${STRK.symbol} first`}
+                  : `Shield ${denomination.toString()} ${STRK.symbol}`}
               </Button>
             ) : null}
           </div>
