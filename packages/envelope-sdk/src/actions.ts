@@ -11,6 +11,19 @@ import { type ReleaseSignature, signRelease } from "./message.js";
  */
 const OPEN_NOTE_0 = "${openNoteIds[0]}";
 
+/**
+ * Normalise a value to the FELT form the Wallet API accepts.
+ *
+ * The spec pattern is `^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$`: after `0x`,
+ * a leading zero is invalid. Starknet addresses are conventionally written
+ * padded to 64 digits, and `validateAndParseAddress` produces exactly that
+ * padded form, so handing one straight to the wallet is rejected wholesale as
+ * INVALID_REQUEST_PAYLOAD, with nothing to say which field was at fault.
+ */
+export function felt(value: string | bigint | number): string {
+  return num.toHex(BigInt(value));
+}
+
 /** Every action list here targets one anonymizer deployment. */
 export interface AnonymizerTarget {
   /** The deployed `EnvelopeAnonymizer`. */
@@ -66,19 +79,24 @@ export function buildFundActions({
   }
 
   return [
-    { type: "withdraw", token, amount: num.toHex(amount), recipient: anonymizer },
+    {
+      type: "withdraw",
+      token: felt(token),
+      amount: felt(amount),
+      recipient: felt(anonymizer),
+    },
     {
       type: "invoke",
-      contract: anonymizer,
+      contract: felt(anonymizer),
       calldata: [
-        num.toHex(OP.fund),
-        claimPublicKey,
-        token,
-        num.toHex(amount),
-        refundPublicKey,
-        num.toHex(unlockAt),
-        num.toHex(expiry),
-        memo ? shortString.encodeShortString(memo) : "0x0",
+        felt(OP.fund),
+        felt(claimPublicKey),
+        felt(token),
+        felt(amount),
+        felt(refundPublicKey),
+        felt(unlockAt),
+        felt(expiry),
+        memo ? felt(shortString.encodeShortString(memo)) : "0x0",
         "0x0",
         "0x0",
         "0x0",
@@ -132,21 +150,21 @@ export function buildClaimToNoteActions({
   });
 
   return [
-    { type: "transfer", token, amount: "OPEN", recipient },
+    { type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) },
     {
       type: "invoke",
-      contract: anonymizer,
+      contract: felt(anonymizer),
       calldata: [
-        num.toHex(OP.claim),
-        claimPublicKey,
+        felt(OP.claim),
+        felt(claimPublicKey),
         "0x0",
         "0x0",
         "0x0",
         "0x0",
         "0x0",
         "0x0",
-        signature.r,
-        signature.s,
+        felt(signature.r),
+        felt(signature.s),
         OPEN_NOTE_0,
       ],
     },
@@ -190,7 +208,7 @@ export async function resolveOpenNoteId(
   recipient: string,
 ): Promise<string | null> {
   const prepared = await account.strk20PrepareInvoke(
-    [{ type: "transfer", token, amount: "OPEN", recipient }],
+    [{ type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) }],
     true,
   );
 
@@ -230,21 +248,21 @@ export function buildRefundActions({
   });
 
   return [
-    { type: "transfer", token, amount: "OPEN", recipient },
+    { type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) },
     {
       type: "invoke",
-      contract: anonymizer,
+      contract: felt(anonymizer),
       calldata: [
-        num.toHex(OP.refund),
-        claimPublicKey,
+        felt(OP.refund),
+        felt(claimPublicKey),
         "0x0",
         "0x0",
         "0x0",
         "0x0",
         "0x0",
         "0x0",
-        signature.r,
-        signature.s,
+        felt(signature.r),
+        felt(signature.s),
         OPEN_NOTE_0,
       ],
     },
@@ -283,9 +301,9 @@ export function buildClaimToAddressCall({
   });
 
   return {
-    contractAddress: anonymizer,
+    contractAddress: felt(anonymizer),
     entrypoint: "claim_to_address",
-    calldata: [claimPublicKey, recipient, signature.r, signature.s],
+    calldata: [felt(claimPublicKey), felt(recipient), felt(signature.r), felt(signature.s)],
   };
 }
 
