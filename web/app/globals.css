@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/*
+ * Security tint.
+ *
+ * The pattern printed inside a paper envelope exists for exactly one reason:
+ * to make the contents unreadable when held up to a light. It is privacy
+ * technology from before there was any other kind, and it is the visual thesis
+ * of this app — so it is a real, dense, repeating print, not a decorative wash.
+ */
+:root {
+  --ink: #0e141c;
+  --ink-deep: #080c11;
+  --ink-raised: #151d29;
+  --ink-line: #24303f;
+
+  --paper: #e9e4d7;
+  --paper-dim: #9aa4b2;
+  --paper-faint: #5d6979;
+
+  /* Rubber-stamp ink on kraft. Warm, opaque, slightly uneven. */
+  --frank: #d9873f;
+  --frank-deep: #b56a29;
+
+  /* Airmail border, used as a structural edge and nowhere else. */
+  --airmail-red: #c8443c;
+  --airmail-blue: #35619f;
+
+  --seal: #a8332f;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-ink-raised: var(--ink-raised);
+  --color-ink-line: var(--ink-line);
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-paper-faint: var(--paper-faint);
+  --color-frank: var(--frank);
+  --color-seal: var(--seal);
+  --font-display: var(--font-plex-condensed), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--ink-deep);
+  color: var(--paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The tint itself: two counter-raked hatchings that beat against each other. */
+.security-tint {
+  background-image:
+    repeating-linear-gradient(
+      68deg,
+      color-mix(in srgb, var(--airmail-blue) 22%, transparent) 0 1px,
+      transparent 1px 7px
+    ),
+    repeating-linear-gradient(
+      -68deg,
+      color-mix(in srgb, var(--airmail-blue) 16%, transparent) 0 1px,
+      transparent 1px 9px
+    );
+}
+
+.security-tint-dense {
+  background-image:
+    repeating-linear-gradient(
+      68deg,
+      color-mix(in srgb, var(--airmail-blue) 34%, transparent) 0 1px,
+      transparent 1px 5px
+    ),
+    repeating-linear-gradient(
+      -68deg,
+      color-mix(in srgb, var(--airmail-blue) 26%, transparent) 0 1px,
+      transparent 1px 6px
+    );
+}
+
+/* Airmail chevrons. One edge, one purpose: this is a thing that gets sent. */
+.airmail-edge {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--airmail-red) 0 8px,
+    var(--ink-deep) 8px 16px,
+    var(--airmail-blue) 16px 24px,
+    var(--ink-deep) 24px 32px
+  );
+}
+
+/* Form-field vernacular: a customs declaration, not a web form.
+ *
+ * Set in the condensed display face rather than mono. Mono here is reserved
+ * for machine values — hex, keys, amounts — so that seeing it means "this is
+ * the literal thing on-chain" rather than "this screen is technical".
+ */
+.field-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--frank);
+  outline-offset: 2px;
+}
+
+.rule {
+  border-color: var(--ink-line);
+}
+
+/* The stamp. Struck once, on the one event that matters. */
+@keyframes strike {
+  0% {
+    opacity: 0;
+    transform: rotate(-19deg) scale(2.4);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(-11deg) scale(0.94);
+  }
+  70% {
+    transform: rotate(-11deg) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-11deg) scale(1);
+  }
+}
+
+.animate-strike {
+  animation: strike 520ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes flap {
+  from {
+    transform: scaleY(0.06);
+    opacity: 0.3;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-flap {
+  transform-origin: top;
+  animation: flap 420ms cubic-bezier(0.25, 0.8, 0.35, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-strike,
+  .animate-flap {
+    animation: none;
+  }
+}
+
+::selection {
+  background: var(--frank);
+  color: var(--ink-deep);
+}

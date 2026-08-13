@@ -11,7 +11,7 @@ the honest version with the caveats attached.
 | Fund / claim against a live pool | Not yet |
 | Mainnet deploy | Not yet |
 | Three mainnet pool transactions | Not yet |
-| Web app | Not yet |
+| Web app | **Built** — seal / claim / return, Wallet API route via `WalletAccountV6` |
 | Demo video | Not yet |
 
 ## What the Sepolia deploy settled

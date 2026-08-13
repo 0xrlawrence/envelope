@@ -36,8 +36,10 @@ export {
 export { generateEnvelopeKey, toPublicKey, type EnvelopeKeyPair } from "./keys.js";
 export {
   decodeLinkFragment,
+  decodeRefundFragment,
   encodeClaimLink,
   encodeLinkFragment,
+  encodeRefundLink,
   type LinkKind,
 } from "./link.js";
 export {

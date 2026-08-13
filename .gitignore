@@ -9,3 +9,5 @@ cairo/target/
 .DS_Store
 *.log
 .vercel
+.agents/
+.next/

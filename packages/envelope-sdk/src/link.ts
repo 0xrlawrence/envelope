@@ -37,6 +37,40 @@ export function encodeClaimLink(
 }
 
 /**
+ * Build the funder's own link, the one that reclaims an expired envelope.
+ *
+ * A refund key alone cannot find its envelope: envelopes are keyed by the
+ * *claim* public key, and the refund key is deliberately unrelated to it, so
+ * that holding one tells you nothing about the other. The claim public key
+ * therefore rides along in the fragment — it is public information, and it is
+ * the only way the funder's own link knows what it is reclaiming.
+ */
+export function encodeRefundLink(
+  baseUrl: string,
+  refundPrivateKey: string,
+  claimPublicKey: string,
+): string {
+  const fragment = encodeLinkFragment(refundPrivateKey, "refund");
+  return `${baseUrl.replace(/\/$/, "")}/refund#${fragment}~${claimPublicKey}`;
+}
+
+/**
+ * Split a return link back into the refund key and the envelope it belongs to.
+ */
+export function decodeRefundFragment(
+  fragment: string,
+): { refundPrivateKey: string; claimPublicKey: string } | null {
+  const body = fragment.startsWith("#") ? fragment.slice(1) : fragment;
+  const [keyPart, claimPublicKey] = body.split("~");
+  if (!keyPart || !claimPublicKey) return null;
+
+  const decoded = decodeLinkFragment(keyPart);
+  if (!decoded || decoded.kind !== "refund") return null;
+
+  return { refundPrivateKey: decoded.privateKey, claimPublicKey };
+}
+
+/**
  * Recover a key from a link fragment. Accepts the fragment with or without its
  * leading `#`, so `window.location.hash` can be passed straight in.
  */
