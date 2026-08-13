@@ -14,6 +14,16 @@ export interface Network {
 }
 
 /**
+ * The RPC endpoint is only ever used for reads: fetching an envelope, waiting
+ * on a receipt. Every STRK20 action is served by the wallet, which does its own
+ * discovery and proving, so the node has no say in whether shielding or sealing
+ * works. Point it wherever you like.
+ *
+ * starknet.js 10.7 expects RPC spec 0.10.x. Measured defaults are recorded in
+ * `docs/MAINNET.md`.
+ */
+
+/**
  * Addresses are cross-checked in `docs/MAINNET.md`. The mainnet anonymizer is
  * read from the environment so a deploy does not need a code change. But an
  * empty value is treated as "not deployed" and disables the network in the UI,
@@ -24,7 +34,8 @@ export const NETWORKS: Record<NetworkId, Network> = {
     id: "mainnet",
     label: "Mainnet",
     chainId: "0x534e5f4d41494e",
-    rpcUrl: "https://rpc.starknet.lava.build",
+    rpcUrl:
+      process.env.NEXT_PUBLIC_RPC_MAINNET ?? "https://api.cartridge.gg/x/starknet/mainnet",
     pool: POOL_ADDRESS_MAINNET,
     anonymizer: process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET ?? "",
     explorer: "https://starkscan.co",
@@ -33,7 +44,9 @@ export const NETWORKS: Record<NetworkId, Network> = {
     id: "sepolia",
     label: "Sepolia",
     chainId: "0x534e5f5345504f4c4941",
-    rpcUrl: "https://api.cartridge.gg/x/starknet/sepolia",
+    rpcUrl:
+      process.env.NEXT_PUBLIC_RPC_SEPOLIA ??
+      "https://api.cartridge.gg/x/starknet/sepolia",
     pool: "0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91",
     anonymizer:
       process.env.NEXT_PUBLIC_ANONYMIZER_SEPOLIA ??

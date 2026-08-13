@@ -42,12 +42,24 @@ declare time would be an expensive surprise.
 
 ## RPC
 
-Public Sepolia endpoints are unreliable: Blast has been retired outright, and
-Lava's testnet endpoint returns provider-pairing errors. These two answered
-consistently while building:
+The endpoint is used for reads only: fetching an envelope, waiting on a
+receipt. Every STRK20 action is served by the wallet, which runs its own
+discovery and proving, so the node has no bearing on whether shielding or
+sealing works. Both networks accept an override, `NEXT_PUBLIC_RPC_MAINNET` and
+`NEXT_PUBLIC_RPC_SEPOLIA`.
 
-- `https://api.cartridge.gg/x/starknet/sepolia`
-- `https://starknet-sepolia.drpc.org`
+starknet.js 10.7 expects RPC spec 0.10.x. Measured with
+`starknet_specVersion`:
 
-Mainnet uses `https://rpc.starknet.lava.build`, the endpoint the Day-0 doc
-specifies.
+| Endpoint | Network | Spec |
+|---|---|---|
+| `https://api.cartridge.gg/x/starknet/mainnet` | mainnet | 0.10.2 (default) |
+| `https://starknet-mainnet.g.alchemy.com/...` | mainnet | 0.10.3-rc.0 |
+| `https://rpc.starknet.lava.build` | mainnet | 0.8.1 |
+| `https://api.cartridge.gg/x/starknet/sepolia` | sepolia | 0.9.0 (default) |
+| `https://starknet-sepolia.drpc.org` | sepolia | does not serve `starknet_specVersion` |
+| Blast, either network | | retired |
+
+The Day-0 doc names Lava for mainnet. It answers, but at spec 0.8.1 it is two
+versions behind what the client expects, so Cartridge is the default here and
+Lava is a fallback.
