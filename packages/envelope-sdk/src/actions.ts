@@ -105,6 +105,30 @@ export function buildFundActions({
   ];
 }
 
+/**
+ * Move public tokens into the pool.
+ *
+ * Sealing spends a shielded note, so this is the step that has to happen first
+ * for a funder with nothing in the pool yet. On a fresh account the wallet also
+ * registers the viewing key as part of this, which is why it can be slow the
+ * first time.
+ */
+export function buildShieldActions({
+  token,
+  amount,
+}: {
+  token: string;
+  amount: bigint;
+}): WALLET_API.STRK20_ACTION[] {
+  if (amount <= 0n) throw new Error("Shielded amount must be positive.");
+  return [{ type: "deposit", token: felt(token), amount: felt(amount) }];
+}
+
+/** Token addresses as the wallet wants them, for balance queries. */
+export function feltTokens(tokens: string[]): string[] {
+  return tokens.map(felt);
+}
+
 export interface ClaimToNoteParams extends AnonymizerTarget {
   /** The claim key from the link. Stays in the claimant's browser. */
   claimPrivateKey: string;

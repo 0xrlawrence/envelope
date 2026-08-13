@@ -14,6 +14,9 @@
 
 export {
   buildClaimToAddressCall,
+  buildShieldActions,
+  felt,
+  feltTokens,
   buildClaimToNoteActions,
   buildFundActions,
   buildRefundActions,

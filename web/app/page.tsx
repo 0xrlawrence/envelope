@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   buildFundActions,
+  buildShieldActions,
+  felt,
+  feltTokens,
   encodeClaimLink,
   encodeRefundLink,
   generateEnvelopeKey,
@@ -52,9 +55,9 @@ export default function CreatePage() {
 
     try {
       const raw = await provider.callContract({
-        contractAddress: STRK.address,
+        contractAddress: felt(STRK.address),
         entrypoint: "balanceOf",
-        calldata: [address],
+        calldata: [felt(address)],
       });
       const low = BigInt(raw[0] ?? "0x0");
       const high = BigInt(raw[1] ?? "0x0");
@@ -65,7 +68,7 @@ export default function CreatePage() {
 
     if (!account || !supportsStrk20) return;
     try {
-      const balances = await account.strk20Balances([STRK.address]);
+      const balances = await account.strk20Balances(feltTokens([STRK.address]));
       const entry = balances.find(
         (candidate: { token: string }) =>
           BigInt(candidate.token) === BigInt(STRK.address),
@@ -84,17 +87,21 @@ export default function CreatePage() {
     if (!account) return;
     setBusy("shielding");
     setError("");
+    setErrorDetail("");
     try {
-      await account.strk20InvokeTransaction([
-        { type: "deposit", token: STRK.address, amount: "0x" + amount.toString(16) },
-      ]);
+      await account.strk20InvokeTransaction(
+        buildShieldActions({ token: STRK.address, amount }),
+      );
       await refreshBalance();
     } catch (cause) {
+      const explained = explainWalletError(cause);
       setError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot shield."
-          : explainWalletError(cause).message,
+          : explained.message,
       );
+      setErrorDetail(explained.raw);
+      console.error("[envelope] shield failed", cause);
     } finally {
       setBusy("");
     }
