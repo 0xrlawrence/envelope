@@ -1,0 +1,40 @@
+{
+  "name": "strk20-envelope",
+  "version": "0.1.0",
+  "description": "Programmable private claim links for the STRK20 privacy pool on Starknet",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "starknet",
+    "strk20",
+    "privacy",
+    "anonymizer",
+    "claim-links"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "starknet": "^10.4.0"
+  },
+  "devDependencies": {
+    "@starknet-io/types-js": "^0.10.3",
+    "@types/node": "^22.20.1",
+    "starknet": "^10.4.0",
+    "typescript": "^5.9.3"
+  }
+}
