@@ -132,6 +132,21 @@ export default function CreatePage() {
         memo: memo.slice(0, 31),
       });
 
+      // Dry run first. This builds and proves the same actions without
+      // submitting, which is the only way from outside the wallet to tell a
+      // malformed request apart from a backend that cannot complete it. A
+      // failure here is ours; a failure only on submit is not.
+      try {
+        await account.strk20PrepareInvoke(actions, true);
+      } catch (dryRun) {
+        const explained = explainWalletError(dryRun);
+        setError(`Rejected before submitting: ${explained.message}`);
+        setErrorDetail(`${explained.raw} (during strk20PrepareInvoke, simulate mode)`);
+        console.error("[envelope] dry run failed", dryRun, actions);
+        setBusy("");
+        return;
+      }
+
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
       setSealed({ claim, refund, amount, transactionHash: transaction_hash });
       void refreshBalance();
@@ -144,8 +159,19 @@ export default function CreatePage() {
           ? "This wallet does not serve the STRK20 methods, so it cannot seal an envelope. Ready has privacy live on mainnet; the claim page still works with any Starknet wallet."
           : explained.message,
       );
-      setErrorDetail(explained.raw);
-      console.error("[envelope] seal failed", cause);
+      setErrorDetail(`${explained.raw} (during strk20InvokeTransaction)`);
+      // The action list is logged alongside so a shape problem is visible
+      // rather than inferred.
+      console.error("[envelope] seal failed", cause, {
+        actions: buildFundActions({
+          anonymizer: network.anonymizer,
+          token: STRK.address,
+          amount,
+          claimPublicKey: claim.publicKey,
+          refundPublicKey: refund.publicKey,
+          fundFrom: (shieldedBalance ?? 0n) >= amount ? "shielded" : "wallet",
+        }),
+      });
     } finally {
       setBusy("");
     }
@@ -294,20 +320,6 @@ export default function CreatePage() {
               and nothing shielded, so there is not enough for a{" "}
               {denomination.toString()} {STRK.symbol} envelope. Choose a smaller
               amount or fund the account.
-            </Callout>
-          ) : null}
-
-          {error && network.id === "sepolia" ? (
-            <Callout tone="warn" title="This may be the network, not you">
-              Both privacy wallets are documented as having in-wallet privacy live{" "}
-              <strong>on mainnet</strong>. The pool is deployed on Sepolia, but the
-              wallet also needs its prover and the mandatory deposit screening wired up
-              for the network, and a failure there arrives as a generic error like the
-              one below. To tell that apart from a bug in this app, try shielding in the{" "}
-              <a href="https://strk20.starknet.io/app" target="_blank" rel="noreferrer">
-                official STRK20 app
-              </a>{" "}
-              with the same wallet. If that fails too, it is not this app.
             </Callout>
           ) : null}
 
