@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   buildClaimToAddressCall,
@@ -220,7 +221,10 @@ export default function ClaimPage() {
       <Shell>
         <Callout tone="warn" title="That is a return link">
           This link reclaims an expired envelope rather than claiming one. Open it at{" "}
-          <a href={`/refund${window.location.hash}`}>the return page</a>.
+          {/* Bare href, so the site's sub-path on Pages is dropped and this
+              lands on a 404. The fragment carries the only key to the money, so
+              a dead link here is not a cosmetic fault. */}
+          <Link href={`/refund${window.location.hash}`}>the return page</Link>.
         </Callout>
       </Shell>
     );
