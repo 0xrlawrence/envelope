@@ -34,6 +34,9 @@ interface SealedEnvelope {
   transactionHash: string;
   /** Whether the pool hid the funder, or the funding leg was public. */
   private: boolean;
+  /** "funding" until the transaction lands, then settled either way. */
+  state: "funding" | "funded" | "failed";
+  problem?: string;
 }
 
 export default function CreatePage() {
@@ -128,6 +131,9 @@ export default function CreatePage() {
       await refreshBalance();
     } catch (cause) {
       const explained = explainWalletError(cause);
+      setSealed((previous) =>
+        previous ? { ...previous, state: "failed", problem: explained.message } : previous,
+      );
       setError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot shield."
@@ -166,6 +172,19 @@ export default function CreatePage() {
       submitted: false,
     });
 
+    // Show the link immediately. The keys are the envelope, they already exist,
+    // and the recipient cannot claim until the funding lands anyway. Holding
+    // the link back for the length of a proof buys nothing and costs the user a
+    // minute of staring at a spinner.
+    setSealed({
+      claim,
+      refund,
+      amount,
+      transactionHash: "",
+      private: supportsStrk20,
+      state: "funding",
+    });
+
     try {
       const actions = buildFundActions({
         anonymizer: network.anonymizer,
@@ -182,7 +201,11 @@ export default function CreatePage() {
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
       markSubmitted(claim.publicKey, transaction_hash);
-      setSealed({ claim, refund, amount, transactionHash: transaction_hash, private: true });
+      setSealed((previous) =>
+        previous
+          ? { ...previous, transactionHash: transaction_hash, private: true, state: "funded" }
+          : previous,
+      );
       void refreshBalance();
     } catch (cause) {
       // A refusal and a timeout are not the same thing. The wallet can give up
@@ -194,7 +217,9 @@ export default function CreatePage() {
         try {
           const state = await readEnvelope(provider, network.anonymizer, claim.publicKey);
           if (state.status !== "none") {
-            setSealed({ claim, refund, amount, transactionHash: "", private: supportsStrk20 });
+            setSealed((previous) =>
+              previous ? { ...previous, state: "funded" } : previous,
+            );
             void refreshBalance();
             return;
           }
@@ -207,6 +232,9 @@ export default function CreatePage() {
       // The wallet's own wording is rarely actionable, so it is translated and
       // the original kept alongside for anyone reporting the problem.
       const explained = explainWalletError(cause);
+      setSealed((previous) =>
+        previous ? { ...previous, state: "failed", problem: explained.message } : previous,
+      );
       setError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot seal an envelope. Ready has privacy live on mainnet; the claim page still works with any Starknet wallet."
@@ -474,7 +502,30 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
       </div>
 
       <div>
-        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">Hand it over.</h1>
+        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">
+          {sealed.state === "failed" ? "Not sealed." : "Hand it over."}
+        </h1>
+        {sealed.state === "funding" ? (
+          <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+            <p className="field-label !text-[var(--frank)]">Funding</p>
+            <p className="mt-1 text-[var(--paper-dim)]">
+              The link below is already valid. The wallet is still proving the funding
+              transaction, and the envelope becomes claimable the moment it lands, so
+              you can copy and send this now.
+            </p>
+          </div>
+        ) : null}
+
+        {sealed.state === "failed" ? (
+          <div className="mt-4 border-l border-[var(--seal)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+            <p className="field-label !text-[var(--seal)]">Do not send this link</p>
+            <p className="mt-1 text-[var(--paper-dim)]">
+              {sealed.problem ?? "The funding transaction did not go through."} The keys
+              are kept on the sealed page in case the transaction lands late.
+            </p>
+          </div>
+        ) : null}
+
         <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[62ch] text-[var(--paper-dim)]">
           The key lives in the part of the URL after the <Mono>#</Mono>, which browsers
           never send to a server. It has not reached ours, and it will not reach the
