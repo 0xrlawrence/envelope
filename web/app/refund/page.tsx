@@ -58,8 +58,22 @@ export default function RefundPage() {
     setBusy(true);
     setError("");
     try {
-      const noteId = await resolveOpenNoteId(account, envelope.token, address);
-      if (!noteId) throw new Error("Could not work out which open note to return this to.");
+      // Assemble with a placeholder signature to learn the open note id, then
+      // sign that id and rebuild. A lone OPEN transfer is not an acceptable
+      // probe: an open note with nothing to fill it is refused outright.
+      const probe = buildRefundActions({
+        anonymizer: network.anonymizer,
+        refundPrivateKey: refundKey,
+        claimPublicKey,
+        token: envelope.token,
+        recipient: address,
+        noteId: "",
+      });
+
+      const noteId = await resolveOpenNoteId(account, probe, claimPublicKey);
+      if (!noteId) {
+        throw new Error("The wallet did not report which open note to return this to.");
+      }
 
       const { transaction_hash } = await account.strk20InvokeTransaction(
         buildRefundActions({

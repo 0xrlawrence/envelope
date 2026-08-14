@@ -20,6 +20,7 @@ import {
   formatDeadline,
   timeRemaining,
 } from "@/lib/config";
+import { explainWalletError } from "@/lib/errors";
 import { useWallet } from "@/lib/wallet";
 
 type Outcome = { kind: "private" | "public"; transactionHash: string };
@@ -97,10 +98,23 @@ export default function ClaimPage() {
     setBusy("private");
     setError("");
     try {
-      const noteId = await resolveOpenNoteId(account, envelope.token, address);
+      // Assemble the real thing with a placeholder signature so the wallet
+      // will accept it and substitute the open note id, then sign that id and
+      // rebuild. A lone OPEN transfer cannot be used as the probe: an open note
+      // with nothing to fill it is not a transaction the pool accepts.
+      const probe = buildClaimToNoteActions({
+        anonymizer: network.anonymizer,
+        claimPrivateKey: claimKey,
+        claimPublicKey,
+        token: envelope.token,
+        recipient: address,
+        noteId: "",
+      });
+
+      const noteId = await resolveOpenNoteId(account, probe, claimPublicKey);
       if (!noteId) {
         throw new Error(
-          "Could not work out which open note this claim would fill. Claim to your address instead.",
+          "The wallet did not report which open note this claim would fill. Claim to your address instead.",
         );
       }
 
@@ -117,7 +131,8 @@ export default function ClaimPage() {
       setOutcome({ kind: "private", transactionHash: transaction_hash });
       void load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The private claim failed.");
+      setError(explainWalletError(cause).message);
+      console.error("[envelope] private claim failed", cause);
     } finally {
       setBusy("");
     }

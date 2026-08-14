@@ -237,6 +237,9 @@ export interface ClaimToNoteParams extends AnonymizerTarget {
 /**
  * Claim into the pool: the value lands as a fresh note the claimant owns, and
  * no observer learns who they are.
+ *
+ * Pass an empty `noteId` to build the assembly probe; see
+ * {@link resolveOpenNoteId}.
  */
 export function buildClaimToNoteActions({
   anonymizer,
@@ -246,12 +249,17 @@ export function buildClaimToNoteActions({
   recipient,
   noteId,
 }: ClaimToNoteParams): WALLET_API.STRK20_ACTION[] {
-  const signature = signRelease(claimPrivateKey, {
-    anonymizer,
-    mode: MODE.note,
-    claimPublicKey,
-    target: noteId,
-  });
+  // With no note id yet, this is the assembly probe: the shape is real so the
+  // wallet will accept and substitute it, and the signature is a placeholder
+  // that simulate mode never checks.
+  const signature = noteId
+    ? signRelease(claimPrivateKey, {
+        anonymizer,
+        mode: MODE.note,
+        claimPublicKey,
+        target: noteId,
+      })
+    : { r: "0x0", s: "0x0" };
 
   return [
     { type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) },
@@ -280,50 +288,55 @@ export interface PreparesInvokes {
   strk20PrepareInvoke(
     actions: WALLET_API.STRK20_ACTION[],
     simulate?: boolean,
-  ): Promise<{ call: { calldata?: unknown } }>;
+  ): Promise<{ call?: { calldata?: unknown } }>;
 }
 
 /**
- * Discover the id the wallet will mint for the next open note, by asking it to
- * assemble a transaction and reading back what it substituted.
+ * Discover the id the wallet will mint for the open note, by assembling the
+ * real transaction and reading back what it substituted.
  *
- * Open-note ids are dense sequential indices over the claimant's own notes, so
- * the id the wallet picks does not depend on what else is in the transaction,
- * only on state the dry run leaves untouched. That is what makes it safe to
- * learn the id from one assembly and sign it for another.
+ * The obvious probe, a lone `OPEN` transfer, is rejected: an open note with
+ * nothing to fill it is not a transaction the pool will accept, so the wallet
+ * refuses the payload before substituting anything. The assembly has to be the
+ * genuine action list, invoke included, with a placeholder signature standing
+ * in for the one that cannot exist yet.
  *
- * The probe deliberately contains a single `OPEN` transfer and no invoke: there
- * is no signature to be wrong, so nothing here can revert on a check we have
- * not satisfied yet.
+ * Simulate mode is what makes that safe. It skips proof generation and returns
+ * the assembled call, so the placeholder signature is never checked against
+ * anything and nothing is submitted.
  *
- * **Unverified against a live wallet.** The extraction below reads the last
- * felt of the assembled calldata, which is where the substitution lands for the
- * probe's shape, but the Wallet API spec does not pin the layout, so this is
- * read off one wallet's behaviour rather than off a guarantee. It is the first
- * thing to confirm against Ready before relying on the private claim path; see
- * `docs/OPEN-QUESTIONS.md`.
- *
- * @returns the substituted note id, or `null` if the wallet's response did not
- * carry recognisable calldata. Callers should surface that rather than guess.
+ * The substituted id is then located by position rather than by guesswork: the
+ * claim public key appears in the invoke calldata, and the note id sits nine
+ * felts after it, which is the layout `privacy_invoke` declares.
  */
 export async function resolveOpenNoteId(
   account: PreparesInvokes,
-  token: string,
-  recipient: string,
+  actions: WALLET_API.STRK20_ACTION[],
+  claimPublicKey: string,
 ): Promise<string | null> {
-  const prepared = await account.strk20PrepareInvoke(
-    [{ type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) }],
-    true,
-  );
+  const prepared = await account.strk20PrepareInvoke(actions, true);
 
   const calldata = prepared?.call?.calldata;
   if (!Array.isArray(calldata)) return null;
 
-  const substituted = calldata
-    .map((item) => (typeof item === "string" ? item : null))
-    .filter((item): item is string => item !== null && item.startsWith("0x"));
+  const felts = calldata.map((item) => (typeof item === "string" ? item : String(item)));
+  const wanted = BigInt(felt(claimPublicKey));
 
-  return substituted.at(-1) ?? null;
+  for (let index = 0; index < felts.length; index += 1) {
+    let value: bigint;
+    try {
+      value = BigInt(felts[index]!);
+    } catch {
+      continue;
+    }
+    if (value !== wanted) continue;
+
+    // op, claimPubkey, token, amount, refund, unlock, expiry, memo, r, s, noteId
+    const noteId = felts[index + 9];
+    if (noteId && BigInt(noteId) !== 0n) return felt(noteId);
+  }
+
+  return null;
 }
 
 export interface RefundParams extends AnonymizerTarget {
@@ -344,12 +357,15 @@ export function buildRefundActions({
   recipient,
   noteId,
 }: RefundParams): WALLET_API.STRK20_ACTION[] {
-  const signature = signRelease(refundPrivateKey, {
-    anonymizer,
-    mode: MODE.refund,
-    claimPublicKey,
-    target: noteId,
-  });
+  // Empty noteId builds the assembly probe; see resolveOpenNoteId.
+  const signature = noteId
+    ? signRelease(refundPrivateKey, {
+        anonymizer,
+        mode: MODE.refund,
+        claimPublicKey,
+        target: noteId,
+      })
+    : { r: "0x0", s: "0x0" };
 
   return [
     { type: "transfer", token: felt(token), amount: "OPEN", recipient: felt(recipient) },
