@@ -26,7 +26,8 @@ import { useWallet } from "@/lib/wallet";
 type Outcome = { kind: "private" | "public"; transactionHash: string };
 
 export default function ClaimPage() {
-  const { account, address, network, provider, supportsStrk20 } = useWallet();
+  const { account, address, network, provider, supportsStrk20, accountDeployed } =
+    useWallet();
 
   const [claimKey, setClaimKey] = useState<string | null>(null);
   const [wrongLink, setWrongLink] = useState(false);
@@ -313,7 +314,9 @@ export default function ClaimPage() {
                     : !supportsStrk20
                       ? "This wallet does not support STRK20."
                       : claimantRegistered === false
-                        ? "This account has no viewing key with the pool, so it cannot receive a private note yet. Take it to your address instead, or shield once from this account first."
+                        ? accountDeployed
+                          ? "This account has no viewing key with the pool, so it cannot receive a private note yet. Take it to your address instead, or shield once from this account first."
+                          : "This account is not deployed on-chain yet, so the pool cannot register it. Send one ordinary transaction from it first, then shield. Taking it to your address works either way."
                         : undefined
                 }
                 onClick={claimToNote}

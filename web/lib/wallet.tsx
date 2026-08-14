@@ -30,6 +30,8 @@ interface WalletState {
   walletName: string;
   /** Class hash of the connected account, when it could be read. */
   accountClass: string;
+  /** False when the account contract is not on-chain yet. */
+  accountDeployed: boolean;
   connecting: boolean;
   error: string;
 }
@@ -56,6 +58,7 @@ const INITIAL: WalletState = {
   strk20Reason: "",
   walletName: "",
   accountClass: "",
+  accountDeployed: true,
   connecting: false,
   error: "",
 };
@@ -123,6 +126,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           accounts[0],
         );
       } catch {
+        // No class hash means the account contract is not on-chain yet. Wallets
+        // let you create and fund an account before it is deployed, and it is
+        // only deployed by its first outgoing transaction. Nothing in the pool
+        // can work until then: registration proves against the account's own
+        // storage, and an account that does not exist has none.
         accountClass = "";
       }
 
@@ -147,6 +155,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         strk20Reason,
         walletName: wallet.name,
         accountClass,
+        accountDeployed: accountClass !== "",
         connecting: false,
       }));
     } catch (error) {
