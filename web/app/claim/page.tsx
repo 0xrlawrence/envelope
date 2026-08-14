@@ -35,6 +35,29 @@ export default function ClaimPage() {
   const [busy, setBusy] = useState<"" | "private" | "public">("");
   const [error, setError] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  // Claiming into the pool means receiving an open note, and a note needs a
+  // viewing key to belong to anyone. A claimant who has never used the pool has
+  // no key, so the private route cannot work for them however well formed the
+  // request is.
+  const [claimantRegistered, setClaimantRegistered] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!account || !supportsStrk20) {
+      setClaimantRegistered(null);
+      return;
+    }
+    let cancelled = false;
+    account
+      .strk20Balances([])
+      .then(() => !cancelled && setClaimantRegistered(true))
+      .catch((cause: unknown) => {
+        const raw = cause instanceof Error ? cause.message : String(cause ?? "");
+        if (!cancelled) setClaimantRegistered(!/NOT_REGISTERED/i.test(raw));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [account, supportsStrk20]);
 
   // The key never leaves this tab: it arrives in the fragment, which the browser
   // strips before the request, and it is read here in the client only.
@@ -278,14 +301,20 @@ export default function ClaimPage() {
                 action={busy === "private" ? "Claiming…" : "Claim privately"}
                 preferred
                 disabled={
-                  !address || !supportsStrk20 || !envelope.claimable || busy !== ""
+                  !address ||
+                  !supportsStrk20 ||
+                  claimantRegistered === false ||
+                  !envelope.claimable ||
+                  busy !== ""
                 }
                 note={
                   !address
                     ? undefined
-                    : supportsStrk20
-                      ? undefined
-                      : "This wallet does not support STRK20."
+                    : !supportsStrk20
+                      ? "This wallet does not support STRK20."
+                      : claimantRegistered === false
+                        ? "This account has no viewing key with the pool, so it cannot receive a private note yet. Take it to your address instead, or shield once from this account first."
+                        : undefined
                 }
                 onClick={claimToNote}
               />

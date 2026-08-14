@@ -33,7 +33,7 @@ const BY_NAME: Array<[RegExp, string]> = [
   ],
   [
     /UNKNOWN_ERROR/i,
-    "The wallet could not complete this and did not say why. The usual cause is nothing to spend: no viewing key registered, or no shielded balance. Check the balances above.",
+    "The wallet could not complete this and did not say why. On a claim, the usual cause is that this account has no viewing key with the pool, so it cannot receive a private note; take it to your address instead. On a seal, it is usually nothing to spend.",
   ],
 ];
 
