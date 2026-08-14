@@ -12,7 +12,7 @@ import {
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
 import { SendOff } from "@/components/SendOff";
-import { Button, Callout, ExplorerLink } from "@/components/ui";
+import { Button, Callout, ExplorerLink, LinkButton } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
 import { looksRejected } from "@/lib/errors";
 import { useWallet } from "@/lib/wallet";
@@ -195,6 +195,9 @@ export default function RefundPage() {
           <ExplorerLink explorer={network.explorer} kind="tx" value={transactionHash}>
             {transactionHash}
           </ExplorerLink>
+        </div>
+        <div className="mt-10">
+          <LinkButton href="/">Go back to home page</LinkButton>
         </div>
       </div>
     );

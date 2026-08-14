@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export function Eyebrow({ children }: { children: ReactNode }) {
@@ -48,19 +49,51 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "frank" | "outline" | "quiet";
 };
 
+const BUTTON_BASE =
+  "inline-flex items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
+
+const BUTTON_VARIANTS = {
+  frank:
+    "bg-[var(--frank)] text-[var(--ink-deep)] hover:bg-[var(--frank-deep)] hover:text-[var(--paper)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
+  outline:
+    "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
+  quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",
+} as const;
+
 export function Button({ variant = "frank", className = "", ...props }: ButtonProps) {
-  const base =
-    "inline-flex items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
+  return (
+    <button
+      className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${className}`}
+      {...props}
+    />
+  );
+}
 
-  const variants = {
-    frank:
-      "bg-[var(--frank)] text-[var(--ink-deep)] hover:bg-[var(--frank-deep)] hover:text-[var(--paper)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
-    outline:
-      "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
-    quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",
-  } as const;
-
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
+/**
+ * A button that navigates.
+ *
+ * Routed through `next/link` rather than a bare anchor, because the site is
+ * served from a sub-path on Pages and a hand-written href would drop it.
+ */
+export function LinkButton({
+  href,
+  variant = "outline",
+  className = "",
+  children,
+}: {
+  href: string;
+  variant?: keyof typeof BUTTON_VARIANTS;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${className}`}
+    >
+      {children}
+    </Link>
+  );
 }
 
 export function Callout({
