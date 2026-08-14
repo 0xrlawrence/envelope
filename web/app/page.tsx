@@ -22,6 +22,7 @@ import {
   toSmallestUnit,
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
+import { markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 
 interface SealedEnvelope {
@@ -148,6 +149,21 @@ export default function CreatePage() {
     const claim = generateEnvelopeKey();
     const refund = generateEnvelopeKey();
 
+    // Written down before anything is signed. If the tab reloads between the
+    // signature and the success screen, the envelope is still funded on-chain
+    // and its keys would otherwise be gone, taking the money with them.
+    remember({
+      claimPrivateKey: claim.privateKey,
+      claimPublicKey: claim.publicKey,
+      refundPrivateKey: refund.privateKey,
+      amount: amount.toString(),
+      memo,
+      network: network.id,
+      anonymizer: network.anonymizer,
+      createdAt: Date.now(),
+      submitted: false,
+    });
+
     try {
       const actions = buildFundActions({
         anonymizer: network.anonymizer,
@@ -163,6 +179,7 @@ export default function CreatePage() {
       });
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+      markSubmitted(claim.publicKey, transaction_hash);
       setSealed({ claim, refund, amount, transactionHash: transaction_hash, private: true });
       void refreshBalance();
     } catch (cause) {

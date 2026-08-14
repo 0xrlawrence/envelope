@@ -16,7 +16,15 @@ export function SiteHeader() {
             STRK20
           </span>
         </Link>
-        <ConnectButton />
+        <div className="flex items-center gap-5">
+          <Link
+            href="/sealed"
+            className="font-display text-xs font-semibold tracking-[0.2em] text-[var(--paper-faint)] uppercase transition-colors duration-150 hover:text-[var(--frank)]"
+          >
+            Sealed
+          </Link>
+          <ConnectButton />
+        </div>
       </div>
     </header>
   );
