@@ -184,6 +184,39 @@ export default function CreatePage() {
     }
   }
 
+  /**
+   * Watch the contract until the envelope is really there.
+   *
+   * A submitted transaction is not a funded envelope, and a link to an
+   * envelope that does not exist is worse than no link: it gets sent, and the
+   * recipient finds nothing. So the link is only ever called valid once the
+   * anonymizer confirms it, and if that never happens the screen says so.
+   */
+  async function confirmOnChain(claimPublicKey: string): Promise<void> {
+    for (let attempt = 0; attempt < 45; attempt += 1) {
+      try {
+        const state = await readEnvelope(provider, network.anonymizer, claimPublicKey);
+        if (state.status !== "none") {
+          setSealed((previous) => (previous ? { ...previous, state: "funded" } : previous));
+          return;
+        }
+      } catch {
+        // Keep watching; a read failure is not an answer.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    }
+    setSealed((previous) =>
+      previous
+        ? {
+            ...previous,
+            state: "failed",
+            problem:
+              "The transaction was submitted but the envelope has not appeared on-chain. Do not send this link yet; check the sealed page, where the keys are kept.",
+          }
+        : previous,
+    );
+  }
+
   async function seal() {
     if (!account) return;
     setBusy("sealing");
@@ -245,10 +278,9 @@ export default function CreatePage() {
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
       markSubmitted(claim.publicKey, transaction_hash);
       setSealed((previous) =>
-        previous
-          ? { ...previous, transactionHash: transaction_hash, private: true, state: "funded" }
-          : previous,
+        previous ? { ...previous, transactionHash: transaction_hash, private: true } : previous,
       );
+      await confirmOnChain(claim.publicKey);
       void refreshBalance();
     } catch (cause) {
       // A refusal and a timeout are not the same thing. The wallet can give up
@@ -565,9 +597,18 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
             <p className="field-label !text-[var(--frank)]">Funding</p>
             <p className="mt-1 text-[var(--paper-dim)]">
-              The link below is already valid. The wallet is still proving the funding
-              transaction, and the envelope becomes claimable the moment it lands, so
-              you can copy and send this now.
+              Not valid yet. The wallet is still proving the funding transaction, and
+              this link works only once the envelope is confirmed on-chain. Wait for
+              this notice to clear before sending it.
+            </p>
+          </div>
+        ) : null}
+
+        {sealed.state === "funded" ? (
+          <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+            <p className="field-label !text-[var(--frank)]">Confirmed on-chain</p>
+            <p className="mt-1 text-[var(--paper-dim)]">
+              The envelope exists and the link below works. Send it.
             </p>
           </div>
         ) : null}
@@ -614,12 +655,11 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
               </ExplorerLink>
             ) : (
               <p className="text-sm text-[var(--paper-dim)]">
-                The wallet stopped waiting before it returned a hash, but the envelope
-                is funded on-chain. It is listed on the{" "}
-                <a className="text-[var(--frank)] underline" href="/envelope/sealed/">
+                No hash yet. It is listed on the{" "}
+                <a className="text-[var(--frank)] underline" href="./sealed/">
                   sealed page
-                </a>
-                .
+                </a>{" "}
+                either way, with its keys.
               </p>
             )}
           </div>

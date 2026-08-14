@@ -46,11 +46,16 @@ function CopyRow({
         </button>
       </div>
       <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{hint}</p>
-      <p
-        className={`mt-1 font-mono text-xs break-all ${quiet ? "text-[var(--paper-faint)]" : "text-[var(--paper)]"}`}
+      <a
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+        className={`mt-1 block font-mono text-xs break-all underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] ${
+          quiet ? "text-[var(--paper-faint)]" : "text-[var(--paper)]"
+        }`}
       >
         {value}
-      </p>
+      </a>
     </div>
   );
 }
@@ -139,8 +144,20 @@ export default function SealedPage() {
                   {formatAmount(BigInt(record.amount))}{" "}
                   <span className="text-base text-[var(--paper-dim)]">{STRK.symbol}</span>
                 </p>
-                <p className="field-label">
-                  {state ? state.status : record.submitted ? "checking" : "never submitted"}
+                <p
+                  className="field-label"
+                  style={{
+                    color:
+                      state?.status === "funded" ? "var(--frank)" : "var(--paper-faint)",
+                  }}
+                >
+                  {state
+                    ? state.status === "none"
+                      ? "never landed"
+                      : state.status
+                    : record.submitted
+                      ? "checking"
+                      : "never submitted"}
                 </p>
               </div>
 
@@ -150,18 +167,37 @@ export default function SealedPage() {
                 </p>
               ) : null}
 
-              {state?.status === "funded" ? (
-                <div className="mt-3 space-y-3">
-                  <CopyRow label="Claim link" hint="Send this. Whoever opens it takes the contents." value={claimLink} />
-                  <CopyRow label="Return link" hint="Keep this. It reclaims the envelope after expiry." value={refundLink} quiet />
-                </div>
+              {state?.status === "none" ? (
+                <p className="mt-2 text-sm text-[var(--paper-dim)]">
+                  Never landed on-chain. The keys are kept here in case the transaction
+                  arrives late, but the link will not work until it does.
+                </p>
               ) : null}
 
               {state && state.status !== "funded" && state.status !== "none" ? (
-                <p className="mt-3 text-sm text-[var(--paper-dim)]">
+                <p className="mt-2 text-sm text-[var(--paper-dim)]">
                   Settled: this envelope was {state.status}.
                 </p>
               ) : null}
+
+              <div className="mt-3 space-y-3">
+                <CopyRow
+                  label="Claim link"
+                  hint={
+                    state?.status === "funded"
+                      ? "Send this. Whoever opens it takes the contents."
+                      : "Not claimable yet, but this is the link when it is."
+                  }
+                  value={claimLink}
+                  quiet={state?.status !== "funded"}
+                />
+                <CopyRow
+                  label="Return link"
+                  hint="Keep this. It reclaims the envelope after expiry."
+                  value={refundLink}
+                  quiet
+                />
+              </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 {record.transactionHash ? (
