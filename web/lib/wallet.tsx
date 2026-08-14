@@ -28,6 +28,8 @@ interface WalletState {
   strk20Reason: string;
   /** Display name of the connected wallet. */
   walletName: string;
+  /** Class hash of the connected account, when it could be read. */
+  accountClass: string;
   connecting: boolean;
   error: string;
 }
@@ -53,6 +55,7 @@ const INITIAL: WalletState = {
   strk20: false,
   strk20Reason: "",
   walletName: "",
+  accountClass: "",
   connecting: false,
   error: "",
 };
@@ -109,6 +112,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // see. Assume support, and withdraw it only when the wallet says it does
       // not serve the method; an unregistered viewing key or an empty balance
       // still means STRK20 is there.
+      // Which account contract the wallet is driving. A STRK20 proof validates
+      // the account's own signature inside the proof, so a wallet can generally
+      // only prove for account classes it implements. Driving an imported
+      // account of another wallet's class is a common reason for the privacy
+      // path to fail with nothing specific to say.
+      let accountClass = "";
+      try {
+        accountClass = await new RpcProvider({ nodeUrl: network.rpcUrl }).getClassHashAt(
+          accounts[0],
+        );
+      } catch {
+        accountClass = "";
+      }
+
       let strk20 = true;
       let strk20Reason = "";
       try {
@@ -129,6 +146,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         strk20,
         strk20Reason,
         walletName: wallet.name,
+        accountClass,
         connecting: false,
       }));
     } catch (error) {
@@ -159,6 +177,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+/**
+ * Known account contract classes, so a wallet driving somebody else's account
+ * can be named rather than guessed at.
+ */
+const ACCOUNT_CLASSES: Record<string, string> = {
+  "0x3957f9f5a1cbfe918cedc2015c85200ca51a5f7506ecb6de98a5207b759bf8a": "Braavos",
+  "0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f": "Ready",
+  "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003": "Ready",
+  "0x29927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b": "Ready",
+};
+
+/** The account contract's maker, if recognised. */
+export function accountClassName(classHash: string): string {
+  if (!classHash) return "";
+  const normalised = classHash.startsWith("0x")
+    ? "0x" + classHash.slice(2).replace(/^0+/, "")
+    : classHash;
+  return ACCOUNT_CLASSES[normalised] ?? "";
 }
 
 /** Turn a wallet's connection refusal into something actionable. */

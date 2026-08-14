@@ -22,7 +22,7 @@ import {
   toSmallestUnit,
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
-import { looksUnimplemented, useWallet } from "@/lib/wallet";
+import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 
 interface SealedEnvelope {
   claim: EnvelopeKeyPair;
@@ -34,8 +34,15 @@ interface SealedEnvelope {
 }
 
 export default function CreatePage() {
-  const { account, address, network, provider, supportsStrk20, strk20Reason, walletName } =
-    useWallet();
+  const {
+    account,
+    address,
+    network,
+    provider,
+    supportsStrk20,
+    walletName,
+    accountClass,
+  } = useWallet();
 
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
   const [expirySeconds, setExpirySeconds] = useState(EXPIRY_CHOICES[2]!.seconds);
@@ -170,6 +177,7 @@ export default function CreatePage() {
   }
 
   const notDeployed = network.anonymizer === "";
+  const maker = accountClassName(accountClass);
   const fromWallet = (shieldedBalance ?? 0n) < amount;
   // Enough to seal, from wherever it has to come.
   const funded =
@@ -261,11 +269,11 @@ export default function CreatePage() {
           {address && !supportsStrk20 ? (
             <Callout title="Funded from your address">
               <p>
-                {walletName || "This wallet"} does not implement the STRK20 methods, so
-                this envelope is funded from your address rather than from a shielded
-                note. Everything else is unchanged: the claim link, the expiry, the
-                refund, and the fact that a claim cannot be front-run. Whoever claims it
-                into a shielded balance is still unobservable.
+                {walletName || "This wallet"} cannot prove a STRK20 transaction for
+                this account, so the envelope is funded from your address rather than
+                from a shielded note. Everything else is unchanged: the claim link, the
+                expiry, the refund, and the fact that a claim cannot be front-run.
+                Whoever claims it into a shielded balance is still unobservable.
               </p>
             </Callout>
           ) : null}
@@ -274,6 +282,15 @@ export default function CreatePage() {
             <Callout tone="bad" title="Not deployed here">
               No Envelope anonymizer on {network.label} yet. Switch networks in your
               wallet.
+              {maker && walletName && !walletName.toLowerCase().includes(maker.toLowerCase()) ? (
+                <p className="mt-2">
+                  This account is a <strong>{maker}</strong> account being driven by{" "}
+                  {walletName}. A STRK20 proof validates the account&rsquo;s own
+                  signature inside the proof, so a wallet can generally only prove for
+                  its own account class. Creating a native {walletName} account and
+                  funding that is the thing most likely to make the private route work.
+                </p>
+              ) : null}
             </Callout>
           ) : null}
 
