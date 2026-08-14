@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildFundActions,
   buildPublicFundCalls,
@@ -14,6 +14,7 @@ import {
   type EnvelopeKeyPair,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
   DENOMINATIONS,
@@ -39,6 +40,30 @@ interface SealedEnvelope {
   problem?: string;
 }
 
+/**
+ * Clear the page to the left, and fold the envelope away.
+ *
+ * The stagger is applied as inline delays rather than by a library, so the
+ * whole exit is one class toggle and cannot be left half-played by a script
+ * that stalls.
+ */
+function playSendOff(stage: HTMLElement | null): void {
+  if (!stage) return;
+
+  const columns = Array.from(stage.children) as HTMLElement[];
+  columns.forEach((column) => {
+    Array.from(column.children).forEach((child, index) => {
+      (child as HTMLElement).style.transitionDelay = `${index * 45}ms`;
+    });
+  });
+
+  const envelope = columns[0]?.firstElementChild as HTMLElement | undefined;
+  envelope?.classList.add("envelope-fold");
+
+  // Next frame, so the delays are in place before the transition starts.
+  requestAnimationFrame(() => stage.classList.add("send-off"));
+}
+
 export default function CreatePage() {
   const {
     account,
@@ -59,6 +84,8 @@ export default function CreatePage() {
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [progress, setProgress] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [sending, setSending] = useState(false);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -106,6 +133,17 @@ export default function CreatePage() {
   useEffect(() => {
     void refreshBalance();
   }, [refreshBalance]);
+
+  // The send-off is otherwise only reachable by completing a real transaction,
+  // which makes it impossible to look at while building. Stripped from
+  // production builds.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    (window as unknown as { __sendOff?: () => void }).__sendOff = () => {
+      playSendOff(stageRef.current);
+      setSending(true);
+    };
+  }, []);
 
   // A long silent wait is indistinguishable from a hang. Counting it out loud
   // at least says which of the two it is.
@@ -156,6 +194,11 @@ export default function CreatePage() {
     // material, so nothing on-chain ties them to each other.
     const claim = generateEnvelopeKey();
     const refund = generateEnvelopeKey();
+
+    // The page gets out of the way first, so the throw has somewhere to happen.
+    // The signature prompt lands on a cleared stage rather than over a form.
+    playSendOff(stageRef.current);
+    setSending(true);
 
     // Written down before anything is signed. If the tab reloads between the
     // signature and the success screen, the envelope is still funded on-chain
@@ -259,7 +302,7 @@ export default function CreatePage() {
     }
   }
 
-  if (sealed) {
+  if (sealed && !sending) {
     return <SealedView sealed={sealed} onReset={() => setSealed(null)} />;
   }
 
@@ -275,7 +318,19 @@ export default function CreatePage() {
     (shieldedBalance ?? 0n) >= amount || (publicBalance !== null && publicBalance >= amount);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center">
+    <>
+      {sending ? (
+        <SendOff
+          amount={denomination.toString()}
+          symbol={STRK.symbol}
+          onDone={() => setSending(false)}
+        />
+      ) : null}
+
+    <div
+      ref={stageRef}
+      className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center"
+    >
       <div className="order-2 lg:sticky lg:top-10 lg:order-first">
         <EnvelopeCard
           amount={denomination.toString()}
@@ -468,6 +523,7 @@ export default function CreatePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

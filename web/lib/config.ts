@@ -92,6 +92,8 @@ export function formatAmount(amount: bigint, token: Token = STRK): string {
 
 export const EXPIRY_CHOICES = [
   { label: "No expiry", seconds: 0 },
+  { label: "5 minutes", seconds: 300 },
+  { label: "1 hour", seconds: 3_600 },
   { label: "24 hours", seconds: 86_400 },
   { label: "7 days", seconds: 7 * 86_400 },
   { label: "30 days", seconds: 30 * 86_400 },
