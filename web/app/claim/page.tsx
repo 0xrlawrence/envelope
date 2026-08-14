@@ -299,7 +299,7 @@ export default function ClaimPage() {
                 reveals="Nothing. No observer learns who claimed it."
                 requires="Needs a STRK20 wallet, such as Ready."
                 action={busy === "private" ? "Claiming…" : "Claim privately"}
-                preferred
+                preferred={claimantRegistered !== false}
                 disabled={
                   !address ||
                   !supportsStrk20 ||
@@ -323,6 +323,7 @@ export default function ClaimPage() {
                 reveals="Your address, and the amount, on-chain forever."
                 requires="Works with any Starknet wallet."
                 action={busy === "public" ? "Claiming…" : "Claim to my address"}
+                preferred={claimantRegistered === false}
                 disabled={!address || !envelope.claimable || busy !== ""}
                 onClick={claimToAddress}
               />
