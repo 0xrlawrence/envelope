@@ -23,9 +23,9 @@ import {
   formatAmount,
   toSmallestUnit,
 } from "@/lib/config";
-import { explainWalletError } from "@/lib/errors";
+import { explainWalletError, looksRejected } from "@/lib/errors";
 import { appOrigin } from "@/lib/origin";
-import { markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
+import { forget, markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 
 interface SealedEnvelope {
@@ -35,8 +35,12 @@ interface SealedEnvelope {
   transactionHash: string;
   /** Whether the pool hid the funder, or the funding leg was public. */
   private: boolean;
-  /** "funding" until the transaction lands, then settled either way. */
-  state: "funding" | "funded" | "failed";
+  /**
+   * "funding" until the transaction lands, then settled. "declined" is kept
+   * apart from "failed" because nothing went wrong: the user said no, and the
+   * app should say so and stop rather than reporting a fault.
+   */
+  state: "funding" | "funded" | "failed" | "declined";
   problem?: string;
 }
 
@@ -62,6 +66,19 @@ function playSendOff(stage: HTMLElement | null): void {
 
   // Next frame, so the delays are in place before the transition starts.
   requestAnimationFrame(() => stage.classList.add("send-off"));
+}
+
+/** Bring the page back, for a seal that was declined rather than sent. */
+function undoSendOff(stage: HTMLElement | null): void {
+  if (!stage) return;
+  stage.classList.remove("send-off");
+  const envelope = stage.firstElementChild?.firstElementChild as HTMLElement | undefined;
+  envelope?.classList.remove("envelope-fold");
+  Array.from(stage.children).forEach((column) => {
+    Array.from(column.children).forEach((child) => {
+      (child as HTMLElement).style.transitionDelay = "";
+    });
+  });
 }
 
 export default function CreatePage() {
@@ -308,6 +325,9 @@ export default function CreatePage() {
           viaPool = true;
         } catch (poolAttempt) {
           console.debug("[envelope] pool route unavailable", poolAttempt);
+          // A refusal ends it. Falling through to the next route would put a
+          // second signature prompt in front of someone who has just said no.
+          if (looksRejected(poolAttempt)) throw poolAttempt;
           // Spending a note is a guess whenever the shielded balance could not
           // be read, so try the pool once more from the wallet before giving up
           // on privacy altogether.
@@ -317,7 +337,8 @@ export default function CreatePage() {
             const result = await sealThroughPool("wallet");
             transactionHash = result.transaction_hash;
             viaPool = true;
-          } catch {
+          } catch (walletAttempt) {
+            if (looksRejected(walletAttempt)) throw walletAttempt;
             setProgress(
               "This wallet cannot prove a private seal for this account, so the envelope is funded from your address.",
             );
@@ -337,12 +358,31 @@ export default function CreatePage() {
       await confirmOnChain(claim.publicKey);
       void refreshBalance();
     } catch (cause) {
+      // Someone who declined in the wallet gets an answer immediately. There is
+      // nothing on-chain to look for, and making them watch an envelope fly for
+      // forty seconds after they cancelled is the app arguing with them.
+      if (looksRejected(cause)) {
+        // The keys were written down before signing, in case the tab died
+        // holding the only copy. Nothing was signed, so they are now litter.
+        forget(claim.publicKey);
+        setSealed((previous) =>
+          previous ? { ...previous, state: "declined" } : previous,
+        );
+        return;
+      }
+
       // A refusal and a timeout are not the same thing. The wallet can give up
       // waiting on a transaction it already submitted, and the envelope is then
       // funded on-chain while the app reports failure and throws away the only
       // link to it. So before believing the error, ask the contract.
+      // Bounded tightly. Not every wallet words a refusal in a way the check
+      // above can recognise, and the cost of guessing wrong is that someone
+      // watches an envelope fly for a transaction they cancelled. Twelve
+      // seconds is long enough to catch a transaction that really was
+      // submitted, and the keys stay on the sealed page for one that lands
+      // later, so nothing is lost by giving up early here.
       setProgress("Checking whether it went through anyway.");
-      for (let attempt = 0; attempt < 10; attempt += 1) {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
         try {
           const state = await readEnvelope(provider, network.anonymizer, claim.publicKey);
           if (state.status !== "none") {
@@ -355,7 +395,7 @@ export default function CreatePage() {
         } catch {
           // Keep waiting; the read is not the thing being tested.
         }
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
 
       // The wallet's own wording is rarely actionable, so it is translated and
@@ -388,7 +428,9 @@ export default function CreatePage() {
     }
   }
 
-  if (sealed && !sending) {
+  // A declined seal never becomes an envelope, so it never gets the sealed
+  // view. It is cleared once the return flight lands.
+  if (sealed && sealed.state !== "declined" && !sending) {
     return <SealedView sealed={sealed} onReset={() => setSealed(null)} />;
   }
 
@@ -412,11 +454,23 @@ export default function CreatePage() {
           phase={
             sealed?.state === "funded"
               ? "sent"
-              : sealed?.state === "failed"
-                ? "failed"
-                : "flying"
+              : sealed?.state === "declined"
+                ? "returned"
+                : sealed?.state === "failed"
+                  ? "failed"
+                  : "flying"
           }
-          onDone={() => setSending(false)}
+          onDone={() => {
+            setSending(false);
+            // A declined seal produced nothing, so there is no envelope to show
+            // and no link to hand over. The form comes back with the amount and
+            // the reference still filled in, ready to try again.
+            if (sealed?.state === "declined") {
+              setSealed(null);
+              undoSendOff(stageRef.current);
+              setError("You declined this in your wallet. Nothing was sent and nothing moved.");
+            }
+          }}
         />
       ) : null}
 

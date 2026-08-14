@@ -37,6 +37,31 @@ const BY_NAME: Array<[RegExp, string]> = [
   ],
 ];
 
+/**
+ * Did the person say no?
+ *
+ * This has to be told apart from every other failure, because the app's answer
+ * to a failed seal is to spend forty seconds asking the chain whether the
+ * transaction landed anyway. That is right for a wallet that timed out holding
+ * a transaction it had already submitted. It is wrong for a refusal: nothing
+ * was ever sent, there is nothing to find, and the user is left watching an
+ * envelope fly for a transaction they cancelled.
+ */
+export function looksRejected(error: unknown): boolean {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error ?? {});
+  // Careful with the wording: "the wallet rejected the request payload" is a
+  // malformed call, not a refusal, and must not land here. Every pattern below
+  // names the user as the one doing the refusing.
+  return /USER_REFUSED|USER_DENIED|USER_REJECTED|USER_ABORT|ABORTED_BY_USER|(reject|refus|declin|cancell?|abort)(ed)?\s+by\s+(the\s+)?user|user\s+(rejected|refused|denied|declined|abort(ed)?|cancell?ed)|request\s+(rejected|cancell?ed)/i.test(
+    raw,
+  );
+}
+
 /** Best available explanation, with the wallet's own words kept for reference. */
 export function explainWalletError(error: unknown): { message: string; raw: string } {
   const raw =

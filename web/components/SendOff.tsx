@@ -127,9 +127,14 @@ export function SendOff({
   symbol: string;
   /**
    * `flying` while the transaction is still being proved, then `sent` once the
-   * envelope is confirmed on-chain or `failed` if it never arrives.
+   * envelope is confirmed on-chain, `returned` if the user declined it in the
+   * wallet, or `failed` if it was signed and never arrived.
+   *
+   * A refusal is not a failure, and it should not look like one. Nothing was
+   * sent, so the envelope comes back the way it went out instead of falling out
+   * of the sky.
    */
-  phase: "flying" | "sent" | "failed";
+  phase: "flying" | "sent" | "returned" | "failed";
   onDone?: () => void;
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -196,41 +201,38 @@ export function SendOff({
     // hold underneath, and the two folded corners lying proud of the wings.
     // That step is what makes it read as folded paper rather than as a shape:
     // without it the whole thing is one plane catching one light.
-    const SPAN = 1.15;
-    const LENGTH = 2.53;
-    const NOSE: Point = [0, 0, 1.58];
-    const RIDGE: Point = [0, 0.24, -0.95];
-    const KEEL: Point = [0, -0.42, -0.88];
-    const root = (side: number): Point => [side * 0.2, 0.02, -0.95];
-    const tip = (side: number): Point => [side * SPAN, -0.18, -1.06];
-
-    // Points on a wing, given as a blend of its three corners, so a folded
-    // corner sits exactly in the plane of the wing it was folded against.
-    const onWing = (side: number, toTip: number, toRoot: number): Point => {
-      const toNose = 1 - toTip - toRoot;
-      const [nx, ny, nz] = NOSE;
-      const [tx, ty, tz] = tip(side);
-      const [rx, ry, rz] = root(side);
-      return [
-        nx * toNose + tx * toTip + rx * toRoot,
-        ny * toNose + ty * toTip + ry * toRoot,
-        nz * toNose + tz * toTip + rz * toRoot,
-      ];
-    };
+    const SPAN = 1.02;
+    const LENGTH = 2.57;
+    const NOSE: Point = [0, 0, 1.62];
+    const RIDGE: Point = [0, 0.34, -0.95];
+    const KEEL: Point = [0, -0.34, -0.9];
+    // The wing root sits well outboard of the ridge and below it, so the body
+    // is a tent rather than a wall. A vertical wall is edge on to a camera
+    // level with the flight line and disappears; a slanted one catches its own
+    // light and separates the two wings, which is what makes the fold read.
+    const root = (side: number): Point => [side * 0.3, -0.02, -0.95];
+    // A wing is a quad, not a sliver: it carries a tip chord, so there is an
+    // open white field between the leading edge and the trailing edge rather
+    // than two printed borders running into each other.
+    const tipAft = (side: number): Point => [side * SPAN, -0.09, -0.95];
+    const tipFore = (side: number): Point => [side * SPAN, -0.113, -0.28];
 
     // Lift a folded corner clear of the wing beneath it, along that wing's own
     // normal, so the layer draws its own shadow line instead of fighting for
-    // the same depth.
-    const wingNormal = cross(subtract(tip(1), NOSE), subtract(root(1), NOSE));
+    // the same depth. The wing is built flat on purpose, so one normal serves.
+    const wingNormal = cross(subtract(tipAft(1), NOSE), subtract(root(1), NOSE));
     const wingUnit = magnitude(wingNormal);
-    const LAYER = 0.035;
+    const LAYER = 0.028;
+    const along = (from: Point, to: Point, t: number): Point => [
+      from[0] + (to[0] - from[0]) * t,
+      from[1] + (to[1] - from[1]) * t,
+      from[2] + (to[2] - from[2]) * t,
+    ];
     const lift = (point: Point, side: number): Point => [
       point[0] + (side * wingNormal[0] * LAYER) / wingUnit,
       point[1] + (wingNormal[1] * LAYER) / wingUnit,
       point[2] + (wingNormal[2] * LAYER) / wingUnit,
     ];
-    const fold = (side: number, toTip: number, toRoot: number) =>
-      lift(onWing(side, toTip, toRoot), side);
 
     // The amount is printed on the near wing. Its coordinates run nose to tail
     // across the canvas and root to tip down it, which is the orientation the
@@ -240,30 +242,43 @@ export function SendOff({
       1 - Math.abs(point[0]) / SPAN,
     ];
 
+    // The one folded corner each wing carries: a long diagonal from just behind
+    // the nose out to the trailing edge. Its other two sides lie along creases,
+    // so the diagonal is the only line of print on it.
+    const foldSeam = (side: number) =>
+      [
+        lift(along(NOSE, root(side), 0.12), side),
+        lift(along(root(side), tipAft(side), 0.55), side),
+        lift(root(side), side),
+      ] as const;
+
     const dartGeometry = foldDart([
-      // Body walls. Only the back edge came from the envelope's border.
+      // Body walls, stepping down from the ridge to each wing root. The step is
+      // what makes the dart read as folded paper: without it the whole thing is
+      // one surface catching one light. Only the back edge was a cut edge.
       { points: [NOSE, RIDGE, root(1)], stripe: [0] },
       { points: [NOSE, root(-1), RIDGE], stripe: [0] },
       // Keel. Belly edge AB, back edge BC, ridge bare.
       { points: [NOSE, KEEL, RIDGE], stripe: [0, 2] },
-      // Far wing. Leading edge AB, trailing edge BC, root bare.
-      { points: [NOSE, tip(1), root(1)], stripe: [0, 2] },
+      // Far wing, as two triangles of one flat quad. The shared diagonal is
+      // interior, so it is left bare and only the outline is printed.
+      { points: [NOSE, tipFore(1), tipAft(1)], stripe: [0, 2] },
+      { points: [NOSE, tipAft(1), root(1)], stripe: [0] },
       // Near wing, and the one that carries the printing.
       {
-        points: [NOSE, root(-1), tip(-1)],
+        points: [NOSE, tipAft(-1), tipFore(-1)],
         stripe: [0, 1],
-        mark: [markAt(NOSE), markAt(root(-1)), markAt(tip(-1))],
-      },
-      // Folded corners. Their aft edge runs along the wing's own trailing edge,
-      // so the one printed line on each is the long diagonal, the way it is on
-      // a real fold. Printing the short edges too turned the corner into a
-      // striped sliver rather than a piece of paper lying on another.
-      {
-        points: [fold(1, 0.02, 0.1), fold(1, 0.42, 0.58), fold(1, 0, 1)],
-        stripe: [2],
+        mark: [markAt(NOSE), markAt(tipAft(-1)), markAt(tipFore(-1))],
       },
       {
-        points: [fold(-1, 0.02, 0.1), fold(-1, 0, 1), fold(-1, 0.42, 0.58)],
+        points: [NOSE, root(-1), tipAft(-1)],
+        stripe: [0],
+        mark: [markAt(NOSE), markAt(root(-1)), markAt(tipAft(-1))],
+      },
+      // Folded corners: one printed diagonal each.
+      { points: foldSeam(1), stripe: [2] },
+      {
+        points: [foldSeam(-1)[0], foldSeam(-1)[2], foldSeam(-1)[1]],
         stripe: [1],
       },
     ]);
@@ -287,11 +302,11 @@ export function SendOff({
       context.textAlign = "left";
       context.fillStyle = "#141b25";
       context.font = `700 110px ${display}`;
-      context.fillText(amount, 52, 338);
+      context.fillText(amount, 60, 425);
       context.fillStyle = "#465365";
       context.font = `600 34px ${display}`;
       context.letterSpacing = "8px";
-      context.fillText(symbol, 56, 386);
+      context.fillText(symbol, 64, 470);
     }
     const labelTexture = new CanvasTexture(label);
     labelTexture.colorSpace = SRGBColorSpace;
@@ -376,16 +391,18 @@ varying float vInk;`,
     if (d < dist) { dist = d; along = vBary.y / max(vBary.x + vBary.y, 1e-4) * vSpan.z; }
   }
 
-  // A hairline of bare paper at the very edge, then the band.
+  // A hairline of bare paper at the very edge, then the band. Kept narrow:
+  // printed borders on an envelope are a trim, and a fat one turns every fold
+  // into a stripe and leaves no white paper between them.
   float soft = fwidth(dist) + 1e-5;
   float band =
-    smoothstep(0.012 - soft, 0.012 + soft, dist) *
-    (1.0 - smoothstep(0.078 - soft, 0.078 + soft, dist));
+    smoothstep(0.006 - soft, 0.006 + soft, dist) *
+    (1.0 - smoothstep(0.045 - soft, 0.045 + soft, dist));
 
   if (band > 0.001) {
     // Adding the across-band distance to the along-edge distance rakes every
     // dash to exactly 45 degrees, which is what airmail border printing is.
-    float phase = (along + dist) * 22.0;
+    float phase = (along + dist) * 16.0;
     float cell = mod(floor(phase), 3.0);
     vec3 ink = cell < 1.0 ? uInkA : (cell < 2.0 ? uInkB : uInkC);
     float dash = smoothstep(0.74, 0.62, fract(phase));
@@ -407,7 +424,7 @@ varying float vInk;`,
     plane.add(heading);
     // Large enough that the fold and the printing are legible, which is the
     // whole point of showing it.
-    plane.scale.setScalar(1.55);
+    plane.scale.setScalar(1.15);
 
     plane.position.set(-2.6, -0.4, 0);
     plane.rotation.set(0, 0, 0.1);
@@ -480,6 +497,9 @@ varying float vInk;`,
     const GATHER = 0.24;
     const THROW = 0.54;
     const AWAY = 1.3;
+    // A turn takes longer than a departure, and it should: the point of it is
+    // that you can see the envelope decide to come back.
+    const BACK = 1.9;
     // Banked toward the camera, on top of whatever the drift is doing, so the
     // wings and the printing stay presented rather than edge on. Kept shallow,
     // with most of the viewing angle coming from the camera's height instead:
@@ -538,9 +558,22 @@ varying float vInk;`,
         const settledPhase = latest.current.phase;
         if (settledPhase !== "flying") exitAt = elapsed;
       } else {
-        const t = (elapsed - exitAt) / AWAY;
-        if (latest.current.phase === "failed") {
-          // Nothing was sent, so nothing flies away. It stalls and drops.
+        const span = latest.current.phase === "returned" ? BACK : AWAY;
+        const t = (elapsed - exitAt) / span;
+        if (latest.current.phase === "returned") {
+          // Declined. Nothing was signed and nothing moved, so the envelope is
+          // not lost: it banks over and comes back the way it went out. It
+          // leaves to the left, which is where the page slid away to, so the
+          // form arriving back behind it reads as the same movement reversed.
+          const turn = Math.min(t / 0.42, 1);
+          plane.position.set(
+            at(t, 0.55, -13, easeIn),
+            at(t, 0.35, -0.65, easeOut),
+            at(t, 0, 1.1, easeOut),
+          );
+          plane.rotation.set(tiltX - turn * 0.55, turn * Math.PI, tiltZ - turn * 0.2);
+        } else if (latest.current.phase === "failed") {
+          // Signed, and then it never arrived. That is a fall, not a return.
           plane.position.set(
             at(t, 0.55, -0.6, easeIn),
             at(t, 0.35, -5.5, easeIn),
@@ -557,17 +590,19 @@ varying float vInk;`,
         }
       }
 
+      const leaving = latest.current.phase === "returned" ? BACK : AWAY;
+
       // Wind holds while it cruises and drops away with it.
       const rise = Math.min(elapsed / 0.5, 1);
       const fall = exitAt
-        ? 1 - Math.min(Math.max((elapsed - exitAt) / AWAY, 0), 1)
+        ? 1 - Math.min(Math.max((elapsed - exitAt) / leaving, 0), 1)
         : 1;
       streakMaterial.opacity = 0.55 * rise * fall;
 
       layoutStreaks(delta);
       renderer.render(scene, camera);
 
-      if (exitAt && elapsed > exitAt + AWAY) settle();
+      if (exitAt && elapsed > exitAt + leaving) settle();
     };
     frame = requestAnimationFrame(loop);
 
