@@ -9,10 +9,8 @@ import {
   CanvasTexture,
   Color,
   DirectionalLight,
-  EdgesGeometry,
+  DoubleSide,
   Group,
-  LineBasicMaterial,
-  LineSegments,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -35,12 +33,89 @@ import {
  * the page clears out of the way, the envelope folds into a dart, and the dart
  * carries the amount off into the wind.
  *
- * The dart is folded geometry with flat shading, so the creases catch the light
- * the way paper does, and the wind is instanced streaks moving through the same
- * scene. Both are real geometry rather than pictures of geometry, which is what
- * makes the fold read as a fold rather than as a sprite being swapped.
+ * The dart is folded from an airmail envelope, so the striped border it was
+ * printed with ends up running along the folded edges. That striping is drawn
+ * in the shader from each facet's own barycentric coordinates rather than
+ * painted into a texture: the dashes march along whichever edge is nearest and
+ * rake to a true 45 degrees across the band, so they stay crisp at any distance
+ * and land exactly on the creases instead of near them.
+ *
+ * The amount is printed onto the near wing the same way, through the paper's
+ * own lighting, so it creases and shades with the wing instead of hovering
+ * beside it.
  */
 const STREAKS = 320;
+
+type Point = readonly [number, number, number];
+
+/**
+ * A folded facet.
+ *
+ * `stripe` names the edges that came from the envelope's printed border, by the
+ * edge opposite each vertex: 0 is BC, 1 is CA, 2 is AB. Creases made by folding
+ * are left bare, which is what keeps the striping reading as print rather than
+ * as an outline.
+ */
+interface Facet {
+  points: readonly [Point, Point, Point];
+  stripe: readonly number[];
+  mark?: readonly [readonly [number, number], readonly [number, number], readonly [number, number]];
+}
+
+const subtract = (a: Point, b: Point): Point => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a: Point, b: Point): Point => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+const magnitude = (a: Point) => Math.hypot(a[0], a[1], a[2]);
+
+function foldDart(facets: readonly Facet[]): BufferGeometry {
+  const position: number[] = [];
+  const bary: number[] = [];
+  const edge: number[] = [];
+  const span: number[] = [];
+  const uv: number[] = [];
+  const ink: number[] = [];
+
+  for (const facet of facets) {
+    const [a, b, c] = facet.points;
+    const ab = subtract(b, a);
+    const ac = subtract(c, a);
+    const bc = subtract(c, b);
+
+    // Twice the area, which turns an edge length into the height above it.
+    const doubleArea = magnitude(cross(ab, ac));
+    const lengths = [magnitude(bc), magnitude(ac), magnitude(ab)];
+    const heights = lengths.map((length) => doubleArea / length);
+
+    // Zero means "this edge is a fold, leave it bare". Anything else is the
+    // height above that edge, which converts barycentric depth into a real
+    // distance so the printed band is the same width on every facet.
+    const printed = [0, 1, 2].map((index) =>
+      facet.stripe.includes(index) ? heights[index]! : 0,
+    );
+
+    for (let vertex = 0; vertex < 3; vertex += 1) {
+      position.push(...facet.points[vertex]!);
+      bary.push(vertex === 0 ? 1 : 0, vertex === 1 ? 1 : 0, vertex === 2 ? 1 : 0);
+      edge.push(printed[0]!, printed[1]!, printed[2]!);
+      span.push(lengths[0]!, lengths[1]!, lengths[2]!);
+      uv.push(...(facet.mark?.[vertex] ?? [0, 0]));
+      ink.push(facet.mark ? 1 : 0);
+    }
+  }
+
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(new Float32Array(position), 3));
+  geometry.setAttribute("aBary", new BufferAttribute(new Float32Array(bary), 3));
+  geometry.setAttribute("aEdge", new BufferAttribute(new Float32Array(edge), 3));
+  geometry.setAttribute("aSpan", new BufferAttribute(new Float32Array(span), 3));
+  geometry.setAttribute("aUv", new BufferAttribute(new Float32Array(uv), 2));
+  geometry.setAttribute("aInk", new BufferAttribute(new Float32Array(ink), 1));
+  geometry.computeVertexNormals();
+  return geometry;
+}
 
 export function SendOff({
   amount,
@@ -101,49 +176,225 @@ export function SendOff({
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 0, 7.2);
+    // Above the flight line rather than level with it. A dart seen from the
+    // side is a line; the wings, the creases and the printing only exist if you
+    // are looking down on them.
+    camera.position.set(0, 4.4, 6.0);
+    camera.lookAt(0, 0.2, 0);
 
-    scene.add(new AmbientLight(0xffffff, 0.55));
-    const key = new DirectionalLight(0xffffff, 1.5);
-    key.position.set(3, 5, 4);
+    scene.add(new AmbientLight(0xffffff, 0.62));
+    const key = new DirectionalLight(0xffffff, 1.7);
+    key.position.set(3.5, 6, 4);
     scene.add(key);
-    const rim = new DirectionalLight(0x9fc0ff, 0.8);
-    rim.position.set(-4, -2, 2);
+    const rim = new DirectionalLight(0x9fc0ff, 0.75);
+    rim.position.set(-4, -1.5, 2);
     scene.add(rim);
 
     // ── The dart ───────────────────────────────────────────────────────────
-    // Folded from a sheet: two top wings with a little dihedral, and a keel
-    // beneath the centreline. Flat shading leaves the creases visible.
-    const nose = [0, 0, 1.35];
-    const tail = [0, 0, -0.95];
-    const leftTip = [-1.05, 0.1, -0.8];
-    const rightTip = [1.05, 0.1, -0.8];
-    const keel = [0, -0.34, -0.85];
+    // A ridge running the length of the fuselage, a short wall stepping down
+    // from it to each wing root, wings swept back from a long nose, a keel to
+    // hold underneath, and the two folded corners lying proud of the wings.
+    // That step is what makes it read as folded paper rather than as a shape:
+    // without it the whole thing is one plane catching one light.
+    const SPAN = 1.15;
+    const LENGTH = 2.53;
+    const NOSE: Point = [0, 0, 1.58];
+    const RIDGE: Point = [0, 0.24, -0.95];
+    const KEEL: Point = [0, -0.42, -0.88];
+    const root = (side: number): Point => [side * 0.2, 0.02, -0.95];
+    const tip = (side: number): Point => [side * SPAN, -0.18, -1.06];
 
-    const dartGeometry = new BufferGeometry();
-    dartGeometry.setAttribute(
-      "position",
-      new BufferAttribute(
-        new Float32Array([
-          ...nose, ...leftTip, ...tail,
-          ...nose, ...tail, ...rightTip,
-          ...nose, ...keel, ...tail,
-        ]),
-        3,
-      ),
-    );
-    dartGeometry.computeVertexNormals();
+    // Points on a wing, given as a blend of its three corners, so a folded
+    // corner sits exactly in the plane of the wing it was folded against.
+    const onWing = (side: number, toTip: number, toRoot: number): Point => {
+      const toNose = 1 - toTip - toRoot;
+      const [nx, ny, nz] = NOSE;
+      const [tx, ty, tz] = tip(side);
+      const [rx, ry, rz] = root(side);
+      return [
+        nx * toNose + tx * toTip + rx * toRoot,
+        ny * toNose + ty * toTip + ry * toRoot,
+        nz * toNose + tz * toTip + rz * toRoot,
+      ];
+    };
 
-    const dart = new Mesh(
-      dartGeometry,
-      new MeshStandardMaterial({
-        color: 0xe9e4d7,
-        roughness: 0.85,
-        metalness: 0,
-        flatShading: true,
-        side: 2,
-      }),
-    );
+    // Lift a folded corner clear of the wing beneath it, along that wing's own
+    // normal, so the layer draws its own shadow line instead of fighting for
+    // the same depth.
+    const wingNormal = cross(subtract(tip(1), NOSE), subtract(root(1), NOSE));
+    const wingUnit = magnitude(wingNormal);
+    const LAYER = 0.035;
+    const lift = (point: Point, side: number): Point => [
+      point[0] + (side * wingNormal[0] * LAYER) / wingUnit,
+      point[1] + (wingNormal[1] * LAYER) / wingUnit,
+      point[2] + (wingNormal[2] * LAYER) / wingUnit,
+    ];
+    const fold = (side: number, toTip: number, toRoot: number) =>
+      lift(onWing(side, toTip, toRoot), side);
+
+    // The amount is printed on the near wing. Its coordinates run nose to tail
+    // across the canvas and root to tip down it, which is the orientation the
+    // wing presents once the dart is banked toward the camera.
+    const markAt = (point: Point): readonly [number, number] => [
+      (point[2] + 0.95) / LENGTH,
+      1 - Math.abs(point[0]) / SPAN,
+    ];
+
+    const dartGeometry = foldDart([
+      // Body walls. Only the back edge came from the envelope's border.
+      { points: [NOSE, RIDGE, root(1)], stripe: [0] },
+      { points: [NOSE, root(-1), RIDGE], stripe: [0] },
+      // Keel. Belly edge AB, back edge BC, ridge bare.
+      { points: [NOSE, KEEL, RIDGE], stripe: [0, 2] },
+      // Far wing. Leading edge AB, trailing edge BC, root bare.
+      { points: [NOSE, tip(1), root(1)], stripe: [0, 2] },
+      // Near wing, and the one that carries the printing.
+      {
+        points: [NOSE, root(-1), tip(-1)],
+        stripe: [0, 1],
+        mark: [markAt(NOSE), markAt(root(-1)), markAt(tip(-1))],
+      },
+      // Folded corners. Their aft edge runs along the wing's own trailing edge,
+      // so the one printed line on each is the long diagonal, the way it is on
+      // a real fold. Printing the short edges too turned the corner into a
+      // striped sliver rather than a piece of paper lying on another.
+      {
+        points: [fold(1, 0.02, 0.1), fold(1, 0.42, 0.58), fold(1, 0, 1)],
+        stripe: [2],
+      },
+      {
+        points: [fold(-1, 0.02, 0.1), fold(-1, 0, 1), fold(-1, 0.42, 0.58)],
+        stripe: [1],
+      },
+    ]);
+
+    // The amount, drawn once onto a canvas and printed into the paper's own
+    // diffuse colour, so it takes the wing's light and the wing's perspective.
+    const label = document.createElement("canvas");
+    label.width = 1120;
+    label.height = 512;
+    const context = label.getContext("2d");
+    if (context) {
+      const styles = getComputedStyle(document.body);
+      const display = styles.getPropertyValue("--font-plex-condensed").trim() || "sans-serif";
+      // Placed outboard of the folded corner and clear of the printed border,
+      // in the open field of the wing where an address block would go.
+      // A wing is a triangle, so the open field is the wedge aft of the folded
+      // corner and inboard of the leading edge. The block is set left-aligned
+      // and low in it, which is the widest part and the part that stays clear
+      // of the printed border on every side.
+      context.clearRect(0, 0, label.width, label.height);
+      context.textAlign = "left";
+      context.fillStyle = "#141b25";
+      context.font = `700 110px ${display}`;
+      context.fillText(amount, 52, 338);
+      context.fillStyle = "#465365";
+      context.font = `600 34px ${display}`;
+      context.letterSpacing = "8px";
+      context.fillText(symbol, 56, 386);
+    }
+    const labelTexture = new CanvasTexture(label);
+    labelTexture.colorSpace = SRGBColorSpace;
+    labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    const paper = new MeshStandardMaterial({
+      color: 0xf7f5f0,
+      roughness: 0.93,
+      metalness: 0,
+      flatShading: true,
+      side: DoubleSide,
+    });
+
+    paper.onBeforeCompile = (shader) => {
+      shader.uniforms.uMark = { value: labelTexture };
+      shader.uniforms.uInkA = { value: new Color(0xc8443c) };
+      shader.uniforms.uInkB = { value: new Color(0x35619f) };
+      shader.uniforms.uInkC = { value: new Color(0x111820) };
+
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+attribute vec3 aBary;
+attribute vec3 aEdge;
+attribute vec3 aSpan;
+attribute vec2 aUv;
+attribute float aInk;
+varying vec3 vBary;
+varying vec3 vEdge;
+varying vec3 vSpan;
+varying vec2 vMark;
+varying float vInk;`,
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+vBary = aBary;
+vEdge = aEdge;
+vSpan = aSpan;
+vMark = aUv;
+vInk = aInk;`,
+        );
+
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+uniform sampler2D uMark;
+uniform vec3 uInkA;
+uniform vec3 uInkB;
+uniform vec3 uInkC;
+varying vec3 vBary;
+varying vec3 vEdge;
+varying vec3 vSpan;
+varying vec2 vMark;
+varying float vInk;`,
+        )
+        .replace(
+          "#include <color_fragment>",
+          `#include <color_fragment>
+  // Printed first, so a border stripe always wins over the amount.
+  if (vInk > 0.5) {
+    vec4 stamp = texture2D(uMark, vMark);
+    diffuseColor.rgb = mix(diffuseColor.rgb, pow(stamp.rgb, vec3(2.2)), stamp.a);
+  }
+
+  // Distance to the nearest printed edge, in model units, and how far along
+  // that edge we are, so the dashes march with the edge rather than across it.
+  float dist = 1e9;
+  float along = 0.0;
+  if (vEdge.x > 0.0) {
+    float d = vBary.x * vEdge.x;
+    if (d < dist) { dist = d; along = vBary.z / max(vBary.y + vBary.z, 1e-4) * vSpan.x; }
+  }
+  if (vEdge.y > 0.0) {
+    float d = vBary.y * vEdge.y;
+    if (d < dist) { dist = d; along = vBary.x / max(vBary.z + vBary.x, 1e-4) * vSpan.y; }
+  }
+  if (vEdge.z > 0.0) {
+    float d = vBary.z * vEdge.z;
+    if (d < dist) { dist = d; along = vBary.y / max(vBary.x + vBary.y, 1e-4) * vSpan.z; }
+  }
+
+  // A hairline of bare paper at the very edge, then the band.
+  float soft = fwidth(dist) + 1e-5;
+  float band =
+    smoothstep(0.012 - soft, 0.012 + soft, dist) *
+    (1.0 - smoothstep(0.078 - soft, 0.078 + soft, dist));
+
+  if (band > 0.001) {
+    // Adding the across-band distance to the along-edge distance rakes every
+    // dash to exactly 45 degrees, which is what airmail border printing is.
+    float phase = (along + dist) * 22.0;
+    float cell = mod(floor(phase), 3.0);
+    vec3 ink = cell < 1.0 ? uInkA : (cell < 2.0 ? uInkB : uInkC);
+    float dash = smoothstep(0.74, 0.62, fract(phase));
+    diffuseColor.rgb = mix(diffuseColor.rgb, ink, band * dash);
+  }`,
+        );
+    };
+
+    const dart = new Mesh(dartGeometry, paper);
 
     // The dart is modelled nose-along-Z, so an inner group turns it to face
     // right and the outer group is left free to carry position and tilt. The
@@ -152,56 +403,11 @@ export function SendOff({
     heading.rotation.y = Math.PI / 2;
     heading.add(dart);
 
-    // Airmail edges, in the stripe's own colours. Drawn from the folded
-    // geometry rather than added on top, so every line is a real crease.
-    const edges = new EdgesGeometry(dartGeometry);
-    const edgeColours = new Float32Array(edges.attributes.position!.count * 3);
-    const palette = [new Color(0xc8443c), new Color(0x35619f), new Color(0x0b1118)];
-    for (let vertex = 0; vertex < edges.attributes.position!.count; vertex += 1) {
-      const colour = palette[Math.floor(vertex / 2) % palette.length]!;
-      edgeColours[vertex * 3] = colour.r;
-      edgeColours[vertex * 3 + 1] = colour.g;
-      edgeColours[vertex * 3 + 2] = colour.b;
-    }
-    edges.setAttribute("color", new BufferAttribute(edgeColours, 3));
-    const outline = new LineSegments(
-      edges,
-      new LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 }),
-    );
-    heading.add(outline);
-
     const plane = new Group();
     plane.add(heading);
-
-    // The amount rides on the wing, printed rather than floating beside it.
-    const label = document.createElement("canvas");
-    label.width = 512;
-    label.height = 256;
-    const context = label.getContext("2d");
-    if (context) {
-      const styles = getComputedStyle(document.body);
-      const display = styles.getPropertyValue("--font-plex-condensed").trim() || "sans-serif";
-      context.clearRect(0, 0, label.width, label.height);
-      context.fillStyle = "#0e141c";
-      context.font = `700 150px ${display}`;
-      context.textAlign = "center";
-      context.fillText(amount, 256, 150);
-      context.fillStyle = "#5d6979";
-      context.font = `600 52px ${display}`;
-      context.letterSpacing = "10px";
-      context.fillText(symbol, 256, 210);
-    }
-    const labelTexture = new CanvasTexture(label);
-    labelTexture.colorSpace = SRGBColorSpace;
-
-    const labelMesh = new Mesh(
-      new PlaneGeometry(0.95, 0.48),
-      new MeshBasicMaterial({ map: labelTexture, transparent: true }),
-    );
-    labelMesh.rotation.x = -Math.PI / 2;
-    labelMesh.position.set(-0.42, 0.06, -0.18);
-    labelMesh.rotation.z = 0.06;
-    heading.add(labelMesh);
+    // Large enough that the fold and the printing are legible, which is the
+    // whole point of showing it.
+    plane.scale.setScalar(1.55);
 
     plane.position.set(-2.6, -0.4, 0);
     plane.rotation.set(0, 0, 0.1);
@@ -221,10 +427,12 @@ export function SendOff({
     const streaks = new InstancedMesh(streakGeometry, streakMaterial, STREAKS);
     scene.add(streaks);
 
+    // All of it behind the dart. A streak crossing in front cuts a bright line
+    // across the paper, which reads as a rendering fault rather than as air.
     const seeds = Array.from({ length: STREAKS }, () => ({
       x: Math.random() * 26 - 13,
       y: Math.random() * 11 - 5.5,
-      z: Math.random() * 6 - 4,
+      z: -0.9 - Math.random() * 6,
       length: 0.5 + Math.random() * 2.6,
       speed: 5 + Math.random() * 16,
     }));
@@ -272,6 +480,11 @@ export function SendOff({
     const GATHER = 0.24;
     const THROW = 0.54;
     const AWAY = 1.3;
+    // Banked toward the camera, on top of whatever the drift is doing, so the
+    // wings and the printing stay presented rather than edge on. Kept shallow,
+    // with most of the viewing angle coming from the camera's height instead:
+    // bank alone presents the near wing by hiding the far one.
+    const BANK = 0.34;
     // When the throw ends the dart does not leave. It holds in the middle of
     // the page, gliding, for as long as the transaction is still being proved,
     // so the wait has something happening in it and the exit means something
@@ -298,7 +511,9 @@ export function SendOff({
         0.06 * Math.sin(elapsed * 1.73 + 1.3) +
         0.035 * Math.sin(elapsed * 2.91 + 0.4);
       const tiltX =
-        0.13 * Math.sin(elapsed * 0.71 + 2.1) + 0.06 * Math.sin(elapsed * 1.87 + 0.8);
+        BANK +
+        0.13 * Math.sin(elapsed * 0.71 + 2.1) +
+        0.06 * Math.sin(elapsed * 1.87 + 0.8);
 
       if (elapsed < GATHER) {
         // Drawing back, the way a hand does before a throw.
@@ -361,15 +576,11 @@ export function SendOff({
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
       dartGeometry.dispose();
-      (dart.material as MeshStandardMaterial).dispose();
-      edges.dispose();
-      (outline.material as LineBasicMaterial).dispose();
+      paper.dispose();
       streakGeometry.dispose();
       streakMaterial.dispose();
       streaks.dispose();
       labelTexture.dispose();
-      labelMesh.geometry.dispose();
-      (labelMesh.material as MeshBasicMaterial).dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
