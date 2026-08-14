@@ -10,7 +10,9 @@ import {
 import { Button, Callout, ExplorerLink } from "@/components/ui";
 import {
   STRK,
+  countdown,
   formatAmount,
+  formatDeadline,
   middleTruncate,
   shortHex,
   timeAgo,
@@ -38,6 +40,7 @@ export default function SealedPage() {
   const [states, setStates] = useState<Record<string, EnvelopeState>>({});
   const [origin, setOrigin] = useState("");
   const [onChain, setOnChain] = useState<FundedEnvelope[] | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     setOrigin(appOrigin());
@@ -77,7 +80,27 @@ export default function SealedPage() {
     };
   }, [provider, network.anonymizer, network.pool]);
 
-  const live = records.filter((record) => states[record.claimPublicKey]?.status === "funded");
+  // One clock for the page rather than one per row, so the countdowns stay in
+  // step with the grouping: an envelope whose window shuts while you are
+  // looking at it has to move out of "send these" in the same frame its own
+  // line stops saying it can be claimed.
+  const funded = records.filter(
+    (record) => states[record.claimPublicKey]?.status === "funded",
+  );
+  const ticking = funded.some((record) => (states[record.claimPublicKey]?.expiry ?? 0) > 0);
+
+  useEffect(() => {
+    if (!ticking) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [ticking]);
+
+  const open = (record: SealRecord) => {
+    const expiry = states[record.claimPublicKey]?.expiry ?? 0;
+    return expiry === 0 || Math.floor(now / 1000) < expiry;
+  };
+  const live = funded.filter(open);
+  const reclaimable = funded.filter((record) => !open(record));
   const settled = records.filter((record) => {
     const status = states[record.claimPublicKey]?.status;
     return status === "claimed" || status === "refunded";
@@ -122,6 +145,25 @@ export default function SealedPage() {
             record={record}
             state={states[record.claimPublicKey]}
             origin={origin}
+            now={now}
+            network={network}
+            onCleared={refresh}
+          />
+        ))}
+      </Section>
+
+      <Section
+        title="Yours to take back"
+        count={reclaimable.length}
+        hint="The claim window shut with nobody opening them. The return link works now."
+      >
+        {reclaimable.map((record) => (
+          <Row
+            key={record.claimPublicKey}
+            record={record}
+            state={states[record.claimPublicKey]}
+            origin={origin}
+            now={now}
             network={network}
             onCleared={refresh}
           />
@@ -139,6 +181,7 @@ export default function SealedPage() {
             record={record}
             state={states[record.claimPublicKey]}
             origin={origin}
+            now={now}
             network={network}
             onCleared={refresh}
           />
@@ -152,6 +195,7 @@ export default function SealedPage() {
             record={record}
             state={states[record.claimPublicKey]}
             origin={origin}
+            now={now}
             network={network}
             onCleared={refresh}
           />
@@ -247,12 +291,14 @@ function Row({
   record,
   state,
   origin,
+  now,
   network,
   onCleared,
 }: {
   record: SealRecord;
   state?: EnvelopeState;
   origin: string;
+  now: number;
   network: { explorer: string; id: string };
   onCleared: () => void;
 }) {
@@ -292,13 +338,15 @@ function Row({
         </div>
       </div>
 
+      {status === "funded" && state ? <Deadline expiry={state.expiry} now={now} /> : null}
+
       {/* Only a live envelope leads with something to send. A finished one is a
           receipt, and a link nobody can use should not be the loudest thing on
           the row. */}
       {status === "funded" ? (
         <div className="mt-4 space-y-3">
-          <LinkRow label="Claim link" value={claimLink} emphasis />
-          <LinkRow label="Return link" value={refundLink} />
+          <LinkRow label="Claim link" value={claimLink} action="Copy claim" emphasis />
+          <LinkRow label="Return link" value={refundLink} action="Copy return" />
         </div>
       ) : (
         <details className="group mt-3">
@@ -312,8 +360,8 @@ function Row({
             </span>
           </summary>
           <div className="mt-3 space-y-3">
-            <LinkRow label="Claim link" value={claimLink} />
-            <LinkRow label="Return link" value={refundLink} />
+            <LinkRow label="Claim link" value={claimLink} action="Copy claim" />
+            <LinkRow label="Return link" value={refundLink} action="Copy return" />
           </div>
         </details>
       )}
@@ -338,6 +386,53 @@ function Row({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * How long the recipient has left.
+ *
+ * After the amount, this is the fact that decides what you do with the row: a
+ * link you can still send, or one that is now only good for taking the money
+ * back. It ticks rather than rounding, because the whole reason for showing a
+ * five minute window is to watch it run out.
+ *
+ * Only rendered for a funded envelope. On a settled one the window is history,
+ * and on an envelope that never landed there is nothing on-chain to expire.
+ */
+function Deadline({ expiry, now }: { expiry: number; now: number }) {
+  if (expiry === 0) {
+    return (
+      <p className="mt-1.5 font-mono text-xs text-[var(--paper-faint)]">
+        No expiry. It waits indefinitely, and cannot be taken back.
+      </p>
+    );
+  }
+
+  const left = expiry - Math.floor(now / 1000);
+
+  if (left <= 0) {
+    return (
+      <p className="mt-1.5 font-mono text-xs" title={formatDeadline(expiry)}>
+        <span className="text-[var(--paper-faint)]">Claim window shut. </span>
+        <span className="text-[var(--frank)]">Yours to take back.</span>
+      </p>
+    );
+  }
+
+  // Under an hour the window is the story, so it stops being quiet.
+  const urgent = left < 3_600;
+
+  return (
+    <p className="mt-1.5 font-mono text-xs" title={`Closes ${formatDeadline(expiry)}`}>
+      <span className="text-[var(--paper-faint)]">Closes in </span>
+      <span
+        className="tabular-nums transition-colors duration-300"
+        style={{ color: urgent ? "var(--seal)" : "var(--paper-dim)" }}
+      >
+        {countdown(expiry, now)}
+      </span>
+    </p>
   );
 }
 
@@ -379,10 +474,13 @@ function StatusTag({ status, submitted }: { status?: string; submitted: boolean 
 function LinkRow({
   label,
   value,
+  action,
   emphasis = false,
 }: {
   label: string;
   value: string;
+  /** Named, because the two buttons on a row copy very different things. */
+  action: string;
   emphasis?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
@@ -402,7 +500,7 @@ function LinkRow({
           className="font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95"
           style={{ color: copied ? "var(--frank)" : "var(--paper-dim)" }}
         >
-          {copied ? "Copied" : "Copy"}
+          {copied ? "Copied" : action}
         </button>
       </div>
       <a

@@ -138,6 +138,28 @@ export function timeRemaining(unixSeconds: number): string {
   return `${minutes} minute${minutes === 1 ? "" : "s"} left`;
 }
 
+/**
+ * Time left, precise enough to watch.
+ *
+ * `timeRemaining` rounds to the largest unit that reads naturally, which is
+ * right for a sentence and useless for a clock: "1 hour left" says the same
+ * thing for fifty-nine minutes running. This one always moves, and shows
+ * seconds once they are the thing that matters.
+ */
+export function countdown(unixSeconds: number, now: number = Date.now()): string {
+  const total = unixSeconds - Math.floor(now / 1000);
+  if (total <= 0) return "closed";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const days = Math.floor(total / 86_400);
+  const hours = Math.floor((total % 86_400) / 3_600);
+  const minutes = Math.floor((total % 3_600) / 60);
+  const seconds = total % 60;
+  if (days > 0) return `${days}d ${hours}h ${pad(minutes)}m`;
+  if (hours > 0) return `${hours}h ${pad(minutes)}m ${pad(seconds)}s`;
+  if (minutes > 0) return `${minutes}m ${pad(seconds)}s`;
+  return `${seconds}s`;
+}
+
 /** Decode a felt memo back to the short string the funder typed. */
 export function decodeMemo(felt: string): string {
   try {
