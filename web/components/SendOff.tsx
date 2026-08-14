@@ -7,8 +7,12 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
+  Color,
   DirectionalLight,
+  EdgesGeometry,
   Group,
+  LineBasicMaterial,
+  LineSegments,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -141,8 +145,33 @@ export function SendOff({
       }),
     );
 
+    // The dart is modelled nose-along-Z, so an inner group turns it to face
+    // right and the outer group is left free to carry position and tilt. The
+    // nose then stays pointing right whatever the tilt is doing.
+    const heading = new Group();
+    heading.rotation.y = Math.PI / 2;
+    heading.add(dart);
+
+    // Airmail edges, in the stripe's own colours. Drawn from the folded
+    // geometry rather than added on top, so every line is a real crease.
+    const edges = new EdgesGeometry(dartGeometry);
+    const edgeColours = new Float32Array(edges.attributes.position!.count * 3);
+    const palette = [new Color(0xc8443c), new Color(0x35619f), new Color(0x0b1118)];
+    for (let vertex = 0; vertex < edges.attributes.position!.count; vertex += 1) {
+      const colour = palette[Math.floor(vertex / 2) % palette.length]!;
+      edgeColours[vertex * 3] = colour.r;
+      edgeColours[vertex * 3 + 1] = colour.g;
+      edgeColours[vertex * 3 + 2] = colour.b;
+    }
+    edges.setAttribute("color", new BufferAttribute(edgeColours, 3));
+    const outline = new LineSegments(
+      edges,
+      new LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 }),
+    );
+    heading.add(outline);
+
     const plane = new Group();
-    plane.add(dart);
+    plane.add(heading);
 
     // The amount rides on the wing, printed rather than floating beside it.
     const label = document.createElement("canvas");
@@ -172,10 +201,10 @@ export function SendOff({
     labelMesh.rotation.x = -Math.PI / 2;
     labelMesh.position.set(-0.42, 0.06, -0.18);
     labelMesh.rotation.z = 0.06;
-    plane.add(labelMesh);
+    heading.add(labelMesh);
 
     plane.position.set(-2.6, -0.4, 0);
-    plane.rotation.set(0, 0.35, 0.1);
+    plane.rotation.set(0, 0, 0.1);
     scene.add(plane);
 
     // ── Wind ───────────────────────────────────────────────────────────────
@@ -262,15 +291,24 @@ export function SendOff({
       last = now;
       const elapsed = (now - started) / 1000;
 
+      // Tilt only. Three sines that do not share a period, so the drift never
+      // visibly repeats without ever being random enough to jolt.
+      const tiltZ =
+        0.10 * Math.sin(elapsed * 0.9) +
+        0.06 * Math.sin(elapsed * 1.73 + 1.3) +
+        0.035 * Math.sin(elapsed * 2.91 + 0.4);
+      const tiltX =
+        0.13 * Math.sin(elapsed * 0.71 + 2.1) + 0.06 * Math.sin(elapsed * 1.87 + 0.8);
+
       if (elapsed < GATHER) {
         // Drawing back, the way a hand does before a throw.
         const t = elapsed / GATHER;
         plane.position.set(at(t, -2.6, -3.15, easeIn), at(t, -0.4, -0.75, easeIn), 0);
-        plane.rotation.set(0, 0.35, at(t, 0.1, 0.26, easeIn));
+        plane.rotation.set(tiltX, 0, at(t, 0.1, 0.26, easeIn));
       } else if (elapsed < GATHER + THROW) {
         const t = (elapsed - GATHER) / THROW;
         plane.position.set(at(t, -3.15, 1.3, easeOut), at(t, -0.75, 0.55, easeOut), 0);
-        plane.rotation.set(0, at(t, 0.35, 0.05, easeOut), at(t, 0.26, -0.14, easeOut));
+        plane.rotation.set(tiltX, 0, at(t, 0.26, tiltZ, easeOut));
       } else if (!exitAt) {
         // Cruising. A slow bob and roll, so it reads as held aloft rather than
         // parked, and it keeps this up for as long as the wallet needs.
@@ -280,11 +318,7 @@ export function SendOff({
           0.35 + Math.sin(t * 0.73) * 0.22,
           Math.sin(t * 0.31) * 0.4,
         );
-        plane.rotation.set(
-          Math.sin(t * 0.73) * 0.06,
-          0.05 + Math.sin(t * 0.42) * 0.12,
-          -0.14 + Math.sin(t * 0.55) * 0.09,
-        );
+        plane.rotation.set(tiltX, 0, tiltZ);
 
         const settledPhase = latest.current.phase;
         if (settledPhase !== "flying") exitAt = elapsed;
@@ -297,18 +331,14 @@ export function SendOff({
             at(t, 0.35, -5.5, easeIn),
             at(t, 0, 1.2, easeIn),
           );
-          plane.rotation.set(at(t, 0, -1.1, easeIn), 0.05, at(t, -0.14, 0.9, easeIn));
+          plane.rotation.set(tiltX, 0, at(t, tiltZ, 0.85, easeIn));
         } else {
           plane.position.set(
             at(t, 0.55, 14, easeIn),
             at(t, 0.35, 2.6, easeIn),
             at(t, 0, -3.5, easeIn),
           );
-          plane.rotation.set(
-            at(t, 0, 0.28, easeIn),
-            at(t, 0.05, -0.55, easeIn),
-            at(t, -0.14, -0.6, easeIn),
-          );
+          plane.rotation.set(tiltX, 0, tiltZ);
         }
       }
 
@@ -332,6 +362,8 @@ export function SendOff({
       window.removeEventListener("resize", resize);
       dartGeometry.dispose();
       (dart.material as MeshStandardMaterial).dispose();
+      edges.dispose();
+      (outline.material as LineBasicMaterial).dispose();
       streakGeometry.dispose();
       streakMaterial.dispose();
       streaks.dispose();

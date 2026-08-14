@@ -257,52 +257,82 @@ export default function CreatePage() {
       refund,
       amount,
       transactionHash: "",
-      private: supportsStrk20,
+      private: false,
       state: "funding",
     });
 
-    try {
+    // Two routes, and the app must never hand back a dead end because the
+    // first one did not work. The pool route hides the funder but needs a
+    // wallet that can prove for this account; the public route needs only an
+    // approval and works from any wallet. Either way the funder gets an
+    // envelope, and nothing has moved when a route fails, so falling through
+    // costs a second signature and no money.
+    const sealThroughPool = async (fundFrom: "shielded" | "wallet") => {
       const actions = buildFundActions({
         anonymizer: network.anonymizer,
         token: STRK.address,
         amount,
-        // Spend a note if one is already there, otherwise shield and seal in
-        // the same transaction rather than making the user do it twice.
-        fundFrom: fromWallet ? "wallet" : "shielded",
+        fundFrom,
         claimPublicKey: claim.publicKey,
         refundPublicKey: refund.publicKey,
         expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
         memo: memo.slice(0, 31),
       });
+      // Assemble and prove without submitting first: a wallet that cannot prove
+      // for this account fails here, before anyone is asked to sign.
+      await account.strk20PrepareInvoke(actions, true);
+      return account.strk20InvokeTransaction(actions);
+    };
 
-      let submitted: { transaction_hash: string };
-      try {
-        submitted = await account.strk20InvokeTransaction(actions);
-      } catch (firstAttempt) {
-        // The shielded balance was unreadable, so spending a note was a guess.
-        // Nothing moved when it failed, which makes funding from the wallet a
-        // free second try rather than a risk of paying twice.
-        if (fromWallet || shieldedBalance !== null) throw firstAttempt;
-        console.debug("[envelope] note spend failed, funding from the wallet", firstAttempt);
-        setProgress("No shielded note to spend. Funding from your wallet instead.");
-        submitted = await account.strk20InvokeTransaction(
-          buildFundActions({
-            anonymizer: network.anonymizer,
-            token: STRK.address,
-            amount,
-            claimPublicKey: claim.publicKey,
-            refundPublicKey: refund.publicKey,
-            unlockAt: 0,
-            expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
-            memo: memo.slice(0, 31),
-            fundFrom: "wallet",
-          }),
-        );
+    const sealPublicly = async () =>
+      account.execute(
+        buildPublicFundCalls({
+          anonymizer: network.anonymizer,
+          token: STRK.address,
+          amount,
+          claimPublicKey: claim.publicKey,
+          refundPublicKey: refund.publicKey,
+          expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
+          memo: memo.slice(0, 31),
+        }),
+      );
+
+    try {
+      let transactionHash = "";
+      let viaPool = false;
+
+      if (supportsStrk20) {
+        try {
+          const result = await sealThroughPool(fromWallet ? "wallet" : "shielded");
+          transactionHash = result.transaction_hash;
+          viaPool = true;
+        } catch (poolAttempt) {
+          console.debug("[envelope] pool route unavailable", poolAttempt);
+          // Spending a note is a guess whenever the shielded balance could not
+          // be read, so try the pool once more from the wallet before giving up
+          // on privacy altogether.
+          try {
+            if (fromWallet || shieldedBalance !== null) throw poolAttempt;
+            setProgress("No shielded note to spend. Funding from your wallet instead.");
+            const result = await sealThroughPool("wallet");
+            transactionHash = result.transaction_hash;
+            viaPool = true;
+          } catch {
+            setProgress(
+              "This wallet cannot prove a private seal for this account, so the envelope is funded from your address.",
+            );
+            const result = await sealPublicly();
+            transactionHash = result.transaction_hash;
+          }
+        }
+      } else {
+        const result = await sealPublicly();
+        transactionHash = result.transaction_hash;
       }
-      const { transaction_hash } = submitted;
-      markSubmitted(claim.publicKey, transaction_hash);
+
+      markSubmitted(claim.publicKey, transactionHash);
       setSealed((previous) =>
-        previous ? { ...previous, transactionHash: transaction_hash, private: true } : previous,
+        previous ? { ...previous, transactionHash, private: viaPool } : previous,
       );
       await confirmOnChain(claim.publicKey);
       void refreshBalance();
