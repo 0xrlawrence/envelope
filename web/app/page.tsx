@@ -52,6 +52,7 @@ export default function CreatePage() {
   const [publicBalance, setPublicBalance] = useState<bigint | null>(null);
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [progress, setProgress] = useState("");
+  const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -99,6 +100,18 @@ export default function CreatePage() {
   useEffect(() => {
     void refreshBalance();
   }, [refreshBalance]);
+
+  // A long silent wait is indistinguishable from a hang. Counting it out loud
+  // at least says which of the two it is.
+  useEffect(() => {
+    if (busy === "") {
+      setElapsed(0);
+      return;
+    }
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
 
   async function shield() {
     if (!account) return;
@@ -353,14 +366,34 @@ export default function CreatePage() {
             <p className="text-sm text-[var(--frank)]">{progress}</p>
           ) : null}
 
-          {busy === "sealing" ? (
-            <p className="text-sm text-[var(--paper-dim)]">
-              {fromWallet
-                ? "Shielding and sealing in one transaction. "
-                : "Spending a shielded note. "}
-              Your wallet is proving it, which takes around half a minute, because a
-              STARK proof is generated before anything is submitted.
-            </p>
+          {busy !== "" ? (
+            <div className="text-sm text-[var(--paper-dim)]">
+              <p>
+                {fromWallet
+                  ? "Shielding and sealing in one transaction. "
+                  : "Spending a shielded note. "}
+                The wallet generates a STARK proof before anything is submitted, which
+                takes about half a minute on a fast machine.
+              </p>
+              <p className="mt-2 font-mono text-xs tracking-widest text-[var(--paper-faint)] uppercase">
+                {Math.floor(elapsed / 60)}m {String(elapsed % 60).padStart(2, "0")}s
+                elapsed
+              </p>
+              {elapsed > 75 ? (
+                <p className="mt-2 text-[var(--frank)]">
+                  Longer than proving alone should take. Check the wallet for a prompt
+                  waiting to be approved: it will not proceed until you do, and the
+                  window does not always come to the front.
+                </p>
+              ) : null}
+              {elapsed > 240 ? (
+                <p className="mt-2">
+                  If there is no prompt, the wallet is likely stuck. Reload and press
+                  Seal envelope again. Nothing has been spent unless a transaction was
+                  signed.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
