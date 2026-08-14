@@ -155,7 +155,7 @@ export default function CreatePage() {
         amount,
         // Spend a note if one is already there, otherwise shield and seal in
         // the same transaction rather than making the user do it twice.
-        fundFrom: (shieldedBalance ?? 0n) >= amount ? "shielded" : "wallet",
+        fundFrom: fromWallet ? "wallet" : "shielded",
         claimPublicKey: claim.publicKey,
         refundPublicKey: refund.publicKey,
         expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
@@ -184,7 +184,7 @@ export default function CreatePage() {
           amount,
           claimPublicKey: claim.publicKey,
           refundPublicKey: refund.publicKey,
-          fundFrom: (shieldedBalance ?? 0n) >= amount ? "shielded" : "wallet",
+          fundFrom: fromWallet ? "wallet" : "shielded",
         }),
       });
     } finally {
@@ -199,7 +199,11 @@ export default function CreatePage() {
 
   const notDeployed = network.anonymizer === "";
   const maker = accountClassName(accountClass);
-  const fromWallet = (shieldedBalance ?? 0n) < amount;
+  // Fund from the wallet only when the shielded balance is known and short of
+  // the envelope. An unreadable balance previously counted as zero, which
+  // meant a failed read silently deposited the user's money a second time
+  // while a perfectly good shielded note sat unspent.
+  const fromWallet = shieldedBalance !== null && shieldedBalance < amount;
   // Enough to seal, from wherever it has to come.
   const funded =
     (shieldedBalance ?? 0n) >= amount || (publicBalance !== null && publicBalance >= amount);
