@@ -50,6 +50,8 @@ export default function CreatePage() {
 
   const [shieldedBalance, setShieldedBalance] = useState<bigint | null>(null);
   const [publicBalance, setPublicBalance] = useState<bigint | null>(null);
+  const [registered, setRegistered] = useState<boolean | null>(null);
+  const [progress, setProgress] = useState("");
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -84,8 +86,13 @@ export default function CreatePage() {
           BigInt(candidate.token) === BigInt(STRK.address),
       );
       setShieldedBalance(entry ? BigInt(entry.balance) : 0n);
-    } catch {
+      setRegistered(true);
+    } catch (cause) {
+      // The pool answers NOT_REGISTERED until a viewing key exists, so the
+      // balance query doubles as the registration check.
       setShieldedBalance(null);
+      const raw = cause instanceof Error ? cause.message : String(cause ?? "");
+      if (/NOT_REGISTERED/i.test(raw)) setRegistered(false);
     }
   }, [account, address, provider, supportsStrk20]);
 
@@ -169,6 +176,7 @@ export default function CreatePage() {
       });
     } finally {
       setBusy("");
+      setProgress("");
     }
   }
 
@@ -340,6 +348,10 @@ export default function CreatePage() {
               {busy === "sealing" ? "Sealing…" : "Seal envelope"}
             </Button>
           </div>
+
+          {busy === "sealing" && progress ? (
+            <p className="text-sm text-[var(--frank)]">{progress}</p>
+          ) : null}
 
           {busy === "sealing" ? (
             <p className="text-sm text-[var(--paper-dim)]">
