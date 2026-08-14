@@ -54,3 +54,8 @@ export {
   type ReleaseSignature,
 } from "./message.js";
 export { readEnvelope, type EnvelopeState, type EnvelopeStatus } from "./read.js";
+export {
+  readEnvelopeHistory,
+  type EnvelopeEvent,
+  type EnvelopeEventKind,
+} from "./history.js";

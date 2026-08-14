@@ -12,6 +12,7 @@ import {
 } from "strk20-envelope";
 import { ConnectButton } from "@/components/ConnectButton";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { Receipt } from "@/components/Receipt";
 import { Button, Callout, ExplorerLink, Mono } from "@/components/ui";
 import {
   STRK,
@@ -254,10 +255,13 @@ export default function ClaimPage() {
         </h1>
 
         {spent ? (
-          <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-            This envelope has been settled. An envelope releases exactly once, which is
-            what makes the link safe to send over a channel you do not control.
-          </p>
+          <>
+            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
+              This envelope has been settled. An envelope releases exactly once, which is
+              what makes the link safe to send over a channel you do not control.
+            </p>
+            <Receipt claimPublicKey={claimPublicKey} />
+          </>
         ) : (
           <>
             <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">

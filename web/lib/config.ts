@@ -10,6 +10,15 @@ export interface Network {
   pool: string;
   /** The deployed `EnvelopeAnonymizer`. Empty until it exists on that network. */
   anonymizer: string;
+  /**
+   * The block the anonymizer was deployed in.
+   *
+   * Nodes serve `starknet_getEvents` by walking block ranges rather than by an
+   * address index, so a query from genesis returns page after empty page and
+   * never finishes. Nothing can have happened to an envelope before the
+   * contract existed, so this is the honest floor.
+   */
+  firstBlock: number;
   explorer: string;
 }
 
@@ -38,6 +47,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
       process.env.NEXT_PUBLIC_RPC_MAINNET ?? "https://api.cartridge.gg/x/starknet/mainnet",
     pool: POOL_ADDRESS_MAINNET,
     anonymizer: process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET ?? "",
+    firstBlock: Number(process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET_BLOCK ?? 0),
     explorer: "https://voyager.online",
   },
   sepolia: {
@@ -51,6 +61,8 @@ export const NETWORKS: Record<NetworkId, Network> = {
     anonymizer:
       process.env.NEXT_PUBLIC_ANONYMIZER_SEPOLIA ??
       "0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211",
+    // The contract's first event is in 13423911.
+    firstBlock: Number(process.env.NEXT_PUBLIC_ANONYMIZER_SEPOLIA_BLOCK ?? 13_420_000),
     explorer: "https://sepolia.voyager.online",
   },
 };

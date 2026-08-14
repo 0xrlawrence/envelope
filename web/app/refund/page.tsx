@@ -9,6 +9,7 @@ import {
   type EnvelopeState,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { Receipt } from "@/components/Receipt";
 import { Button, Callout, ExplorerLink } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
 import { useWallet } from "@/lib/wallet";
@@ -165,6 +166,8 @@ export default function RefundPage() {
                     envelope.expiry * 1000,
                   ).toLocaleString()}. You can only reclaim it after that.`}
         </p>
+
+        <Receipt claimPublicKey={claimPublicKey} />
 
         {envelope.refundable ? (
           <div className="mt-8 space-y-4">
