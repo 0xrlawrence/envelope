@@ -546,7 +546,7 @@ export default function CreatePage() {
               value={memo}
               maxLength={31}
               onChange={(event) => setMemo(event.target.value)}
-              placeholder="bounty-142"
+              placeholder="Payment for your bounty Ref# 1101"
               className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
             />
           </Field>
