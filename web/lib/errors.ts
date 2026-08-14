@@ -7,7 +7,12 @@
  * "UNKNOWN_ERROR" and leaving the user to guess.
  */
 const BY_CODE: Record<number, string> = {
-  113: "The wallet rejected the request payload. This is a bug in this app, not something you can fix.",
+  // 113 and 114 were the wrong way round here, which is worse than it sounds:
+  // it meant a person declining in their wallet was told they had hit a bug in
+  // this app, and the refusal check below never recognised its own code. See
+  // @starknet-io/types-js wallet-api/errors.
+  113: "You declined the request in the wallet. Nothing was sent and nothing moved.",
+  114: "The wallet rejected the request payload. This is a bug in this app, not something you can fix.",
   118: "This account has no viewing key registered with the pool yet. Registration happens once, on-chain. Shield through your wallet or the STRK20 app first, then come back.",
   119: "Not enough shielded balance in the pool to cover this. Shield more first.",
   162: "The wallet does not support the API version this app is asking for.",
@@ -48,6 +53,10 @@ const BY_NAME: Array<[RegExp, string]> = [
  * envelope fly for a transaction they cancelled.
  */
 export function looksRejected(error: unknown): boolean {
+  // The code is the reliable signal. Wallets word the message however they
+  // like, and some send none at all, but `USER_REFUSED_OP` is 113 by spec.
+  if ((error as { code?: unknown })?.code === 113) return true;
+
   const raw =
     error instanceof Error
       ? error.message

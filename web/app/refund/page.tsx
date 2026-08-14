@@ -66,6 +66,9 @@ export default function RefundPage() {
     if (!account || !refundKey || !envelope) return;
     setBusy(true);
     setError("");
+    // Reset, so a second attempt after a declined one flies again rather than
+    // silently doing nothing visible.
+    setFlightDone(false);
     setPhase("flying");
 
     /**
@@ -145,6 +148,7 @@ export default function RefundPage() {
       if (looksRejected(cause)) {
         watch.cancelled = true;
         setPhase("returned");
+        setError("You declined this in your wallet. Nothing was sent and nothing moved.");
         return;
       }
 
