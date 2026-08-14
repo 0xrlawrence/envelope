@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   buildFundActions,
   buildPublicFundCalls,
+  readEnvelope,
   buildShieldActions,
   felt,
   feltTokens,
@@ -184,6 +185,25 @@ export default function CreatePage() {
       setSealed({ claim, refund, amount, transactionHash: transaction_hash, private: true });
       void refreshBalance();
     } catch (cause) {
+      // A refusal and a timeout are not the same thing. The wallet can give up
+      // waiting on a transaction it already submitted, and the envelope is then
+      // funded on-chain while the app reports failure and throws away the only
+      // link to it. So before believing the error, ask the contract.
+      setProgress("Checking whether it went through anyway.");
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        try {
+          const state = await readEnvelope(provider, network.anonymizer, claim.publicKey);
+          if (state.status !== "none") {
+            setSealed({ claim, refund, amount, transactionHash: "", private: supportsStrk20 });
+            void refreshBalance();
+            return;
+          }
+        } catch {
+          // Keep waiting; the read is not the thing being tested.
+        }
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+      }
+
       // The wallet's own wording is rarely actionable, so it is translated and
       // the original kept alongside for anyone reporting the problem.
       const explained = explainWalletError(cause);
@@ -477,9 +497,24 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         <div className="mt-6 border-t border-[var(--ink-line)] pt-4">
           <Eyebrow>Funding transaction</Eyebrow>
           <div className="mt-2">
-            <ExplorerLink explorer={network.explorer} kind="tx" value={sealed.transactionHash}>
-              {sealed.transactionHash}
-            </ExplorerLink>
+            {sealed.transactionHash ? (
+              <ExplorerLink
+                explorer={network.explorer}
+                kind="tx"
+                value={sealed.transactionHash}
+              >
+                {sealed.transactionHash}
+              </ExplorerLink>
+            ) : (
+              <p className="text-sm text-[var(--paper-dim)]">
+                The wallet stopped waiting before it returned a hash, but the envelope
+                is funded on-chain. It is listed on the{" "}
+                <a className="text-[var(--frank)] underline" href="/envelope/sealed/">
+                  sealed page
+                </a>
+                .
+              </p>
+            )}
           </div>
         </div>
 

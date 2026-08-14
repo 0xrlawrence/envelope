@@ -28,6 +28,10 @@ const BY_NAME: Array<[RegExp, string]> = [
   ],
   [/USER_REFUSED/i, "You declined the request in the wallet."],
   [
+    /timeout|timed out/i,
+    "The wallet stopped waiting for the proving service. The transaction may still land: check the sealed page in a minute before trying again, so you do not fund two envelopes.",
+  ],
+  [
     /UNKNOWN_ERROR/i,
     "The wallet could not complete this and did not say why. The usual cause is nothing to spend: no viewing key registered, or no shielded balance. Check the balances above.",
   ],
