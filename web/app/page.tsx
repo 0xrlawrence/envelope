@@ -5,6 +5,7 @@ import {
   buildFundActions,
   buildPublicFundCalls,
   readEnvelope,
+  readEnvelopeHistory,
   buildShieldActions,
   felt,
   feltTokens,
@@ -202,36 +203,67 @@ export default function CreatePage() {
   }
 
   /**
-   * Watch the contract until the envelope is really there.
+   * Watch the contract for this envelope, starting now.
    *
-   * A submitted transaction is not a funded envelope, and a link to an
-   * envelope that does not exist is worse than no link: it gets sent, and the
-   * recipient finds nothing. So the link is only ever called valid once the
-   * anonymizer confirms it, and if that never happens the screen says so.
+   * A submitted transaction is not a funded envelope, and a link to an envelope
+   * that does not exist is worse than no link: it gets sent, and the recipient
+   * finds nothing. So the link is only ever called valid once the anonymizer
+   * confirms it.
+   *
+   * The thing to get right is *when* the watching starts. This used to run
+   * after the wallet's promise resolved, which meant the app could not know
+   * anything the wallet had not told it yet. A wallet that proves, hands the
+   * transaction to a relayer and then waits on its own confirmation holds that
+   * promise long after the transaction is mined, and the app sat there with a
+   * confirmed envelope on-chain telling the user it was still funding. Ten
+   * minutes of it, in one measured case.
+   *
+   * The envelope id is the claim public key, which exists before anything is
+   * signed, so nothing about this needs the wallet at all. It starts when the
+   * seal starts and races it.
    */
-  async function confirmOnChain(claimPublicKey: string): Promise<void> {
-    for (let attempt = 0; attempt < 45; attempt += 1) {
-      try {
-        const state = await readEnvelope(provider, network.anonymizer, claimPublicKey);
-        if (state.status !== "none") {
-          setSealed((previous) => (previous ? { ...previous, state: "funded" } : previous));
-          return;
-        }
-      } catch {
-        // Keep watching; a read failure is not an answer.
-      }
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-    }
-    setSealed((previous) =>
-      previous
-        ? {
-            ...previous,
-            state: "failed",
-            problem:
-              "The transaction was submitted but the envelope has not appeared on-chain. Do not send this link yet; check the sealed page, where the keys are kept.",
+  function watchForEnvelope(
+    claimPublicKey: string,
+    watch: { cancelled: boolean; found: boolean },
+  ) {
+    return (async (): Promise<boolean> => {
+      const deadline = Date.now() + 8 * 60_000;
+      while (Date.now() < deadline && !watch.cancelled) {
+        try {
+          const state = await readEnvelope(provider, network.anonymizer, claimPublicKey);
+          if (state.status !== "none") {
+            watch.found = true;
+            setSealed((previous) =>
+              previous ? { ...previous, state: "funded" } : previous,
+            );
+
+            // The wallet may still be holding its promise, so the hash it would
+            // eventually return is not available. The funding event carries it,
+            // and the envelope is already on-chain, so take it from there.
+            void readEnvelopeHistory(
+              provider,
+              network.anonymizer,
+              claimPublicKey,
+              network.firstBlock,
+            ).then((events) => {
+              const funded = events.find((event) => event.kind === "funded");
+              if (!funded) return;
+              markSubmitted(claimPublicKey, funded.transactionHash);
+              setSealed((previous) =>
+                previous && !previous.transactionHash
+                  ? { ...previous, transactionHash: funded.transactionHash }
+                  : previous,
+              );
+            });
+            return true;
           }
-        : previous,
-    );
+        } catch {
+          // Keep watching; a read failure is not an answer.
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+      }
+      return false;
+    })();
   }
 
   async function seal() {
@@ -277,6 +309,11 @@ export default function CreatePage() {
       private: false,
       state: "funding",
     });
+
+    // Started here, before a signature is even asked for, so the app learns the
+    // envelope exists from the chain rather than from the wallet finishing.
+    const watch = { cancelled: false, found: false };
+    const watching = watchForEnvelope(claim.publicKey, watch);
 
     // Two routes, and the app must never hand back a dead end because the
     // first one did not work. The pool route hides the funder but needs a
@@ -355,13 +392,37 @@ export default function CreatePage() {
       setSealed((previous) =>
         previous ? { ...previous, transactionHash, private: viaPool } : previous,
       );
-      await confirmOnChain(claim.publicKey);
+
+      // The watcher has been running since before the signature, so by the time
+      // the wallet returns this has usually already resolved.
+      if (!(await watching)) {
+        setSealed((previous) =>
+          previous
+            ? {
+                ...previous,
+                state: "failed",
+                problem:
+                  "The transaction was submitted but the envelope has not appeared on-chain. Do not send this link yet; check the sealed page, where the keys are kept.",
+              }
+            : previous,
+        );
+      }
       void refreshBalance();
     } catch (cause) {
+      // The wallet can fail on a transaction it has already landed: a proving
+      // service that stops waiting, a relayer that answers late. The chain is
+      // the authority, so if the watcher has already found the envelope this is
+      // not a failure at all and must not be reported as one.
+      if (watch.found) {
+        void refreshBalance();
+        return;
+      }
+
       // Someone who declined in the wallet gets an answer immediately. There is
       // nothing on-chain to look for, and making them watch an envelope fly for
       // forty seconds after they cancelled is the app arguing with them.
       if (looksRejected(cause)) {
+        watch.cancelled = true;
         // The keys were written down before signing, in case the tab died
         // holding the only copy. Nothing was signed, so they are now litter.
         forget(claim.publicKey);
@@ -372,30 +433,23 @@ export default function CreatePage() {
       }
 
       // A refusal and a timeout are not the same thing. The wallet can give up
-      // waiting on a transaction it already submitted, and the envelope is then
-      // funded on-chain while the app reports failure and throws away the only
-      // link to it. So before believing the error, ask the contract.
-      // Bounded tightly. Not every wallet words a refusal in a way the check
-      // above can recognise, and the cost of guessing wrong is that someone
-      // watches an envelope fly for a transaction they cancelled. Twelve
-      // seconds is long enough to catch a transaction that really was
-      // submitted, and the keys stay on the sealed page for one that lands
-      // later, so nothing is lost by giving up early here.
+      // waiting on a transaction it already submitted, so before believing the
+      // error, give the watcher a moment. It is already polling; starting a
+      // second loop here would only ask the same question twice.
+      //
+      // Bounded tightly, because not every wallet words a refusal in a way the
+      // check above recognises, and the cost of guessing wrong is that someone
+      // watches an envelope fly for a transaction they cancelled. The watcher
+      // is deliberately left running afterwards: if the transaction does land
+      // late, it corrects this screen and the sealed page on its own.
       setProgress("Checking whether it went through anyway.");
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-          const state = await readEnvelope(provider, network.anonymizer, claim.publicKey);
-          if (state.status !== "none") {
-            setSealed((previous) =>
-              previous ? { ...previous, state: "funded" } : previous,
-            );
-            void refreshBalance();
-            return;
-          }
-        } catch {
-          // Keep waiting; the read is not the thing being tested.
-        }
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+      const landedLate = await Promise.race([
+        watching,
+        new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 12_000)),
+      ]);
+      if (landedLate || watch.found) {
+        void refreshBalance();
+        return;
       }
 
       // The wallet's own wording is rarely actionable, so it is translated and
