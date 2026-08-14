@@ -275,7 +275,31 @@ export default function CreatePage() {
         memo: memo.slice(0, 31),
       });
 
-      const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+      let submitted: { transaction_hash: string };
+      try {
+        submitted = await account.strk20InvokeTransaction(actions);
+      } catch (firstAttempt) {
+        // The shielded balance was unreadable, so spending a note was a guess.
+        // Nothing moved when it failed, which makes funding from the wallet a
+        // free second try rather than a risk of paying twice.
+        if (fromWallet || shieldedBalance !== null) throw firstAttempt;
+        console.debug("[envelope] note spend failed, funding from the wallet", firstAttempt);
+        setProgress("No shielded note to spend. Funding from your wallet instead.");
+        submitted = await account.strk20InvokeTransaction(
+          buildFundActions({
+            anonymizer: network.anonymizer,
+            token: STRK.address,
+            amount,
+            claimPublicKey: claim.publicKey,
+            refundPublicKey: refund.publicKey,
+            unlockAt: 0,
+            expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
+            memo: memo.slice(0, 31),
+            fundFrom: "wallet",
+          }),
+        );
+      }
+      const { transaction_hash } = submitted;
       markSubmitted(claim.publicKey, transaction_hash);
       setSealed((previous) =>
         previous ? { ...previous, transactionHash: transaction_hash, private: true } : previous,
@@ -355,6 +379,13 @@ export default function CreatePage() {
         <SendOff
           amount={denomination.toString()}
           symbol={STRK.symbol}
+          phase={
+            sealed?.state === "funded"
+              ? "sent"
+              : sealed?.state === "failed"
+                ? "failed"
+                : "flying"
+          }
           onDone={() => setSending(false)}
         />
       ) : null}

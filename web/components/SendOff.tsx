@@ -41,10 +41,16 @@ const STREAKS = 320;
 export function SendOff({
   amount,
   symbol,
+  phase,
   onDone,
 }: {
   amount: string;
   symbol: string;
+  /**
+   * `flying` while the transaction is still being proved, then `sent` once the
+   * envelope is confirmed on-chain or `failed` if it never arrives.
+   */
+  phase: "flying" | "sent" | "failed";
   onDone?: () => void;
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -54,8 +60,8 @@ export function SendOff({
   // dependencies meant every parent render tore the scene down and started the
   // flight again, and the parent re-renders once a second while it counts the
   // wait, so the dart never got more than a second into the air.
-  const latest = useRef({ amount, symbol, onDone });
-  latest.current = { amount, symbol, onDone };
+  const latest = useRef({ amount, symbol, phase, onDone });
+  latest.current = { amount, symbol, phase, onDone };
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -236,8 +242,14 @@ export function SendOff({
 
     const GATHER = 0.24;
     const THROW = 0.54;
-    const AWAY = 1.2;
-    const TOTAL = GATHER + THROW + AWAY;
+    const AWAY = 1.3;
+    // When the throw ends the dart does not leave. It holds in the middle of
+    // the page, gliding, for as long as the transaction is still being proved,
+    // so the wait has something happening in it and the exit means something
+    // when it comes.
+    const CRUISE_START = GATHER + THROW;
+
+    let exitAt = 0;
 
     let frame = 0;
     const started = performance.now();
@@ -259,29 +271,58 @@ export function SendOff({
         const t = (elapsed - GATHER) / THROW;
         plane.position.set(at(t, -3.15, 1.3, easeOut), at(t, -0.75, 0.55, easeOut), 0);
         plane.rotation.set(0, at(t, 0.35, 0.05, easeOut), at(t, 0.26, -0.14, easeOut));
-      } else {
-        const t = (elapsed - GATHER - THROW) / AWAY;
+      } else if (!exitAt) {
+        // Cruising. A slow bob and roll, so it reads as held aloft rather than
+        // parked, and it keeps this up for as long as the wallet needs.
+        const t = elapsed - CRUISE_START;
         plane.position.set(
-          at(t, 1.3, 14, easeIn),
-          at(t, 0.55, 2.6, easeIn),
-          at(t, 0, -3.5, easeIn),
+          0.55 + Math.sin(t * 0.42) * 0.55,
+          0.35 + Math.sin(t * 0.73) * 0.22,
+          Math.sin(t * 0.31) * 0.4,
         );
         plane.rotation.set(
-          at(t, 0, 0.28, easeIn),
-          at(t, 0.05, -0.55, easeIn),
-          at(t, -0.14, -0.6, easeIn),
+          Math.sin(t * 0.73) * 0.06,
+          0.05 + Math.sin(t * 0.42) * 0.12,
+          -0.14 + Math.sin(t * 0.55) * 0.09,
         );
+
+        const settledPhase = latest.current.phase;
+        if (settledPhase !== "flying") exitAt = elapsed;
+      } else {
+        const t = (elapsed - exitAt) / AWAY;
+        if (latest.current.phase === "failed") {
+          // Nothing was sent, so nothing flies away. It stalls and drops.
+          plane.position.set(
+            at(t, 0.55, -0.6, easeIn),
+            at(t, 0.35, -5.5, easeIn),
+            at(t, 0, 1.2, easeIn),
+          );
+          plane.rotation.set(at(t, 0, -1.1, easeIn), 0.05, at(t, -0.14, 0.9, easeIn));
+        } else {
+          plane.position.set(
+            at(t, 0.55, 14, easeIn),
+            at(t, 0.35, 2.6, easeIn),
+            at(t, 0, -3.5, easeIn),
+          );
+          plane.rotation.set(
+            at(t, 0, 0.28, easeIn),
+            at(t, 0.05, -0.55, easeIn),
+            at(t, -0.14, -0.6, easeIn),
+          );
+        }
       }
 
-      // Wind rises with the throw and falls once it is gone.
+      // Wind holds while it cruises and drops away with it.
       const rise = Math.min(elapsed / 0.5, 1);
-      const fall = 1 - Math.min(Math.max((elapsed - (TOTAL - 0.5)) / 0.5, 0), 1);
+      const fall = exitAt
+        ? 1 - Math.min(Math.max((elapsed - exitAt) / AWAY, 0), 1)
+        : 1;
       streakMaterial.opacity = 0.55 * rise * fall;
 
       layoutStreaks(delta);
       renderer.render(scene, camera);
 
-      if (elapsed > TOTAL) settle();
+      if (exitAt && elapsed > exitAt + AWAY) settle();
     };
     frame = requestAnimationFrame(loop);
 
