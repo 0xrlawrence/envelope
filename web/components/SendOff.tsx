@@ -121,10 +121,17 @@ export function SendOff({
   amount,
   symbol,
   phase,
+  direction = "out",
   onDone,
 }: {
   amount: string;
   symbol: string;
+  /**
+   * Which way it is going. `out` is a seal, leaving to the right; `back` is a
+   * return to sender, leaving to the left. The whole flight mirrors, including
+   * which wing faces the camera, so the amount stays on the side you can read.
+   */
+  direction?: "out" | "back";
   /**
    * `flying` while the transaction is still being proved, then `sent` once the
    * envelope is confirmed on-chain, `returned` if the user declined it in the
@@ -152,6 +159,13 @@ export function SendOff({
     if (!mount) return;
 
     const { amount, symbol } = latest.current;
+
+    // A return mirrors the send. `flip` turns every X in the flight path
+    // around; `marked` picks the wing that ends up facing the camera once the
+    // heading turns, so the amount is never printed on the far side.
+    const back = direction === "back";
+    const flip = back ? -1 : 1;
+    const marked = back ? 1 : -1;
 
     const settle = () => {
       if (finished.current) return;
@@ -262,18 +276,18 @@ export function SendOff({
       { points: [NOSE, KEEL, RIDGE], stripe: [0, 2] },
       // Far wing, as two triangles of one flat quad. The shared diagonal is
       // interior, so it is left bare and only the outline is printed.
-      { points: [NOSE, tipFore(1), tipAft(1)], stripe: [0, 2] },
-      { points: [NOSE, tipAft(1), root(1)], stripe: [0] },
+      { points: [NOSE, tipFore(-marked), tipAft(-marked)], stripe: [0, 2] },
+      { points: [NOSE, tipAft(-marked), root(-marked)], stripe: [0] },
       // Near wing, and the one that carries the printing.
       {
-        points: [NOSE, tipAft(-1), tipFore(-1)],
+        points: [NOSE, tipAft(marked), tipFore(marked)],
         stripe: [0, 1],
-        mark: [markAt(NOSE), markAt(tipAft(-1)), markAt(tipFore(-1))],
+        mark: [markAt(NOSE), markAt(tipAft(marked)), markAt(tipFore(marked))],
       },
       {
-        points: [NOSE, root(-1), tipAft(-1)],
+        points: [NOSE, root(marked), tipAft(marked)],
         stripe: [0],
-        mark: [markAt(NOSE), markAt(root(-1)), markAt(tipAft(-1))],
+        mark: [markAt(NOSE), markAt(root(marked)), markAt(tipAft(marked))],
       },
       // Folded corners: one printed diagonal each.
       { points: foldSeam(1), stripe: [2] },
@@ -299,14 +313,27 @@ export function SendOff({
       // and low in it, which is the widest part and the part that stays clear
       // of the printed border on every side.
       context.clearRect(0, 0, label.width, label.height);
-      context.textAlign = "left";
+
+      // The wing's own coordinates run nose to tail whichever way the dart is
+      // pointing, so on a return the sheet reaches the eye mirrored. The block
+      // is mirrored about its own centre to cancel that: the glyphs come out
+      // readable and the block stays in the same patch of open paper, which is
+      // the only part of a triangular wing wide enough to hold it.
+      const centre = 150;
+      context.save();
+      if (back) {
+        context.translate(centre * 2, 0);
+        context.scale(-1, 1);
+      }
+      context.textAlign = "center";
       context.fillStyle = "#141b25";
       context.font = `700 110px ${display}`;
-      context.fillText(amount, 60, 425);
+      context.fillText(amount, centre, 425);
       context.fillStyle = "#465365";
       context.font = `600 34px ${display}`;
       context.letterSpacing = "8px";
-      context.fillText(symbol, 64, 470);
+      context.fillText(symbol, centre, 470);
+      context.restore();
     }
     const labelTexture = new CanvasTexture(label);
     labelTexture.colorSpace = SRGBColorSpace;
@@ -417,7 +444,7 @@ varying float vInk;`,
     // right and the outer group is left free to carry position and tilt. The
     // nose then stays pointing right whatever the tilt is doing.
     const heading = new Group();
-    heading.rotation.y = Math.PI / 2;
+    heading.rotation.y = (back ? -Math.PI : Math.PI) / 2;
     heading.add(dart);
 
     const plane = new Group();
@@ -426,7 +453,7 @@ varying float vInk;`,
     // whole point of showing it.
     plane.scale.setScalar(1.15);
 
-    plane.position.set(-2.6, -0.4, 0);
+    plane.position.set(flip * -2.6, -0.4, 0);
     plane.rotation.set(0, 0, 0.1);
     scene.add(plane);
 
@@ -462,9 +489,9 @@ varying float vInk;`,
     const layoutStreaks = (delta: number) => {
       for (let index = 0; index < STREAKS; index += 1) {
         const seed = seeds[index]!;
-        seed.x -= seed.speed * delta;
-        if (seed.x < -14) {
-          seed.x = 14 + Math.random() * 6;
+        seed.x -= flip * seed.speed * delta;
+        if (flip > 0 ? seed.x < -14 : seed.x > 14) {
+          seed.x = flip * (14 + Math.random() * 6);
           seed.y = Math.random() * 11 - 5.5;
         }
         position.set(seed.x, seed.y, seed.z);
@@ -538,18 +565,18 @@ varying float vInk;`,
       if (elapsed < GATHER) {
         // Drawing back, the way a hand does before a throw.
         const t = elapsed / GATHER;
-        plane.position.set(at(t, -2.6, -3.15, easeIn), at(t, -0.4, -0.75, easeIn), 0);
+        plane.position.set(flip * at(t, -2.6, -3.15, easeIn), at(t, -0.4, -0.75, easeIn), 0);
         plane.rotation.set(tiltX, 0, at(t, 0.1, 0.26, easeIn));
       } else if (elapsed < GATHER + THROW) {
         const t = (elapsed - GATHER) / THROW;
-        plane.position.set(at(t, -3.15, 1.3, easeOut), at(t, -0.75, 0.55, easeOut), 0);
+        plane.position.set(flip * at(t, -3.15, 1.3, easeOut), at(t, -0.75, 0.55, easeOut), 0);
         plane.rotation.set(tiltX, 0, at(t, 0.26, tiltZ, easeOut));
       } else if (!exitAt) {
         // Cruising. A slow bob and roll, so it reads as held aloft rather than
         // parked, and it keeps this up for as long as the wallet needs.
         const t = elapsed - CRUISE_START;
         plane.position.set(
-          0.55 + Math.sin(t * 0.42) * 0.55,
+          flip * (0.55 + Math.sin(t * 0.42) * 0.55),
           0.35 + Math.sin(t * 0.73) * 0.22,
           Math.sin(t * 0.31) * 0.4,
         );
@@ -567,7 +594,7 @@ varying float vInk;`,
           // form arriving back behind it reads as the same movement reversed.
           const turn = Math.min(t / 0.42, 1);
           plane.position.set(
-            at(t, 0.55, -13, easeIn),
+            flip * at(t, 0.55, -13, easeIn),
             at(t, 0.35, -0.65, easeOut),
             at(t, 0, 1.1, easeOut),
           );
@@ -575,14 +602,14 @@ varying float vInk;`,
         } else if (latest.current.phase === "failed") {
           // Signed, and then it never arrived. That is a fall, not a return.
           plane.position.set(
-            at(t, 0.55, -0.6, easeIn),
+            flip * at(t, 0.55, -0.6, easeIn),
             at(t, 0.35, -5.5, easeIn),
             at(t, 0, 1.2, easeIn),
           );
           plane.rotation.set(tiltX, 0, at(t, tiltZ, 0.85, easeIn));
         } else {
           plane.position.set(
-            at(t, 0.55, 14, easeIn),
+            flip * at(t, 0.55, 14, easeIn),
             at(t, 0.35, 2.6, easeIn),
             at(t, 0, -3.5, easeIn),
           );

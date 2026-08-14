@@ -6,6 +6,7 @@ import {
   buildClaimToNoteActions,
   decodeLinkFragment,
   readEnvelope,
+  readEnvelopeHistory,
   resolveOpenNoteId,
   toPublicKey,
   type EnvelopeState,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
 import { useWallet } from "@/lib/wallet";
+import { watchEnvelope } from "@/lib/watch";
 
 type Outcome = { kind: "private" | "public"; transactionHash: string };
 
@@ -110,11 +112,42 @@ export default function ClaimPage() {
     return () => window.clearInterval(timer);
   }, [deadline]);
 
+  /**
+   * Watch for the claim landing, starting before the wallet is even asked.
+   *
+   * The wallet's promise is held through proving and relaying and can outlast
+   * the transaction being mined by many minutes. The envelope id is already
+   * known here, so the chain answers first.
+   */
+  function watchForClaim(kind: "private" | "public") {
+    const watch = { cancelled: false, found: false };
+    const watching = watchEnvelope(
+      provider,
+      network.anonymizer,
+      claimPublicKey,
+      (state) => state.status === "claimed",
+      watch,
+    );
+    void watching.then(async (state) => {
+      if (!state) return;
+      const events = await readEnvelopeHistory(
+        provider,
+        network.anonymizer,
+        claimPublicKey,
+        network.firstBlock,
+      );
+      const settled = events.find((event) => event.kind === "claimed");
+      setOutcome({ kind, transactionHash: settled?.transactionHash ?? "" });
+    });
+    return { watch, watching };
+  }
+
   /** The path that works for someone who has never touched the pool. */
   async function claimToAddress() {
     if (!account || !claimKey) return;
     setBusy("public");
     setError("");
+    const { watch, watching } = watchForClaim("public");
     try {
       const call = buildClaimToAddressCall({
         anonymizer: network.anonymizer,
@@ -124,8 +157,10 @@ export default function ClaimPage() {
       });
       const { transaction_hash } = await account.execute(call);
       setOutcome({ kind: "public", transactionHash: transaction_hash });
-      void load();
+      void watching.then(() => load());
     } catch (cause) {
+      // The chain outranks the wallet: a wallet can fail on a claim it landed.
+      if (watch.found) return;
       setError(cause instanceof Error ? cause.message : "The claim failed.");
     } finally {
       setBusy("");
@@ -137,6 +172,7 @@ export default function ClaimPage() {
     if (!account || !claimKey || !envelope) return;
     setBusy("private");
     setError("");
+    const { watch, watching } = watchForClaim("private");
     try {
       // Assemble the real thing with a placeholder signature so the wallet
       // will accept it and substitute the open note id, then sign that id and
@@ -169,8 +205,9 @@ export default function ClaimPage() {
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
       setOutcome({ kind: "private", transactionHash: transaction_hash });
-      void load();
+      void watching.then(() => load());
     } catch (cause) {
+      if (watch.found) return;
       setError(explainWalletError(cause).message);
       console.error("[envelope] private claim failed", cause);
     } finally {

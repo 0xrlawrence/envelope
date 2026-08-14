@@ -5,14 +5,18 @@ import {
   buildRefundActions,
   decodeRefundFragment,
   readEnvelope,
+  readEnvelopeHistory,
   resolveOpenNoteId,
   type EnvelopeState,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
+import { SendOff } from "@/components/SendOff";
 import { Button, Callout, ExplorerLink } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
+import { looksRejected } from "@/lib/errors";
 import { useWallet } from "@/lib/wallet";
+import { watchEnvelope } from "@/lib/watch";
 
 export default function RefundPage() {
   const { account, address, network, provider, supportsStrk20 } = useWallet();
@@ -24,6 +28,10 @@ export default function RefundPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
+  const [phase, setPhase] = useState<"idle" | "flying" | "sent" | "returned" | "failed">(
+    "idle",
+  );
+  const [flightDone, setFlightDone] = useState(false);
 
   // A return link carries the refund key *and* the claim public key: the
   // refund key is deliberately unrelated to the envelope's identity, so on its
@@ -58,6 +66,40 @@ export default function RefundPage() {
     if (!account || !refundKey || !envelope) return;
     setBusy(true);
     setError("");
+    setPhase("flying");
+
+    /**
+     * Watch the contract, starting now.
+     *
+     * The wallet's promise is not the event worth waiting on. It proves, hands
+     * the transaction to a relayer, and then waits on its own confirmation, so
+     * it can be held for many minutes after the return is already mined. The
+     * envelope id is known here without asking the wallet anything, so the
+     * chain answers first and the flight ends when the money is actually back.
+     */
+    const watch = { cancelled: false, found: false };
+    const watching = watchEnvelope(
+      provider,
+      network.anonymizer,
+      claimPublicKey,
+      (state) => state.status === "refunded",
+      watch,
+    );
+
+    void watching.then(async (state) => {
+      if (!state) return;
+      setPhase("sent");
+      void load();
+      const events = await readEnvelopeHistory(
+        provider,
+        network.anonymizer,
+        claimPublicKey,
+        network.firstBlock,
+      );
+      const settled = events.find((event) => event.kind === "refunded");
+      if (settled) setTransactionHash(settled.transactionHash);
+    });
+
     try {
       // Assemble with a placeholder signature to learn the open note id, then
       // sign that id and rebuild. A lone OPEN transfer is not an acceptable
@@ -87,13 +129,39 @@ export default function RefundPage() {
         }),
       );
       setTransactionHash(transaction_hash);
-      void load();
+
+      // Usually already resolved by the time the wallet gets here.
+      if (!(await watching)) {
+        setPhase("failed");
+        setError(
+          "The return was submitted but has not come back on-chain yet. The key is kept on the sealed page; try again from there in a minute.",
+        );
+      }
     } catch (cause) {
+      // A wallet can fail on a transaction it has already landed, and the chain
+      // is the authority, so a found envelope outranks any error it reports.
+      if (watch.found) return;
+
+      if (looksRejected(cause)) {
+        watch.cancelled = true;
+        setPhase("returned");
+        return;
+      }
+
+      const late = await Promise.race([
+        watching,
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12_000)),
+      ]);
+      if (late || watch.found) return;
+
+      setPhase("failed");
       setError(cause instanceof Error ? cause.message : "The return failed.");
     } finally {
       setBusy(false);
     }
   }
+
+  const flying = phase !== "idle" && !flightDone;
 
   if (!refundKey && !loading) {
     return (
@@ -109,7 +177,7 @@ export default function RefundPage() {
     );
   }
 
-  if (transactionHash) {
+  if (transactionHash && flightDone) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-14">
         <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">
@@ -137,59 +205,76 @@ export default function RefundPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 px-6 py-4 lg:grid-cols-[1fr_1fr] lg:items-start">
-      <EnvelopeCard
-        amount={formatAmount(envelope.amount)}
-        symbol={STRK.symbol}
-        sealed={envelope.status === "funded"}
-      />
+    <>
+      {flying ? (
+        <SendOff
+          amount={formatAmount(envelope.amount)}
+          symbol={STRK.symbol}
+          direction="back"
+          phase={phase}
+          onDone={() => setFlightDone(true)}
+        />
+      ) : null}
 
-      <div>
-        <h1 className="font-display text-4xl leading-tight font-bold tracking-[-0.02em]">
-          {envelope.status === "claimed"
-            ? "Already opened."
-            : envelope.status === "refunded"
-              ? "Already returned."
-              : envelope.refundable
-                ? "Undelivered."
-                : "Still out for delivery."}
-        </h1>
+      <div
+        className={`mx-auto grid max-w-5xl gap-8 px-6 py-4 transition-opacity duration-500 lg:grid-cols-[1fr_1fr] lg:items-start ${
+          flying ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      >
+        <EnvelopeCard
+          amount={formatAmount(envelope.amount)}
+          symbol={STRK.symbol}
+          sealed={envelope.status === "funded"}
+          expired={envelope.refundable}
+        />
 
-        <p className="mt-4 text-[var(--paper-dim)]">
-          {envelope.status === "claimed"
-            ? "Someone claimed this before it expired. There is nothing to return."
-            : envelope.status === "refunded"
-              ? "This envelope has already come back to you."
-              : envelope.refundable
-                ? "The claim window shut without anyone opening it. You can take it back."
-                : `Nobody has claimed it yet, and the window is still open until ${new Date(
-                    envelope.expiry * 1000,
-                  ).toLocaleString()}. You can only reclaim it after that.`}
-        </p>
+        <div>
+          <h1 className="font-display text-4xl leading-tight font-bold tracking-[-0.02em]">
+            {envelope.status === "claimed"
+              ? "Already opened."
+              : envelope.status === "refunded"
+                ? "Already returned."
+                : envelope.refundable
+                  ? "Undelivered."
+                  : "Still out for delivery."}
+          </h1>
 
-        <Receipt claimPublicKey={claimPublicKey} />
+          <p className="mt-4 text-[var(--paper-dim)]">
+            {envelope.status === "claimed"
+              ? "Someone claimed this before it expired. There is nothing to return."
+              : envelope.status === "refunded"
+                ? "This envelope has already come back to you."
+                : envelope.refundable
+                  ? "The claim window shut without anyone opening it. You can take it back."
+                  : `Nobody has claimed it yet, and the window is still open until ${new Date(
+                      envelope.expiry * 1000,
+                    ).toLocaleString()}. You can only reclaim it after that.`}
+          </p>
 
-        {envelope.refundable ? (
-          <div className="mt-8 space-y-4">
-            {!address ? (
-              <Callout title="Connect a wallet">
-                Connect the wallet that holds your shielded balance, since the returned
-                value lands there as a private note.
-              </Callout>
-            ) : null}
+          <Receipt claimPublicKey={claimPublicKey} />
 
-            {error ? (
-              <Callout tone="bad" title="Failed">
-                {error}
-              </Callout>
-            ) : null}
+          {envelope.refundable ? (
+            <div className="mt-8 space-y-4">
+              {!address ? (
+                <Callout title="Connect a wallet">
+                  Connect the wallet that holds your shielded balance, since the returned
+                  value lands there as a private note.
+                </Callout>
+              ) : null}
 
-            <Button onClick={reclaim} disabled={!address || !supportsStrk20 || busy}>
-              {busy ? "Returning…" : "Return to sender"}
-            </Button>
-          </div>
-        ) : null}
+              {error ? (
+                <Callout tone="bad" title="Failed">
+                  {error}
+                </Callout>
+              ) : null}
+
+              <Button onClick={reclaim} disabled={!address || !supportsStrk20 || busy}>
+                {busy ? "Returning…" : "Return to sender"}
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
