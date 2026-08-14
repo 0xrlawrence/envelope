@@ -141,3 +141,22 @@ export function decodeMemo(felt: string): string {
     return "";
   }
 }
+
+/** "3h ago", "just now". Coarse on purpose: exact seconds help nobody here. */
+export function timeAgo(unixMillis: number): string {
+  const seconds = Math.max(0, Math.floor((Date.now() - unixMillis) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+/** Keep a long value on one line without hiding which one it is. */
+export function middleTruncate(value: string, lead = 34, tail = 12): string {
+  return value.length <= lead + tail + 1
+    ? value
+    : `${value.slice(0, lead)}…${value.slice(-tail)}`;
+}

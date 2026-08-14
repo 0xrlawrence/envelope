@@ -1,12 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { encodeClaimLink, encodeRefundLink, readEnvelope, type EnvelopeState } from "strk20-envelope";
-import { Button, Callout, Eyebrow, ExplorerLink } from "@/components/ui";
-import { STRK, formatAmount, shortHex } from "@/lib/config";
+import {
+  encodeClaimLink,
+  encodeRefundLink,
+  readEnvelope,
+  type EnvelopeState,
+} from "strk20-envelope";
+import { Button, Callout, ExplorerLink } from "@/components/ui";
+import {
+  STRK,
+  formatAmount,
+  middleTruncate,
+  shortHex,
+  timeAgo,
+} from "@/lib/config";
+import { recentEnvelopes, type FundedEnvelope } from "@/lib/activity";
 import { appOrigin } from "@/lib/origin";
 import { useWallet } from "@/lib/wallet";
-import { recentEnvelopes, type FundedEnvelope } from "@/lib/activity";
 import { forget, recall, type SealRecord } from "@/lib/vault";
 
 /**
@@ -15,51 +26,12 @@ import { forget, recall, type SealRecord } from "@/lib/vault";
  * Sealing generates a key, funds the envelope, and shows a link. If anything
  * interrupts that between the signature and the link, the money is on-chain and
  * the only key to it is gone. This page exists so that cannot happen: keys are
- * written down before signing, and this is where they can be read back.
+ * written down before signing, and this is where they are read back.
+ *
+ * The organising idea is that an envelope is either still out there or it is
+ * finished. One is a thing you act on and the other is a receipt, so they are
+ * not given the same weight.
  */
-/** A link with a copy button, because a link you cannot copy is not a link. */
-function CopyRow({
-  label,
-  hint,
-  value,
-  quiet = false,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  quiet?: boolean;
-}) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-4">
-        <Eyebrow>{label}</Eyebrow>
-        <button
-          onClick={async () => {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          }}
-          className="font-display text-[0.65rem] font-semibold tracking-[0.2em] text-[var(--frank)] uppercase"
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{hint}</p>
-      <a
-        href={value}
-        target="_blank"
-        rel="noreferrer"
-        className={`mt-1 block font-mono text-xs break-all underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] ${
-          quiet ? "text-[var(--paper-faint)]" : "text-[var(--paper)]"
-        }`}
-      >
-        {value}
-      </a>
-    </div>
-  );
-}
-
 export default function SealedPage() {
   const { network, provider } = useWallet();
   const [records, setRecords] = useState<SealRecord[]>([]);
@@ -77,8 +49,14 @@ export default function SealedPage() {
     (async () => {
       for (const record of records) {
         try {
-          const state = await readEnvelope(provider, record.anonymizer, record.claimPublicKey);
-          if (!cancelled) setStates((prev) => ({ ...prev, [record.claimPublicKey]: state }));
+          const state = await readEnvelope(
+            provider,
+            record.anonymizer,
+            record.claimPublicKey,
+          );
+          if (!cancelled) {
+            setStates((previous) => ({ ...previous, [record.claimPublicKey]: state }));
+          }
         } catch {
           // Leave it unknown rather than claiming a status we do not have.
         }
@@ -89,9 +67,6 @@ export default function SealedPage() {
     };
   }, [records, provider]);
 
-  // Every envelope the anonymizer has ever funded, from its own events. This
-  // does not depend on holding a key, so it shows envelopes sealed from other
-  // browsers, and envelopes whose keys were lost.
   useEffect(() => {
     let cancelled = false;
     recentEnvelopes(provider, network.anonymizer, network.pool)
@@ -102,139 +77,96 @@ export default function SealedPage() {
     };
   }, [provider, network.anonymizer, network.pool]);
 
+  const live = records.filter((record) => states[record.claimPublicKey]?.status === "funded");
+  const settled = records.filter((record) => {
+    const status = states[record.claimPublicKey]?.status;
+    return status === "claimed" || status === "refunded";
+  });
+  const unknown = records.filter((record) => {
+    const status = states[record.claimPublicKey]?.status;
+    return status === undefined || status === "none";
+  });
+
+  const refresh = () => setRecords(recall(network.id));
+
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
       <h1 className="font-display text-4xl font-bold tracking-[-0.03em]">
         Sealed from this browser
       </h1>
       <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-        Keys are written here before a transaction is signed, so an interrupted seal
-        does not strand the money. They are bearer material: anyone with them can claim.
-        Clear an entry once the link is safely handed over.
+        The key is the envelope, so it is written here before anything is signed and an
+        interrupted seal cannot strand the money. Anyone holding a claim link can take
+        the contents.
       </p>
 
       {origin.includes("localhost") && records.length > 0 ? (
         <div className="mt-6">
           <Callout tone="warn" title="These links only work on this machine">
-            They point at <code className="font-mono">{origin}</code>. Deploy the app and
-            the same keys produce links anyone can open; the envelope itself is already
-            on-chain and does not change.
+            They point at <code className="font-mono">{origin}</code>. The envelopes are
+            already on-chain and do not change; only the links do.
           </Callout>
         </div>
       ) : null}
 
       {records.length === 0 ? (
-        <p className="mt-8 text-sm text-[var(--paper-faint)]">
+        <p className="mt-10 text-sm text-[var(--paper-faint)]">
           Nothing sealed from this browser on {network.label} yet.
         </p>
       ) : null}
 
-      <div className="mt-8 space-y-4">
-        {records.map((record) => {
-          const state = states[record.claimPublicKey];
-          const claimLink = origin ? encodeClaimLink(origin, record.claimPrivateKey) : "";
-          const refundLink = origin
-            ? encodeRefundLink(origin, record.refundPrivateKey, record.claimPublicKey)
-            : "";
+      <Section title="Out there" count={live.length} hint="Send these. They can be claimed.">
+        {live.map((record) => (
+          <Row
+            key={record.claimPublicKey}
+            record={record}
+            state={states[record.claimPublicKey]}
+            origin={origin}
+            network={network}
+            onCleared={refresh}
+          />
+        ))}
+      </Section>
 
-          return (
-            <div key={record.claimPublicKey} className="border border-[var(--ink-line)] p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <p className="font-display text-2xl font-bold">
-                  {formatAmount(BigInt(record.amount))}{" "}
-                  <span className="text-base text-[var(--paper-dim)]">{STRK.symbol}</span>
-                </p>
-                <p
-                  className="field-label"
-                  style={{
-                    color:
-                      state?.status === "funded" ? "var(--frank)" : "var(--paper-faint)",
-                  }}
-                >
-                  {state
-                    ? state.status === "none"
-                      ? "never landed"
-                      : state.status
-                    : record.submitted
-                      ? "checking"
-                      : "never submitted"}
-                </p>
-              </div>
+      <Section
+        title="Not landed"
+        count={unknown.length}
+        hint="No envelope on-chain against these keys. Kept in case a transaction arrives late."
+      >
+        {unknown.map((record) => (
+          <Row
+            key={record.claimPublicKey}
+            record={record}
+            state={states[record.claimPublicKey]}
+            origin={origin}
+            network={network}
+            onCleared={refresh}
+          />
+        ))}
+      </Section>
 
-              {record.memo ? (
-                <p className="mt-1 font-mono text-xs text-[var(--paper-faint)]">
-                  Ref. {record.memo}
-                </p>
-              ) : null}
-
-              {state?.status === "none" ? (
-                <p className="mt-2 text-sm text-[var(--paper-dim)]">
-                  Never landed on-chain. The keys are kept here in case the transaction
-                  arrives late, but the link will not work until it does.
-                </p>
-              ) : null}
-
-              {state && state.status !== "funded" && state.status !== "none" ? (
-                <p className="mt-2 text-sm text-[var(--paper-dim)]">
-                  Settled: this envelope was {state.status}.
-                </p>
-              ) : null}
-
-              <div className="mt-3 space-y-3">
-                <CopyRow
-                  label="Claim link"
-                  hint={
-                    state?.status === "funded"
-                      ? "Send this. Whoever opens it takes the contents."
-                      : "Not claimable yet, but this is the link when it is."
-                  }
-                  value={claimLink}
-                  quiet={state?.status !== "funded"}
-                />
-                <CopyRow
-                  label="Return link"
-                  hint="Keep this. It reclaims the envelope after expiry."
-                  value={refundLink}
-                  quiet
-                />
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-4">
-                {record.transactionHash ? (
-                  <ExplorerLink
-                    explorer={network.explorer}
-                    kind="tx"
-                    value={record.transactionHash}
-                  >
-                    {shortHex(record.transactionHash, 10, 6)}
-                  </ExplorerLink>
-                ) : null}
-                <Button
-                  variant="quiet"
-                  className="!px-0"
-                  onClick={() => {
-                    forget(record.claimPublicKey);
-                    setRecords(recall(network.id));
-                  }}
-                >
-                  Clear
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <Section title="Finished" count={settled.length} hint="Receipts. Nothing to send.">
+        {settled.map((record) => (
+          <Row
+            key={record.claimPublicKey}
+            record={record}
+            state={states[record.claimPublicKey]}
+            origin={origin}
+            network={network}
+            onCleared={refresh}
+          />
+        ))}
+      </Section>
 
       <div className="mt-14 border-t border-[var(--ink-line)] pt-8">
         <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">
           On this anonymizer
         </h2>
         <p className="mt-2 max-w-[62ch] text-sm text-[var(--paper-dim)]">
-          Every envelope the contract has funded, read from its own events on{" "}
-          {network.label}. An envelope funded <strong>through the pool</strong> carries
-          the pool&rsquo;s events in the same transaction and is submitted by a relayer
-          rather than by whoever funded it. That separation is the privacy claim, and
-          it is visible here rather than asserted.
+          Every envelope the contract has funded, from its own events. One funded through
+          the pool carries the pool&rsquo;s events in the same transaction and is
+          submitted by a relayer rather than by whoever funded it. That separation is the
+          privacy claim, visible rather than asserted.
         </p>
 
         {onChain === null ? (
@@ -283,15 +215,234 @@ export default function SealedPage() {
           </div>
         )}
       </div>
-
-      {records.length ? (
-        <div className="mt-8">
-          <Callout tone="warn" title="These keys are the money">
-            Anyone who reads them can claim the envelope. They live in this browser
-            only, and clearing site data removes them for good.
-          </Callout>
-        </div>
-      ) : null}
     </div>
+  );
+}
+
+function Section({
+  title,
+  count,
+  hint,
+  children,
+}: {
+  title: string;
+  count: number;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  if (count === 0) return null;
+  return (
+    <section className="mt-10">
+      <div className="flex items-baseline gap-3">
+        <h2 className="field-label !text-[var(--paper-dim)]">{title}</h2>
+        <span className="font-mono text-xs text-[var(--paper-faint)]">{count}</span>
+      </div>
+      <p className="mt-1 text-xs text-[var(--paper-faint)]">{hint}</p>
+      <div className="mt-4 space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function Row({
+  record,
+  state,
+  origin,
+  network,
+  onCleared,
+}: {
+  record: SealRecord;
+  state?: EnvelopeState;
+  origin: string;
+  network: { explorer: string; id: string };
+  onCleared: () => void;
+}) {
+  const status = state?.status;
+  const spent = status === "claimed" || status === "refunded";
+  const claimLink = origin ? encodeClaimLink(origin, record.claimPrivateKey) : "";
+  const refundLink = origin
+    ? encodeRefundLink(origin, record.refundPrivateKey, record.claimPublicKey)
+    : "";
+
+  return (
+    <div
+      className={`row-enter border p-4 transition-colors duration-200 ${
+        status === "funded"
+          ? "border-[var(--ink-line)] bg-[var(--ink-raised)]"
+          : "border-[var(--ink-line)]"
+      } ${spent ? "opacity-55 hover:opacity-100" : ""}`}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="font-display text-2xl font-bold tabular-nums">
+          {formatAmount(BigInt(record.amount))}{" "}
+          <span className="text-base font-semibold text-[var(--paper-dim)]">
+            {STRK.symbol}
+          </span>
+          {record.memo ? (
+            <span className="ml-3 font-mono text-xs font-normal text-[var(--paper-faint)]">
+              {record.memo}
+            </span>
+          ) : null}
+        </p>
+
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-xs text-[var(--paper-faint)]">
+            {timeAgo(record.createdAt)}
+          </span>
+          <StatusTag status={status} submitted={record.submitted} />
+        </div>
+      </div>
+
+      {/* Only a live envelope leads with something to send. A finished one is a
+          receipt, and a link nobody can use should not be the loudest thing on
+          the row. */}
+      {status === "funded" ? (
+        <div className="mt-4 space-y-3">
+          <LinkRow label="Claim link" value={claimLink} emphasis />
+          <LinkRow label="Return link" value={refundLink} />
+        </div>
+      ) : (
+        <details className="group mt-3">
+          <summary className="cursor-pointer list-none font-display text-xs font-semibold tracking-[0.16em] text-[var(--paper-faint)] uppercase transition-colors duration-150 hover:text-[var(--paper-dim)]">
+            Keys
+            <span className="ml-2 font-mono tracking-normal normal-case group-open:hidden">
+              show
+            </span>
+            <span className="ml-2 hidden font-mono tracking-normal normal-case group-open:inline">
+              hide
+            </span>
+          </summary>
+          <div className="mt-3 space-y-3">
+            <LinkRow label="Claim link" value={claimLink} />
+            <LinkRow label="Return link" value={refundLink} />
+          </div>
+        </details>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        {record.transactionHash ? (
+          <ExplorerLink
+            explorer={network.explorer}
+            kind="tx"
+            value={record.transactionHash}
+          >
+            {shortHex(record.transactionHash, 10, 6)}
+          </ExplorerLink>
+        ) : (
+          <span className="font-mono text-xs text-[var(--paper-faint)]">no hash</span>
+        )}
+        <ClearButton
+          onConfirm={() => {
+            forget(record.claimPublicKey);
+            onCleared();
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusTag({ status, submitted }: { status?: string; submitted: boolean }) {
+  const label =
+    status === undefined
+      ? submitted
+        ? "checking"
+        : "never submitted"
+      : status === "none"
+        ? "not landed"
+        : status;
+
+  const colour =
+    status === "funded"
+      ? "var(--frank)"
+      : status === "claimed"
+        ? "var(--paper-dim)"
+        : status === "none"
+          ? "var(--seal)"
+          : "var(--paper-faint)";
+
+  return (
+    <span
+      className="font-display text-[0.65rem] font-semibold tracking-[0.18em] uppercase"
+      style={{ color: colour }}
+    >
+      {label}
+    </span>
+  );
+}
+
+/**
+ * A link, kept to one line, with the whole value on the clipboard.
+ *
+ * Wrapping a hash across two lines makes it unreadable and unscannable, and the
+ * full string is never the thing being read: it is the thing being copied.
+ */
+function LinkRow({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="font-display text-[0.65rem] font-semibold tracking-[0.2em] text-[var(--paper-faint)] uppercase">
+          {label}
+        </span>
+        <button
+          onClick={async () => {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1400);
+          }}
+          className="font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95"
+          style={{ color: copied ? "var(--frank)" : "var(--paper-dim)" }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <a
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+        title={value}
+        className={`mt-1 block truncate font-mono text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] ${
+          emphasis ? "text-[var(--paper)]" : "text-[var(--paper-faint)]"
+        }`}
+      >
+        {middleTruncate(value)}
+      </a>
+    </div>
+  );
+}
+
+/**
+ * Clearing throws away the only key to an envelope, so it asks once.
+ *
+ * A single quiet click sitting next to a link is too easy to hit by accident
+ * for something with no undo.
+ */
+function ClearButton({ onConfirm }: { onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (!armed) return;
+    const timer = window.setTimeout(() => setArmed(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [armed]);
+
+  return (
+    <Button
+      variant="quiet"
+      className="!px-0 !py-1 !text-[0.65rem]"
+      style={{ color: armed ? "var(--seal)" : undefined }}
+      onClick={() => (armed ? onConfirm() : setArmed(true))}
+    >
+      {armed ? "Delete the key?" : "Clear"}
+    </Button>
   );
 }
