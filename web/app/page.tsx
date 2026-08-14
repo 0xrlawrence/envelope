@@ -12,7 +12,6 @@ import {
   generateEnvelopeKey,
   type EnvelopeKeyPair,
 } from "strk20-envelope";
-import { Diagnose } from "@/components/Diagnose";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
@@ -135,21 +134,6 @@ export default function CreatePage() {
         expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
         memo: memo.slice(0, 31),
       });
-
-      // Dry run first. This builds and proves the same actions without
-      // submitting, which is the only way from outside the wallet to tell a
-      // malformed request apart from a backend that cannot complete it. A
-      // failure here is ours; a failure only on submit is not.
-      try {
-        await account.strk20PrepareInvoke(actions, true);
-      } catch (dryRun) {
-        const explained = explainWalletError(dryRun);
-        setError(`Rejected before submitting: ${explained.message}`);
-        setErrorDetail(`${explained.raw} (during strk20PrepareInvoke, simulate mode)`);
-        console.error("[envelope] dry run failed", dryRun, actions);
-        setBusy("");
-        return;
-      }
 
       const { transaction_hash } = await account.strk20InvokeTransaction(actions);
       setSealed({ claim, refund, amount, transactionHash: transaction_hash, private: true });
@@ -275,20 +259,14 @@ export default function CreatePage() {
           ) : null}
 
           {address && !supportsStrk20 ? (
-            <Callout tone="warn" title="Funding publicly">
+            <Callout title="Funded from your address">
               <p>
-                {walletName || "This wallet"} does not serve the STRK20 methods, so the
-                pool cannot hide who funded this. The envelope still works: the claim
-                link, the expiry, the refund and the guarantee that a claim cannot be
-                front-run are unchanged, and whoever claims it into a shielded balance
-                is still unobservable. Only <strong>your</strong> address is public on
-                the funding leg.
+                {walletName || "This wallet"} does not implement the STRK20 methods, so
+                this envelope is funded from your address rather than from a shielded
+                note. Everything else is unchanged: the claim link, the expiry, the
+                refund, and the fact that a claim cannot be front-run. Whoever claims it
+                into a shielded balance is still unobservable.
               </p>
-              {strk20Reason ? (
-                <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
-                  {walletName || "Wallet"} said: {strk20Reason}
-                </p>
-              ) : null}
             </Callout>
           ) : null}
 
@@ -333,15 +311,6 @@ export default function CreatePage() {
                 <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">
                   Wallet said: {errorDetail}
                 </p>
-              ) : null}
-              {account && address ? (
-                <Diagnose
-                  account={account}
-                  address={address}
-                  anonymizer={network.anonymizer}
-                  token={STRK.address}
-                  amount={amount}
-                />
               ) : null}
             </Callout>
           ) : null}
