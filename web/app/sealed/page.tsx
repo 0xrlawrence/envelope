@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { encodeClaimLink, encodeRefundLink, readEnvelope, type EnvelopeState } from "strk20-envelope";
 import { Button, Callout, Eyebrow, ExplorerLink } from "@/components/ui";
 import { STRK, formatAmount, shortHex } from "@/lib/config";
+import { appOrigin } from "@/lib/origin";
 import { useWallet } from "@/lib/wallet";
 import { recentEnvelopes, type FundedEnvelope } from "@/lib/activity";
 import { forget, recall, type SealRecord } from "@/lib/vault";
@@ -16,6 +17,44 @@ import { forget, recall, type SealRecord } from "@/lib/vault";
  * the only key to it is gone. This page exists so that cannot happen: keys are
  * written down before signing, and this is where they can be read back.
  */
+/** A link with a copy button, because a link you cannot copy is not a link. */
+function CopyRow({
+  label,
+  hint,
+  value,
+  quiet = false,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  quiet?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-4">
+        <Eyebrow>{label}</Eyebrow>
+        <button
+          onClick={async () => {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1600);
+          }}
+          className="font-display text-[0.65rem] font-semibold tracking-[0.2em] text-[var(--frank)] uppercase"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{hint}</p>
+      <p
+        className={`mt-1 font-mono text-xs break-all ${quiet ? "text-[var(--paper-faint)]" : "text-[var(--paper)]"}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export default function SealedPage() {
   const { network, provider } = useWallet();
   const [records, setRecords] = useState<SealRecord[]>([]);
@@ -24,7 +63,7 @@ export default function SealedPage() {
   const [onChain, setOnChain] = useState<FundedEnvelope[] | null>(null);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    setOrigin(appOrigin());
     setRecords(recall(network.id));
   }, [network.id]);
 
@@ -69,6 +108,16 @@ export default function SealedPage() {
         Clear an entry once the link is safely handed over.
       </p>
 
+      {origin.includes("localhost") && records.length > 0 ? (
+        <div className="mt-6">
+          <Callout tone="warn" title="These links only work on this machine">
+            They point at <code className="font-mono">{origin}</code>. Deploy the app and
+            the same keys produce links anyone can open; the envelope itself is already
+            on-chain and does not change.
+          </Callout>
+        </div>
+      ) : null}
+
       {records.length === 0 ? (
         <p className="mt-8 text-sm text-[var(--paper-faint)]">
           Nothing sealed from this browser on {network.label} yet.
@@ -102,19 +151,9 @@ export default function SealedPage() {
               ) : null}
 
               {state?.status === "funded" ? (
-                <div className="mt-3 space-y-2">
-                  <div>
-                    <Eyebrow>Claim link</Eyebrow>
-                    <p className="mt-1 font-mono text-xs break-all text-[var(--paper)]">
-                      {claimLink}
-                    </p>
-                  </div>
-                  <div>
-                    <Eyebrow>Return link</Eyebrow>
-                    <p className="mt-1 font-mono text-xs break-all text-[var(--paper-faint)]">
-                      {refundLink}
-                    </p>
-                  </div>
+                <div className="mt-3 space-y-3">
+                  <CopyRow label="Claim link" hint="Send this. Whoever opens it takes the contents." value={claimLink} />
+                  <CopyRow label="Return link" hint="Keep this. It reclaims the envelope after expiry." value={refundLink} quiet />
                 </div>
               ) : null}
 

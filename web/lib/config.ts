@@ -38,7 +38,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
       process.env.NEXT_PUBLIC_RPC_MAINNET ?? "https://api.cartridge.gg/x/starknet/mainnet",
     pool: POOL_ADDRESS_MAINNET,
     anonymizer: process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET ?? "",
-    explorer: "https://starkscan.co",
+    explorer: "https://voyager.online",
   },
   sepolia: {
     id: "sepolia",
@@ -51,7 +51,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     anonymizer:
       process.env.NEXT_PUBLIC_ANONYMIZER_SEPOLIA ??
       "0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211",
-    explorer: "https://sepolia.starkscan.co",
+    explorer: "https://sepolia.voyager.online",
   },
 };
 

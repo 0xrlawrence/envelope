@@ -22,6 +22,7 @@ import {
   toSmallestUnit,
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
+import { appOrigin } from "@/lib/origin";
 import { markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 
@@ -439,7 +440,7 @@ function HiddenRow({ children, hidden = false }: { children: string; hidden?: bo
 function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () => void }) {
   const { network } = useWallet();
   const [origin, setOrigin] = useState("");
-  useEffect(() => setOrigin(window.location.origin), []);
+  useEffect(() => setOrigin(appOrigin()), []);
 
   const claimLink = origin ? encodeClaimLink(origin, sealed.claim.privateKey, "claim") : "";
   const refundLink = origin
