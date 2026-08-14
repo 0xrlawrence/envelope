@@ -42,6 +42,7 @@ export default function ClaimPage() {
   // no key, so the private route cannot work for them however well formed the
   // request is.
   const [claimantRegistered, setClaimantRegistered] = useState<boolean | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!account || !supportsStrk20) {
@@ -94,6 +95,20 @@ export default function ClaimPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * `readEnvelope` decides claimable and refundable against the clock at the
+   * moment it read, and nothing re-reads it. With five minute windows on offer,
+   * someone can open a link with thirty seconds left and still be looking at
+   * live buttons a minute later, click one, and have the contract refuse it.
+   * So the deadline is watched here instead of trusted from the snapshot.
+   */
+  const deadline = envelope?.expiry ?? 0;
+  useEffect(() => {
+    if (!deadline) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [deadline]);
 
   /** The path that works for someone who has never touched the pool. */
   async function claimToAddress() {
@@ -227,6 +242,14 @@ export default function ClaimPage() {
   }
 
   const spent = envelope.status === "claimed" || envelope.status === "refunded";
+  // Funded, but the window shut with nobody opening it. The contract will
+  // refuse every claim now, so there is nothing here for a wallet to do.
+  // Judged against the live clock rather than against the read.
+  const seconds = Math.floor(now / 1000);
+  const expired =
+    envelope.status === "funded" && envelope.expiry !== 0 && seconds >= envelope.expiry;
+  const claimable =
+    envelope.status === "funded" && seconds >= envelope.unlockAt && !expired;
   const reference = decodeMemo(envelope.memo);
 
   return (
@@ -236,11 +259,14 @@ export default function ClaimPage() {
           amount={formatAmount(envelope.amount)}
           symbol={STRK.symbol}
           sealed={!spent}
+          expired={expired}
           reference={reference}
           caption={
-            envelope.expiry === 0
-              ? "No expiry. It waits indefinitely."
-              : `Claimable until ${formatDeadline(envelope.expiry)}, ${timeRemaining(envelope.expiry)}.`
+            expired
+              ? `The claim window shut on ${formatDeadline(envelope.expiry)}.`
+              : envelope.expiry === 0
+                ? "No expiry. It waits indefinitely."
+                : `Claimable until ${formatDeadline(envelope.expiry)}, ${timeRemaining(envelope.expiry)}.`
           }
         />
       </div>
@@ -251,10 +277,22 @@ export default function ClaimPage() {
             ? envelope.status === "claimed"
               ? "Already opened."
               : "Returned to sender."
-            : "Someone sent you this."}
+            : expired
+              ? "Too late."
+              : "Someone sent you this."}
         </h1>
 
-        {spent ? (
+        {expired ? (
+          <>
+            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
+              The claim window shut on {formatDeadline(envelope.expiry)} without anyone
+              opening this. The contract will refuse a claim now, so there is nothing a
+              wallet can do here. The {formatAmount(envelope.amount)} {STRK.symbol} is not
+              lost: only whoever funded it can move it, using their return link.
+            </p>
+            <Receipt claimPublicKey={claimPublicKey} />
+          </>
+        ) : spent ? (
           <>
             <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
               This envelope has been settled. An envelope releases exactly once, which is
@@ -270,15 +308,9 @@ export default function ClaimPage() {
             </p>
 
             <div className="mt-5 space-y-2">
-              {!envelope.claimable && envelope.unlockAt > Date.now() / 1000 ? (
+              {!claimable && envelope.unlockAt > seconds ? (
                 <Callout tone="warn" title="Not open yet">
                   Time-locked until {formatDeadline(envelope.unlockAt)}.
-                </Callout>
-              ) : null}
-
-              {!envelope.claimable && envelope.refundable ? (
-                <Callout tone="bad" title="Claim window shut">
-                  This expired without being claimed. Only the sender can move it now.
                 </Callout>
               ) : null}
 
@@ -309,7 +341,7 @@ export default function ClaimPage() {
                   !address ||
                   !supportsStrk20 ||
                   claimantRegistered === false ||
-                  !envelope.claimable ||
+                  !claimable ||
                   busy !== ""
                 }
                 note={
@@ -331,7 +363,7 @@ export default function ClaimPage() {
                 requires="Works with any Starknet wallet."
                 action={busy === "public" ? "Claiming…" : "Claim to my address"}
                 preferred={claimantRegistered === false}
-                disabled={!address || !envelope.claimable || busy !== ""}
+                disabled={!address || !claimable || busy !== ""}
                 onClick={claimToAddress}
               />
             </div>

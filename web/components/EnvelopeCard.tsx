@@ -17,6 +17,7 @@ export function EnvelopeCard({
   addressee = "Bearer",
   reference,
   sealed = false,
+  expired = false,
   children,
 }: {
   amount: string;
@@ -26,6 +27,8 @@ export function EnvelopeCard({
   /** The funder's public reference, if they set one. */
   reference?: string;
   sealed?: boolean;
+  /** The claim window shut with nobody opening it. */
+  expired?: boolean;
   children?: ReactNode;
 }) {
   return (
@@ -74,7 +77,7 @@ export function EnvelopeCard({
             ) : null}
           </div>
 
-          {sealed ? (
+          {sealed && !expired ? (
             <div
               className="animate-strike flex h-[clamp(3.25rem,7vh,5rem)] w-[clamp(3.25rem,7vh,5rem)] shrink-0 -rotate-[9deg] items-center justify-center rounded-full border-[3px] font-display text-[0.7rem] leading-tight font-bold tracking-[0.12em] uppercase"
               style={{ borderColor: "var(--seal)", color: "var(--seal)" }}
@@ -88,6 +91,36 @@ export function EnvelopeCard({
           ) : null}
         </div>
       </div>
+
+      {/* Struck across the whole thing, twice, corner to corner.
+       *
+       * A rubber stamp is put on a document to stop it being acted on, and it
+       * is deliberately not tidy about it: it covers the contents, because the
+       * contents no longer matter. The two bands are translucent so the amount
+       * stays readable underneath, which is the one detail still worth reading
+       * on an envelope nobody can open. */}
+      {expired ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+          {[-1, 1].map((lean) => (
+            <div
+              key={lean}
+              className="absolute top-1/2 left-1/2 w-[240%] border-y-[3px] py-2"
+              style={{
+                transform: `translate(-50%, -50%) rotate(${lean * 30}deg)`,
+                borderColor: "color-mix(in srgb, var(--seal) 82%, transparent)",
+                background: "color-mix(in srgb, var(--seal) 14%, transparent)",
+              }}
+            >
+              <p
+                className="font-display text-center text-[clamp(1.15rem,3.6vh,1.9rem)] font-bold tracking-[0.2em] whitespace-nowrap uppercase"
+                style={{ color: "var(--seal)" }}
+              >
+                {"Expired ".repeat(16)}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
