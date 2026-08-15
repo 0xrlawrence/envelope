@@ -34,7 +34,7 @@ const BY_NAME: Array<[RegExp, string]> = [
   [/USER_REFUSED/i, "You declined the request in the wallet."],
   [
     /authenticate with the privacy backend|privacy backend/i,
-    "The pool's backend would not authenticate this account. On a newly created account this almost always means it is not deployed on-chain yet: wallets let you create and fund one before it exists, and it is only deployed by its first outgoing transaction. Send any ordinary transaction from it, then shield.",
+    "The pool's proving service would not authenticate this account. That service belongs to the wallet, not to this app, so nothing here can work around it. When one account shields and another cannot, compare their account contract classes: a STRK20 proof validates the account's own signature inside the proof, so the service has to support that exact class, and wallets put newly created accounts on a different class from ones they have upgraded over time. The class is shown below.",
   ],
   [
     /timeout|timed out/i,

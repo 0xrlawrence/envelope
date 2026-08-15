@@ -285,8 +285,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
  */
 const ACCOUNT_CLASSES: Record<string, string> = {
   "0x3957f9f5a1cbfe918cedc2015c85200ca51a5f7506ecb6de98a5207b759bf8a": "Braavos",
-  "0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f": "Ready",
-  "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003": "Ready",
+  // Observed on freshly created Ready accounts. Distinguished from the class
+  // below because the difference between them is the difference between an
+  // account that can prove a STRK20 action and one that reports "failed to
+  // authenticate with the privacy backend".
+  "0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f": "Ready, new account class",
+  "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003": "Ready, upgraded",
   "0x29927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b": "Ready",
 };
 
