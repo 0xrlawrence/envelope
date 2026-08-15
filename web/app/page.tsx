@@ -64,8 +64,11 @@ function playSendOff(stage: HTMLElement | null): void {
     });
   });
 
-  const envelope = columns[0]?.firstElementChild as HTMLElement | undefined;
-  envelope?.classList.add("envelope-fold");
+  // Found by name, not by position. This used to reach for the first child of
+  // the first column, which was the envelope only for as long as nothing else
+  // was put above it; moving the headline there would silently have folded the
+  // headline and slid the envelope off the page.
+  stage.querySelector("[data-envelope]")?.classList.add("envelope-fold");
 
   // Next frame, so the delays are in place before the transition starts.
   requestAnimationFrame(() => stage.classList.add("send-off"));
@@ -75,8 +78,7 @@ function playSendOff(stage: HTMLElement | null): void {
 function undoSendOff(stage: HTMLElement | null): void {
   if (!stage) return;
   stage.classList.remove("send-off");
-  const envelope = stage.firstElementChild?.firstElementChild as HTMLElement | undefined;
-  envelope?.classList.remove("envelope-fold");
+  stage.querySelector("[data-envelope]")?.classList.remove("envelope-fold");
   Array.from(stage.children).forEach((column) => {
     Array.from(column.children).forEach((child) => {
       (child as HTMLElement).style.transitionDelay = "";
@@ -537,15 +539,26 @@ export default function CreatePage() {
 
     <div
       ref={stageRef}
-      className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-center"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-start"
     >
-      <div className="order-2 lg:sticky lg:top-10 lg:order-first">
-        <EnvelopeCard
-          amount={denomination.toString()}
-          symbol={STRK.symbol}
-          reference={memo || undefined}
-          caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents."
-        />
+      <div className="order-1 lg:sticky lg:top-10">
+        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em] text-balance">
+          Private money you can send as a link.
+        </h1>
+        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[52ch] text-[var(--paper-dim)]">
+          A STRK20 private transfer needs a registered recipient. An envelope does not.
+          It pays someone who has never touched Starknet, and the pool still hides who
+          paid.
+        </p>
+
+        <div data-envelope className="mt-[clamp(1rem,3.5vh,2.25rem)]">
+          <EnvelopeCard
+            amount={denomination.toString()}
+            symbol={STRK.symbol}
+            reference={memo || undefined}
+            caption="Sealed against a key that exists only in the link. Whoever opens it takes the contents."
+          />
+        </div>
 
         <dl className="mt-[clamp(1rem,4vh,2.5rem)] space-y-[clamp(0.35rem,1.8vh,0.9rem)] text-sm">
           <HiddenRow hidden>Who funded it</HiddenRow>
@@ -555,17 +568,8 @@ export default function CreatePage() {
         </dl>
       </div>
 
-      <div className="order-1">
-        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em] text-balance">
-          Private money you can send as a link.
-        </h1>
-        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[62ch] text-[var(--paper-dim)]">
-          A STRK20 private transfer needs a registered recipient. An envelope does not.
-          It pays someone who has never touched Starknet, and the pool still hides who
-          paid.
-        </p>
-
-        <div className="mt-[clamp(0.75rem,3vh,2rem)]">
+      <div className="order-2">
+        <div>
           <Field label="Amount" hint="Round sizes share a crowd">
             <div className="grid grid-cols-5 gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
