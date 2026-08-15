@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useSound, type SoundCue } from "@/lib/sound";
 
 export function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="field-label">{children}</p>;
@@ -47,6 +48,7 @@ export function Mono({
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "frank" | "outline" | "quiet";
+  sound?: SoundCue | false;
 };
 
 const BUTTON_BASE =
@@ -60,10 +62,24 @@ const BUTTON_VARIANTS = {
   quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",
 } as const;
 
-export function Button({ variant = "frank", className = "", ...props }: ButtonProps) {
+export function Button({
+  variant = "frank",
+  className = "",
+  sound = "tap",
+  onClick,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const { play } = useSound();
+
   return (
     <button
       className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${className}`}
+      disabled={disabled}
+      onClick={(event) => {
+        if (!disabled && sound) play(sound);
+        onClick?.(event);
+      }}
       {...props}
     />
   );
@@ -86,9 +102,12 @@ export function LinkButton({
   className?: string;
   children: ReactNode;
 }) {
+  const { play } = useSound();
+
   return (
     <Link
       href={href}
+      onClick={() => play("tap")}
       className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${className}`}
     >
       {children}

@@ -3,6 +3,8 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font
 import type { ReactNode } from "react";
 import { SecurityField } from "@/components/SecurityField";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SoundProvider } from "@/lib/sound";
+import { THEME_SCRIPT, ThemeProvider } from "@/lib/theme";
 import { WalletProvider } from "@/lib/wallet";
 import "./globals.css";
 
@@ -32,30 +34,39 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Before the first paint, so a reader who chose light paper never gets
+            a frame of black on the way in. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className={`${condensed.variable} ${sans.variable} ${mono.variable} antialiased`}>
-        <WalletProvider>
-          <SecurityField />
-          <div className="flex min-h-dvh flex-col">
-            <SiteHeader />
-            <main className="flex flex-1 items-center">{children}</main>
-            <footer className="border-t border-[var(--ink-line)]">
-              <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-[clamp(0.6rem,1.7vh,1.25rem)] text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between">
-                <p>
-                  Unaudited. It moves real money on mainnet. Read it before you trust it.
-                </p>
-                <a
-                  className="font-mono text-xs tracking-widest uppercase underline decoration-dotted underline-offset-4 hover:text-[var(--frank)]"
-                  href="https://github.com/0xrlawrence/envelope"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                </a>
-              </div>
-            </footer>
-          </div>
-        </WalletProvider>
+        <ThemeProvider>
+        <SoundProvider>
+          <WalletProvider>
+            <SecurityField />
+            <div className="flex min-h-dvh flex-col">
+              <SiteHeader />
+              <main className="flex flex-1 items-center">{children}</main>
+              <footer className="border-t border-[var(--ink-line)]">
+                <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-[clamp(0.6rem,1.7vh,1.25rem)] text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between">
+                  <p>
+                    Unaudited. It moves real money on mainnet. Read it before you trust it.
+                  </p>
+                  <a
+                    className="font-mono text-xs tracking-widest uppercase underline decoration-dotted underline-offset-4 hover:text-[var(--frank)]"
+                    href="https://github.com/0xrlawrence/envelope"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Source
+                  </a>
+                </div>
+              </footer>
+            </div>
+          </WalletProvider>
+        </SoundProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

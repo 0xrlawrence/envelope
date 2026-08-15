@@ -16,6 +16,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  NormalBlending,
   PerspectiveCamera,
   PlaneGeometry,
   Quaternion,
@@ -24,6 +25,8 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
+import { useSound } from "@/lib/sound";
+import { currentTheme } from "@/lib/theme";
 
 /**
  * The send.
@@ -146,6 +149,10 @@ export function SendOff({
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const finished = useRef(false);
+  const { play } = useSound();
+  const soundRef = useRef(play);
+  const previousPhase = useRef(phase);
+  soundRef.current = play;
 
   // Held in refs so the scene is built exactly once. Taking these as effect
   // dependencies meant every parent render tore the scene down and started the
@@ -153,6 +160,18 @@ export function SendOff({
   // wait, so the dart never got more than a second into the air.
   const latest = useRef({ amount, symbol, phase, onDone });
   latest.current = { amount, symbol, phase, onDone };
+
+  useEffect(() => {
+    soundRef.current(direction === "back" ? "return" : "send");
+  }, []);
+
+  useEffect(() => {
+    if (previousPhase.current === phase) return;
+    previousPhase.current = phase;
+    if (phase === "sent") play("success");
+    if (phase === "returned") play("return");
+    if (phase === "failed") play("error");
+  }, [phase, play]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -461,11 +480,17 @@ varying float vInk;`,
     // Instanced streaks rather than a texture: they move at different speeds,
     // which is what makes moving air read as depth instead of as a filter.
     const streakGeometry = new PlaneGeometry(1, 0.012);
+    // Additive blending is how moving air reads against a dark sky, and it is
+    // also why the wind vanished entirely on white paper: adding light to
+    // something already at full brightness changes nothing. On light stock the
+    // streaks are drawn as ink instead, normally blended and darker than what
+    // is behind them.
+    const lightPaper = currentTheme() === "light";
     const streakMaterial = new MeshBasicMaterial({
-      color: 0x7fa6e0,
+      color: lightPaper ? 0x4a6fa5 : 0x7fa6e0,
       transparent: true,
       opacity: 0,
-      blending: AdditiveBlending,
+      blending: lightPaper ? NormalBlending : AdditiveBlending,
       depthWrite: false,
     });
     const streaks = new InstancedMesh(streakGeometry, streakMaterial, STREAKS);
@@ -624,7 +649,7 @@ varying float vInk;`,
       const fall = exitAt
         ? 1 - Math.min(Math.max((elapsed - exitAt) / leaving, 0), 1)
         : 1;
-      streakMaterial.opacity = 0.55 * rise * fall;
+      streakMaterial.opacity = (lightPaper ? 0.3 : 0.55) * rise * fall;
 
       layoutStreaks(delta);
       renderer.render(scene, camera);

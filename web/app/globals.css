@@ -8,7 +8,24 @@
  * technology from before there was any other kind, and it is the visual thesis
  * of this app, so it is a real, dense, repeating print, not a decorative wash.
  */
-:root {
+/*
+ * Two themes, one set of names.
+ *
+ * `--ink` is the surface and `--paper` is what is written on it. In the dark
+ * theme those read literally; in the light one they invert, which is the only
+ * way the names stay true to their job rather than to their colour. Every
+ * component already speaks in these tokens, so a theme is a palette swap and
+ * not a second stylesheet.
+ *
+ * Dark is the default and stays the default. The site is an airmail envelope
+ * held up to a light, and flipping that for everyone whose laptop happens to
+ * be set to light would change what the product is. Light is a choice, kept in
+ * `data-theme` and remembered.
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
   --ink: #0e141c;
   --ink-deep: #080c11;
   --ink-raised: #151d29;
@@ -27,6 +44,52 @@
   --airmail-blue: #35619f;
 
   --seal: #a8332f;
+
+  /* The security tint reads as ink on a dark stock, so it can be assertive. */
+  --tint-a: 22%;
+  --tint-b: 16%;
+}
+
+/*
+ * Light: white stock, hairline rules, near-black text.
+ *
+ * The greys are pulled off a neutral ramp rather than tinted toward the dark
+ * theme's blue, because a warm or cool cast at these values reads as a printing
+ * fault rather than as a decision.
+ *
+ * `--paper-faint` is the one that had to move furthest from the reference. The
+ * ramp's natural next step lands near 2.3:1 on white, which is below AA even
+ * for large text, and this token carries field labels and the small print on a
+ * page about money. It sits at 4.9:1 instead.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ink: #fafafa;
+  --ink-deep: #ffffff;
+  --ink-raised: #f4f4f5;
+  --ink-line: #e4e4e7;
+
+  --paper: #0a0a0a;
+  --paper-dim: #52525b;
+  --paper-faint: #71717a;
+
+  /* The kraft orange is unreadable on white at its dark-theme value, so the
+     stamp is struck in a deeper ink. Same pigment, more of it.
+     Measured against the raised surface rather than against the page, because
+     that is the darkest ground it is ever set on and the one that decides
+     whether it passes: 4.86:1 there, 5.34:1 on the page. */
+  --frank: #9e5a1a;
+  --frank-deep: #854a12;
+
+  --airmail-red: #c8443c;
+  --airmail-blue: #35619f;
+
+  --seal: #a8332f;
+
+  /* On white the same alphas would be a wall of blue. */
+  --tint-a: 9%;
+  --tint-b: 7%;
 }
 
 @theme inline {
@@ -44,10 +107,6 @@
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-html {
-  color-scheme: dark;
-}
-
 body {
   background-color: var(--ink-deep);
   color: var(--paper);
@@ -60,12 +119,12 @@ body {
   background-image:
     repeating-linear-gradient(
       68deg,
-      color-mix(in srgb, var(--airmail-blue) 22%, transparent) 0 1px,
+      color-mix(in srgb, var(--airmail-blue) var(--tint-a), transparent) 0 1px,
       transparent 1px 7px
     ),
     repeating-linear-gradient(
       -68deg,
-      color-mix(in srgb, var(--airmail-blue) 16%, transparent) 0 1px,
+      color-mix(in srgb, var(--airmail-blue) var(--tint-b), transparent) 0 1px,
       transparent 1px 9px
     );
 }
@@ -74,12 +133,12 @@ body {
   background-image:
     repeating-linear-gradient(
       68deg,
-      color-mix(in srgb, var(--airmail-blue) 34%, transparent) 0 1px,
+      color-mix(in srgb, var(--airmail-blue) calc(var(--tint-a) * 1.55), transparent) 0 1px,
       transparent 1px 5px
     ),
     repeating-linear-gradient(
       -68deg,
-      color-mix(in srgb, var(--airmail-blue) 26%, transparent) 0 1px,
+      color-mix(in srgb, var(--airmail-blue) calc(var(--tint-b) * 1.62), transparent) 0 1px,
       transparent 1px 6px
     );
 }

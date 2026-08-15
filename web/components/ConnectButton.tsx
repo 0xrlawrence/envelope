@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { shortHex } from "@/lib/config";
+import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
 import { Button } from "./ui";
 
 export function ConnectButton() {
   const { wallets, address, network, connect, disconnect, connecting, error } = useWallet();
+  const { play } = useSound();
   const [open, setOpen] = useState(false);
   const [injected, setInjected] = useState<string[]>([]);
 
@@ -26,6 +28,21 @@ export function ConnectButton() {
     const timer = setInterval(scan, 1000);
     return () => clearInterval(timer);
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      play("tap");
+      setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, play]);
+
+  useEffect(() => {
+    if (error) play("error");
+  }, [error, play]);
 
   const standardNames = new Set(wallets.map((w) => w.name.toLowerCase()));
   const unbridged = injected.filter((key) => {
@@ -47,7 +64,10 @@ export function ConnectButton() {
           {network.label}
         </span>
         <button
-          onClick={disconnect}
+          onClick={() => {
+            play("tap");
+            disconnect();
+          }}
           className="border border-[var(--ink-line)] px-3 py-2 font-mono text-xs text-[var(--paper-dim)] transition hover:border-[var(--seal)] hover:text-[var(--seal)]"
           title="Disconnect"
         >
@@ -59,22 +79,48 @@ export function ConnectButton() {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="!px-4 !py-2">
+      <Button
+        variant="outline"
+        sound="open"
+        onClick={() => setOpen(true)}
+        className="!px-4 !py-2"
+      >
         Connect
       </Button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] p-6 backdrop-bl-sm"
+          onClick={() => {
+            play("tap");
+            setOpen(false);
+          }}
+          role="presentation"
         >
           <div
             className="w-full max-w-sm border border-[var(--ink-line)] bg-[var(--ink)]"
             onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wallet-picker-title"
           >
             <div className="airmail-edge h-1.5" />
             <div className="p-6">
-              <p className="field-label">Select a wallet</p>
+              <div className="flex items-center justify-between gap-4">
+                <p id="wallet-picker-title" className="field-label">
+                  Select a wallet
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    play("tap");
+                    setOpen(false);
+                  }}
+                  className="font-display text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--paper-faint)] uppercase transition-colors hover:text-[var(--paper)]"
+                >
+                  Close
+                </button>
+              </div>
               <div className="mt-4 grid gap-2">
                 {pickable.length === 0 ? (
                   <p className="text-sm text-[var(--paper-dim)]">
@@ -98,6 +144,7 @@ export function ConnectButton() {
                     key={wallet.name}
                     disabled={connecting}
                     onClick={async () => {
+                      play("tap");
                       await connect(wallet);
                       setOpen(false);
                     }}

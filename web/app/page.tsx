@@ -26,6 +26,7 @@ import {
 } from "@/lib/config";
 import { explainWalletError, looksRejected } from "@/lib/errors";
 import { appOrigin } from "@/lib/origin";
+import { useSound } from "@/lib/sound";
 import { forget, markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 
@@ -92,6 +93,7 @@ export default function CreatePage() {
     walletName,
     accountClass,
   } = useWallet();
+  const { play } = useSound();
 
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
   const [expirySeconds, setExpirySeconds] = useState(EXPIRY_CHOICES[2]!.seconds);
@@ -108,6 +110,10 @@ export default function CreatePage() {
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
+
+  useEffect(() => {
+    if (error && !sending) play("error");
+  }, [error, play, sending]);
 
   const amount = toSmallestUnit(denomination);
 
@@ -876,6 +882,7 @@ function LinkBlock({
   value: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const { play } = useSound();
 
   return (
     <div>
@@ -884,6 +891,7 @@ function LinkBlock({
         <button
           onClick={async () => {
             await navigator.clipboard.writeText(value);
+            play("copy");
             setCopied(true);
             setTimeout(() => setCopied(false), 1600);
           }}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { currentTheme } from "@/lib/theme";
 import {
   Mesh,
   OrthographicCamera,
@@ -32,6 +33,7 @@ uniform vec2  uResolution;
 uniform float uTime;
 uniform vec2  uPointer;
 uniform float uIntensity;
+uniform float uLight;
 
 /** One fine ruling: a sine grating at an angle, in normalised space. */
 float ruling(vec2 p, float angle, float pitch, float phase) {
@@ -63,11 +65,14 @@ void main() {
   // rather than as an animation playing.
   float breath = 0.85 + 0.15 * sin(uTime * 0.11 + p.y * 1.7);
 
-  vec3 ink   = vec3(0.031, 0.047, 0.067);
-  vec3 plate = vec3(0.129, 0.290, 0.545);
+  // On dark stock the print is lighter than the paper and can be assertive.
+  // On white it is the other way round and has to be far quieter, or the beat
+  // stops reading as a watermark and starts reading as a screen door.
+  vec3 ink   = mix(vec3(0.031, 0.047, 0.067), vec3(1.000, 1.000, 1.000), uLight);
+  vec3 plate = mix(vec3(0.129, 0.290, 0.545), vec3(0.208, 0.380, 0.624), uLight);
 
   vec3 colour = mix(ink, plate, beat * 0.5 * breath * uIntensity);
-  gl_FragColor = vec4(colour, beat * 0.20 * uIntensity);
+  gl_FragColor = vec4(colour, beat * mix(0.20, 0.085, uLight) * uIntensity);
 }
 `;
 
@@ -107,6 +112,7 @@ export function SecurityField() {
         uTime: { value: 0 },
         uPointer: { value: new Vector2(0, 0) },
         uIntensity: { value: 1 },
+        uLight: { value: currentTheme() === "light" ? 1 : 0 },
       },
     });
 
@@ -168,6 +174,13 @@ export function SecurityField() {
     const onVisibility = () => (document.hidden ? stop() : play());
     document.addEventListener("visibilitychange", onVisibility);
 
+    // The canvas cannot read a CSS variable, so it is told.
+    const onTheme = () => {
+      material.uniforms.uLight!.value = currentTheme() === "light" ? 1 : 0;
+      if (!frame) renderOnce(0);
+    };
+    window.addEventListener("envelope:theme", onTheme);
+
     const onReducedChange = () => {
       if (reduced.matches) {
         stop();
@@ -185,6 +198,7 @@ export function SecurityField() {
       stop();
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("envelope:theme", onTheme);
       document.removeEventListener("visibilitychange", onVisibility);
       reduced.removeEventListener("change", onReducedChange);
       material.dispose();

@@ -15,11 +15,13 @@ import { SendOff } from "@/components/SendOff";
 import { Button, Callout, ExplorerLink, LinkButton } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
 import { looksRejected } from "@/lib/errors";
+import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
 
 export default function RefundPage() {
   const { account, address, network, provider, supportsStrk20 } = useWallet();
+  const { play } = useSound();
 
   const [refundKey, setRefundKey] = useState<string | null>(null);
   const [claimPublicKey, setClaimPublicKey] = useState("");
@@ -42,6 +44,10 @@ export default function RefundPage() {
    * looks like the wallet asking twice for the same thing.
    */
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (error && phase === "idle") play("error");
+  }, [error, phase, play]);
 
   // A return link carries the refund key *and* the claim public key: the
   // refund key is deliberately unrelated to the envelope's identity, so on its
@@ -391,7 +397,7 @@ function Approvals({
                     }}
                   >
                     {item.title}
-                    {current ? " — approve it now" : null}
+                    {current ? ": approve it now" : null}
                   </p>
                   {current ? (
                     <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{item.detail}</p>

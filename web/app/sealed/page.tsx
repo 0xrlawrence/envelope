@@ -19,6 +19,7 @@ import {
 } from "@/lib/config";
 import { recentEnvelopes, type FundedEnvelope } from "@/lib/activity";
 import { appOrigin } from "@/lib/origin";
+import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
 import { forget, recall, type SealRecord } from "@/lib/vault";
 
@@ -484,6 +485,7 @@ function LinkRow({
   emphasis?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const { play } = useSound();
 
   return (
     <div>
@@ -494,6 +496,7 @@ function LinkRow({
         <button
           onClick={async () => {
             await navigator.clipboard.writeText(value);
+            play("copy");
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1400);
           }}

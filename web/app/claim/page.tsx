@@ -24,6 +24,7 @@ import {
   timeRemaining,
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
+import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
 
@@ -32,6 +33,7 @@ type Outcome = { kind: "private" | "public"; transactionHash: string };
 export default function ClaimPage() {
   const { account, address, network, provider, supportsStrk20, accountDeployed } =
     useWallet();
+  const { play } = useSound();
 
   const [claimKey, setClaimKey] = useState<string | null>(null);
   const [wrongLink, setWrongLink] = useState(false);
@@ -46,6 +48,14 @@ export default function ClaimPage() {
   // request is.
   const [claimantRegistered, setClaimantRegistered] = useState<boolean | null>(null);
   const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (outcome) play("success");
+  }, [outcome, play]);
+
+  useEffect(() => {
+    if (error) play("error");
+  }, [error, play]);
 
   useEffect(() => {
     if (!account || !supportsStrk20) {
