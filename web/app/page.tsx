@@ -18,6 +18,7 @@ import {
   type EnvelopeKeyPair,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { SecretInput } from "@/components/SecretInput";
 import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
@@ -656,14 +657,11 @@ export default function CreatePage() {
 
             {locked ? (
               <div className="mt-3">
-                <input
-                  type="password"
+                <SecretInput
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete="new-password"
+                  onChange={setPassword}
                   placeholder="A password the recipient will know"
-                  aria-label="Envelope password"
-                  className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
+                  label="Envelope password"
                 />
                 <p className="mt-2 text-xs text-[var(--paper-faint)]">
                   The link alone will not open this. Send the password another way,

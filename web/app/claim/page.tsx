@@ -16,6 +16,7 @@ import {
 import { ConnectButton } from "@/components/ConnectButton";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
+import { SecretInput } from "@/components/SecretInput";
 import { Button, Callout, ExplorerLink, Mono } from "@/components/ui";
 import {
   STRK,
@@ -286,21 +287,19 @@ export default function ClaimPage() {
         </p>
 
         <form
+          autoComplete="off"
           className="mt-6 max-w-sm"
           onSubmit={(event) => {
             event.preventDefault();
             void unlock();
           }}
         >
-          <input
-            type="password"
+          <SecretInput
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoFocus
-            autoComplete="off"
+            onChange={setPassword}
             placeholder="Password"
-            aria-label="Envelope password"
-            className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
+            label="Envelope password"
+            autoFocus
           />
           {lockError ? (
             <div className="mt-3">
