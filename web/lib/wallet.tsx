@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -63,8 +64,44 @@ const INITIAL: WalletState = {
   error: "",
 };
 
+/**
+ * Which wallet was used last, so a refresh does not start from nothing.
+ *
+ * Only the name is kept. There is no session to store and this grants no
+ * access: the wallet decides whether the site is still authorised, and this is
+ * a note about which one to ask.
+ */
+const LAST_WALLET = "envelope.wallet";
+
+function rememberWallet(name: string): void {
+  try {
+    window.localStorage.setItem(LAST_WALLET, name);
+  } catch {
+    // A blocked store costs the reconnect and nothing else.
+  }
+}
+
+function forgetWallet(): void {
+  try {
+    window.localStorage.removeItem(LAST_WALLET);
+  } catch {
+    // The reconnect fails closed anyway.
+  }
+}
+
+function rememberedWallet(): string {
+  try {
+    return window.localStorage.getItem(LAST_WALLET) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>(INITIAL);
+  // One attempt per load. Discovery fills in over several ticks, so without
+  // this the effect below would fire again for every wallet that registers.
+  const tried = useRef(false);
 
   // Build the discovery store once on mount so wallets have time to register
   // themselves before anyone opens the picker. `eip1193Adapters: []` keeps
@@ -158,6 +195,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         accountDeployed: accountClass !== "",
         connecting: false,
       }));
+      rememberWallet(wallet.name);
     } catch (error) {
       setState((previous) => ({
         ...previous,
@@ -168,8 +206,49 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(() => {
+    forgetWallet();
     setState((previous) => ({ ...INITIAL, wallets: previous.wallets }));
   }, []);
+
+  /**
+   * Come back connected, without raising a prompt nobody asked for.
+   *
+   * `wallet_getPermissions` is the one call a wallet answers before it trusts
+   * you, so it decides whether this site is still authorised. Only once it says
+   * yes is the ordinary connect run, and by then it resolves without a prompt
+   * because the authorisation it would ask for already exists. A site that has
+   * been revoked in the wallet simply loads disconnected.
+   */
+  const reconnect = useCallback(
+    async (wallet: WalletWithStarknetFeatures) => {
+      try {
+        const granted = (await walletV6.getPermissions(wallet)) as WALLET_API.Permission[];
+        if (!granted.includes(WALLET_API.Permission.ACCOUNTS)) {
+          forgetWallet();
+          return;
+        }
+      } catch {
+        // A wallet that will not answer this is one that will not have us.
+        forgetWallet();
+        return;
+      }
+      await connect(wallet);
+    },
+    [connect],
+  );
+
+  // Runs against each update of the wallet list rather than once on mount,
+  // because discovery is asynchronous and the extension may not have
+  // registered itself yet when the page first renders.
+  useEffect(() => {
+    if (tried.current || state.address || state.connecting) return;
+    const name = rememberedWallet();
+    if (!name) return;
+    const wallet = state.wallets.find((candidate) => candidate.name === name);
+    if (!wallet) return;
+    tried.current = true;
+    void reconnect(wallet);
+  }, [state.wallets, state.address, state.connecting, reconnect]);
 
   const value = useMemo<WalletContextValue>(
     () => ({
