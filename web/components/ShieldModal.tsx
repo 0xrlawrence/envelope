@@ -21,6 +21,7 @@ import { DENOMINATIONS, STRK, formatAmount, toSmallestUnit } from "@/lib/config"
 export function ShieldModal({
   open,
   publicBalance,
+  deployed,
   busy,
   error,
   onShield,
@@ -28,6 +29,8 @@ export function ShieldModal({
 }: {
   open: boolean;
   publicBalance: bigint | null;
+  /** False when the account contract is not on-chain yet. */
+  deployed: boolean;
   busy: boolean;
   error: string;
   onShield: (amount: bigint) => void;
@@ -67,7 +70,7 @@ export function ShieldModal({
   const affordable = DENOMINATIONS.filter(
     (value) => publicBalance !== null && toSmallestUnit(value) <= publicBalance,
   );
-  const canShield = affordable.some((value) => value === choice);
+  const canShield = affordable.some((value) => value === choice) && deployed;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-6">
@@ -98,6 +101,24 @@ export function ShieldModal({
             and the envelope appearing in the same transaction, for the same amount.
             Shielding now separates them, and by as long as you like.
           </p>
+
+          {/* An account the wallet has created but never sent from does not
+              exist on-chain, and the pool authenticates against the account's
+              own storage. Ready reports that as "failed to authenticate with
+              the privacy backend", which names the symptom rather than the
+              cause, so it is worth saying before the attempt rather than
+              translating it afterwards. */}
+          {!deployed ? (
+            <div className="mt-4">
+              <Callout tone="warn" title="This account is not on-chain yet">
+                Wallets let you create and fund an account before it exists, and it is
+                only deployed by its first outgoing transaction. Until then the pool has
+                no account storage to authenticate against, and shielding fails here and
+                in the wallet alike. Send any ordinary transaction from this account
+                first, then come back.
+              </Callout>
+            </div>
+          ) : null}
 
           <div className="mt-5">
             <p className="field-label">Amount</p>

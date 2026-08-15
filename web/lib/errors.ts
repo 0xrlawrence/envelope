@@ -33,6 +33,10 @@ const BY_NAME: Array<[RegExp, string]> = [
   ],
   [/USER_REFUSED/i, "You declined the request in the wallet."],
   [
+    /authenticate with the privacy backend|privacy backend/i,
+    "The pool's backend would not authenticate this account. On a newly created account this almost always means it is not deployed on-chain yet: wallets let you create and fund one before it exists, and it is only deployed by its first outgoing transaction. Send any ordinary transaction from it, then shield.",
+  ],
+  [
     /timeout|timed out/i,
     "The wallet stopped waiting for the proving service. The transaction may still land: check the sealed page in a minute before trying again, so you do not fund two envelopes.",
   ],

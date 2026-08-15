@@ -103,6 +103,7 @@ export default function CreatePage() {
     supportsStrk20,
     walletName,
     accountClass,
+    accountDeployed,
     reportStrk20Unsupported,
   } = useWallet();
   const { play } = useSound();
@@ -594,6 +595,7 @@ export default function CreatePage() {
           (shieldedBalance === 0n || registered === false)
         }
         publicBalance={publicBalance}
+        deployed={accountDeployed}
         busy={busy === "shielding"}
         error={shieldError}
         onShield={(shielding) => void shield(shielding)}
@@ -840,6 +842,22 @@ export default function CreatePage() {
                 expiry, the refund, and the fact that a claim cannot be front-run.
                 Whoever claims it into a shielded balance is still unobservable.
               </p>
+            </Callout>
+          ) : null}
+
+          {/* Distinct from `notDeployed` below, which is about the anonymizer
+              contract rather than the account. Both are "not deployed" and
+              they are nothing alike: this one is the reason a brand new wallet
+              account cannot shield or seal privately, and it is fixed by
+              sending one ordinary transaction from it. */}
+          {address && !accountDeployed ? (
+            <Callout tone="warn" title="This account is not on-chain yet">
+              It was created in the wallet but never used, and an account is only
+              deployed by its first outgoing transaction. The pool authenticates
+              against the account&rsquo;s own storage, so until then shielding and
+              private sealing both fail, in this app and in the wallet. Send any
+              ordinary transaction from it first. Sealing from your address still
+              works.
             </Callout>
           ) : null}
 
