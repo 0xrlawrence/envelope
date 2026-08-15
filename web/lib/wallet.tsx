@@ -40,6 +40,8 @@ interface WalletState {
 interface WalletContextValue extends WalletState {
   connect(wallet: WalletWithStarknetFeatures): Promise<void>;
   disconnect(): void;
+  /** Called when a real STRK20 call reports the method is not served. */
+  reportStrk20Unsupported(reason: string): void;
   /** A read provider for the currently selected network. */
   provider: RpcProvider;
   /** Whether the connected wallet can perform STRK20 actions at all. */
@@ -171,25 +173,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         accountClass = "";
       }
 
-      let strk20 = true;
-      let strk20Reason = "";
-      try {
-        await account.strk20Balances([]);
-      } catch (probe) {
-        strk20Reason =
-          probe instanceof Error ? probe.message : String(probe ?? "unknown error");
-        if (looksUnimplemented(probe)) strk20 = false;
-        else console.debug("[envelope] STRK20 probe returned", probe);
-      }
-
+      // No probe here any more. Asking `strk20Balances` whether the method
+      // exists costs a "share your private balances" prompt, and the page then
+      // asks the same question again a moment later to read the balance it
+      // actually needs, so connecting raised that modal twice. Since the
+      // reconnect happens on every load, that was twice per refresh.
+      //
+      // Support is assumed and withdrawn only if a real call comes back saying
+      // the method is absent. The read the page already makes answers it.
       setState((previous) => ({
         ...previous,
         account,
         address: validateAndParseAddress(accounts[0]),
         network,
         specs,
-        strk20,
-        strk20Reason,
+        strk20: true,
+        strk20Reason: "",
         walletName: wallet.name,
         accountClass,
         accountDeployed: accountClass !== "",
@@ -203,6 +202,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         error: describeConnectFailure(error),
       }));
     }
+  }, []);
+
+  /**
+   * Withdraw STRK20 support after a real call says the method is absent.
+   *
+   * The alternative is asking up front, which cannot be done without spending
+   * a consent prompt on a question the next call answers for free.
+   */
+  const reportStrk20Unsupported = useCallback((reason: string) => {
+    setState((previous) =>
+      previous.strk20 ? { ...previous, strk20: false, strk20Reason: reason } : previous,
+    );
   }, []);
 
   const disconnect = useCallback(() => {
@@ -255,13 +266,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ...state,
       connect,
       disconnect,
+      reportStrk20Unsupported,
       provider: new RpcProvider({ nodeUrl: state.network.rpcUrl }),
       // A wallet without STRK20 can still sign an ordinary call, which is all
       // the public claim path needs, but cannot shield, seal, or claim
       // privately.
       supportsStrk20: state.strk20,
     }),
-    [state, connect, disconnect],
+    [state, connect, disconnect, reportStrk20Unsupported],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

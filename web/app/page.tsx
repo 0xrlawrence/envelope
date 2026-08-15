@@ -102,6 +102,7 @@ export default function CreatePage() {
     supportsStrk20,
     walletName,
     accountClass,
+    reportStrk20Unsupported,
   } = useWallet();
   const { play } = useSound();
 
@@ -175,8 +176,12 @@ export default function CreatePage() {
       setShieldedBalance(null);
       const raw = cause instanceof Error ? cause.message : String(cause ?? "");
       if (/NOT_REGISTERED/i.test(raw)) setRegistered(false);
+      // This read is also the support check. A wallet that does not serve the
+      // method says so here, which saves asking it separately at connect time
+      // and spending a second consent prompt on the answer.
+      if (looksUnimplemented(cause)) reportStrk20Unsupported(raw);
     }
-  }, [account, address, provider, supportsStrk20]);
+  }, [account, address, provider, supportsStrk20, reportStrk20Unsupported]);
 
   useEffect(() => {
     void refreshBalance();
