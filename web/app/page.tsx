@@ -604,10 +604,15 @@ export default function CreatePage() {
 
       <div className="order-2">
         <div>
-          <Field
-            label="Visibility"
-            hint={locked ? "Only someone with the password can open it" : "Anyone with the link can open it"}
-          >
+          <Field label="Visibility">
+            {/* Sits over the control rather than beside it, so the sentence and
+                the thing it describes are read in that order. It states what
+                the current choice means, not what the other one would do. */}
+            <p className="mb-2 text-xs text-[var(--paper-faint)]">
+              {locked
+                ? "Only someone with the password can open it"
+                : "Anyone with the link can open it"}
+            </p>
             <div
               role="group"
               aria-label="Visibility"
