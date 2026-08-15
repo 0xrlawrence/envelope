@@ -582,3 +582,47 @@ fn public_funding_cannot_seal_without_paying() {
     envelope
         .fund_public(key.public_key, token.contract_address, FUNDED_AMOUNT, 0, 0, 0, MEMO);
 }
+
+// ─── Surplus ────────────────────────────────────────────────────────────────
+
+/// Solvency is measured against the token balance actually held, so anything
+/// sitting in the contract that is not already reserved will pay for the next
+/// envelope. Surplus arrives two ways: someone transfers straight to the
+/// address, or a settled envelope's approval is never collected by the pool.
+///
+/// This is characterised rather than fixed, because the anonymizer cannot tell
+/// "the pool just moved this in for me" from "this has been sitting here since
+/// Tuesday": it sees one balance, and the deposit happens in a phase it does
+/// not observe. What matters is the boundary, which the test below pins:
+/// surplus is up for grabs, reserved value is not.
+#[test]
+fn surplus_left_in_the_contract_pays_for_the_next_envelope() {
+    let key = new_key();
+    let (envelope, token) = setup(0);
+
+    // A stranger transfers straight to the anonymizer. No call, no reservation.
+    token.mint(envelope.contract_address, FUNDED_AMOUNT.into());
+
+    // The pool now drives Fund with no deposit of its own behind it, and it
+    // succeeds, because the surplus covers the solvency check.
+    fund_simple(envelope, token.contract_address, key);
+
+    let stored = envelope.get_envelope(key.public_key);
+    assert!(stored.status == status::FUNDED, "surplus should have covered it");
+    assert!(stored.amount == FUNDED_AMOUNT, "amount should be recorded");
+}
+
+/// The boundary that actually protects people: once value is reserved against
+/// an envelope, it stops counting toward the next one, so no amount of funding
+/// activity can spend an envelope that is already out there.
+#[test]
+#[should_panic(expected: 'UNDERFUNDED')]
+fn a_funded_envelope_cannot_be_spent_by_a_later_funder() {
+    let first = new_key();
+    let second = new_key();
+    let (envelope, token) = setup(FUNDED_AMOUNT);
+
+    fund_simple(envelope, token.contract_address, first);
+    // The balance is still there, but every unit of it belongs to `first`.
+    fund_simple(envelope, token.contract_address, second);
+}

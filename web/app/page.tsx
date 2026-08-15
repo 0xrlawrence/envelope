@@ -577,7 +577,14 @@ export default function CreatePage() {
             </div>
           </Field>
 
-          <Field label="Claim window" hint="After it shuts, only you can reclaim">
+          <Field
+            label="Claim window"
+            hint={
+              expirySeconds === 0
+                ? "No window means no way back. Only the link can open it."
+                : "After it shuts, only you can reclaim"
+            }
+          >
             <div className="flex flex-wrap gap-2">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
@@ -593,6 +600,21 @@ export default function CreatePage() {
                 </button>
               ))}
             </div>
+
+            {/* The contract refuses a refund on an envelope with no expiry, by
+                design: there is no window to shut, so there is no moment the
+                funder's key becomes valid. That makes this the one setting on
+                the page that can lose the money outright, and it was offered
+                under a hint promising the opposite. */}
+            {expirySeconds === 0 ? (
+              <div className="mt-3">
+                <Callout tone="warn" title="This one cannot be undone">
+                  With no expiry there is no refund. If the link is lost or never
+                  opened, the {denomination.toString()} {STRK.symbol} stays in the
+                  contract and nobody, including you, can move it.
+                </Callout>
+              </div>
+            ) : null}
           </Field>
 
           <Field label="Reference" hint="Public. Keep it dull.">
