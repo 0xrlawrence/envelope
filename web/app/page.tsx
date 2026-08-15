@@ -566,12 +566,17 @@ export default function CreatePage() {
 
         <div className="mt-[clamp(0.75rem,3vh,2rem)]">
           <Field label="Amount" hint="Round sizes share a crowd">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
                 <button
                   key={value.toString()}
-                  onClick={() => setDenomination(value)}
-                  className={`border px-2 py-2 text-center font-mono text-sm transition-[border-color,color] duration-150 ease-out ${
+                  type="button"
+                  aria-pressed={value === denomination}
+                  onClick={() => {
+                    play("tap");
+                    setDenomination(value);
+                  }}
+                  className={`border px-2 py-2 text-center font-mono text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] ${
                     value === denomination
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -591,12 +596,17 @@ export default function CreatePage() {
                 : "After it shuts, only you can reclaim"
             }
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Claim window">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
                   key={choice.label}
-                  onClick={() => setExpirySeconds(choice.seconds)}
-                  className={`border px-4 py-2 text-sm transition-[border-color,color] duration-150 ease-out ${
+                  type="button"
+                  aria-pressed={choice.seconds === expirySeconds}
+                  onClick={() => {
+                    play("tap");
+                    setExpirySeconds(choice.seconds);
+                  }}
+                  className={`border px-4 py-2 text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] ${
                     choice.seconds === expirySeconds
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -625,6 +635,7 @@ export default function CreatePage() {
 
           <Field label="Reference" hint="Public. Keep it dull.">
             <input
+              aria-label="Reference"
               value={memo}
               maxLength={31}
               onChange={(event) => setMemo(event.target.value)}
@@ -881,7 +892,7 @@ function LinkBlock({
   hint: string;
   value: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const { play } = useSound();
 
   return (
@@ -890,14 +901,20 @@ function LinkBlock({
         <Eyebrow>{label}</Eyebrow>
         <button
           onClick={async () => {
-            await navigator.clipboard.writeText(value);
-            play("copy");
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
+            try {
+              await navigator.clipboard.writeText(value);
+              play("copy");
+              setCopyState("copied");
+            } catch {
+              play("error");
+              setCopyState("failed");
+            }
+            setTimeout(() => setCopyState("idle"), 1600);
           }}
           className="font-mono text-[0.65rem] tracking-[0.2em] text-[var(--frank)] uppercase"
+          aria-live="polite"
         >
-          {copied ? "Copied" : "Copy"}
+          {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy"}
         </button>
       </div>
       <p className="mt-1 text-xs text-[var(--paper-faint)]">{hint}</p>

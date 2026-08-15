@@ -484,7 +484,7 @@ function LinkRow({
   action: string;
   emphasis?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const { play } = useSound();
 
   return (
@@ -495,15 +495,21 @@ function LinkRow({
         </span>
         <button
           onClick={async () => {
-            await navigator.clipboard.writeText(value);
-            play("copy");
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1400);
+            try {
+              await navigator.clipboard.writeText(value);
+              play("copy");
+              setCopyState("copied");
+            } catch {
+              play("error");
+              setCopyState("failed");
+            }
+            window.setTimeout(() => setCopyState("idle"), 1400);
           }}
           className="font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95"
-          style={{ color: copied ? "var(--frank)" : "var(--paper-dim)" }}
+          style={{ color: copyState === "idle" ? "var(--paper-dim)" : "var(--frank)" }}
+          aria-live="polite"
         >
-          {copied ? "Copied" : action}
+          {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : action}
         </button>
       </div>
       <a

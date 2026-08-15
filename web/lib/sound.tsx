@@ -7,7 +7,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 
@@ -21,9 +20,7 @@ export type SoundCue =
   | "error";
 
 type SoundContextValue = {
-  enabled: boolean;
   play: (cue: SoundCue) => void;
-  toggle: () => void;
 };
 
 const SoundContext = createContext<SoundContextValue | null>(null);
@@ -247,14 +244,14 @@ function perform(bus: AudioBus, cue: SoundCue) {
 }
 
 export function SoundProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useState(true);
-  const [preferenceReady, setPreferenceReady] = useState(false);
   const busRef = useRef<AudioBus | null>(null);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(SOUND_PREFERENCE);
-    if (stored === "off") setEnabled(false);
-    setPreferenceReady(true);
+    try {
+      window.localStorage.removeItem(SOUND_PREFERENCE);
+    } catch {
+      // Sound still works when storage is blocked.
+    }
   }, []);
 
   useEffect(
@@ -295,29 +292,14 @@ export function SoundProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback(
     (cue: SoundCue) => {
-      if (!enabled || !preferenceReady) return;
       const bus = getBus();
       if (!bus) return;
       perform(bus, cue);
     },
-    [enabled, getBus, preferenceReady],
+    [getBus],
   );
 
-  const toggle = useCallback(() => {
-    if (enabled) {
-      play("tap");
-      window.localStorage.setItem(SOUND_PREFERENCE, "off");
-      setEnabled(false);
-      return;
-    }
-
-    window.localStorage.setItem(SOUND_PREFERENCE, "on");
-    setEnabled(true);
-    const bus = getBus();
-    if (bus) perform(bus, "open");
-  }, [enabled, getBus, play]);
-
-  const value = useMemo(() => ({ enabled, play, toggle }), [enabled, play, toggle]);
+  const value = useMemo(() => ({ play }), [play]);
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
 }
@@ -327,4 +309,3 @@ export function useSound(): SoundContextValue {
   if (!value) throw new Error("useSound must be used inside SoundProvider");
   return value;
 }
-
