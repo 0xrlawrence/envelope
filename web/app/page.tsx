@@ -948,10 +948,6 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
 
   return (
     <div className="mx-auto w-full grid max-w-5xl gap-[clamp(1.5rem,3.6vh,2.5rem)] px-6 py-[clamp(0.75rem,2.2vh,2rem)] lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
-      <div className="animate-flap">
-        <EnvelopeCard amount={formatAmount(sealed.amount)} symbol={STRK.symbol} sealed />
-      </div>
-
       <div>
         <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">
           {sealed.state === "failed" ? "Not sealed." : "Hand it over."}
@@ -992,6 +988,15 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           recipient&rsquo;s either.
         </p>
 
+        {/* The flap animation stays on the card alone. Wrapping the headline in
+            it would scale the type open too, which reads as a glitch rather
+            than as an envelope. */}
+        <div className="animate-flap mt-[clamp(1rem,3.5vh,2.25rem)]">
+          <EnvelopeCard amount={formatAmount(sealed.amount)} symbol={STRK.symbol} sealed />
+        </div>
+      </div>
+
+      <div>
         <div className="mt-6 space-y-4">
           <LinkBlock
             label="Claim link"
