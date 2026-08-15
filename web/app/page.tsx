@@ -950,7 +950,15 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
     <div className="mx-auto w-full grid max-w-5xl gap-[clamp(1.5rem,3.6vh,2.5rem)] px-6 py-[clamp(0.75rem,2.2vh,2rem)] lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
       <div>
         <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">
-          {sealed.state === "failed" ? "Not sealed." : "Hand it over."}
+          {/* Three states, three headlines. "Hand it over" was an instruction
+              standing in for all of them, which meant it told someone to send a
+              link while the notice underneath said the envelope was not valid
+              yet and to wait. A success line has to wait for the success. */}
+          {sealed.state === "failed"
+            ? "Not sealed."
+            : sealed.state === "funding"
+              ? "Sealing\u2026"
+              : "Sealed."}
         </h1>
         {sealed.state === "funding" ? (
           <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
