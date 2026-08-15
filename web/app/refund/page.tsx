@@ -32,6 +32,16 @@ export default function RefundPage() {
     "idle",
   );
   const [flightDone, setFlightDone] = useState(false);
+  /**
+   * Which wallet prompt is outstanding.
+   *
+   * A return costs two approvals, not one. The first assembles the transaction
+   * so the wallet can say which open note the value will land in; the second
+   * signs the real thing. During the flight the page is faded out, so without
+   * this the second prompt arrives with nothing on screen to explain it and
+   * looks like the wallet asking twice for the same thing.
+   */
+  const [step, setStep] = useState(0);
 
   // A return link carries the refund key *and* the claim public key: the
   // refund key is deliberately unrelated to the envelope's identity, so on its
@@ -69,6 +79,7 @@ export default function RefundPage() {
     // Reset, so a second attempt after a declined one flies again rather than
     // silently doing nothing visible.
     setFlightDone(false);
+    setStep(1);
     setPhase("flying");
 
     /**
@@ -121,6 +132,7 @@ export default function RefundPage() {
         throw new Error("The wallet did not report which open note to return this to.");
       }
 
+      setStep(2);
       const { transaction_hash } = await account.strk20InvokeTransaction(
         buildRefundActions({
           anonymizer: network.anonymizer,
@@ -132,6 +144,7 @@ export default function RefundPage() {
         }),
       );
       setTransactionHash(transaction_hash);
+      setStep(3);
 
       // Usually already resolved by the time the wallet gets here.
       if (!(await watching)) {
@@ -223,6 +236,15 @@ export default function RefundPage() {
         />
       ) : null}
 
+      {flying ? (
+        <Approvals
+          amount={formatAmount(envelope.amount)}
+          symbol={STRK.symbol}
+          step={step}
+          phase={phase}
+        />
+      ) : null}
+
       <div
         className={`mx-auto grid max-w-5xl gap-8 px-6 py-4 transition-opacity duration-500 lg:grid-cols-[1fr_1fr] lg:items-start ${
           flying ? "pointer-events-none opacity-0" : "opacity-100"
@@ -283,5 +305,110 @@ export default function RefundPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * What the wallet is about to ask for, while the envelope is in the air.
+ *
+ * The flight fades the page out, which leaves someone watching a paper plane
+ * with no idea that two separate wallet prompts are coming. The second one is
+ * the confusing one: it looks like the wallet asking twice for the same
+ * signature, and the natural reaction to that is to decline it.
+ *
+ * So the two are named and counted, and the one being asked for right now is
+ * the only one lit. Pinned to the bottom, clear of the flight path.
+ */
+function Approvals({
+  amount,
+  symbol,
+  step,
+  phase,
+}: {
+  amount: string;
+  symbol: string;
+  /** 1 while assembling, 2 while signing, 3 once submitted. */
+  step: number;
+  phase: "idle" | "flying" | "sent" | "returned" | "failed";
+}) {
+  const steps = [
+    {
+      title: "Work out where it lands",
+      detail: "Your wallet assembles the return so the pool can name the note.",
+    },
+    {
+      title: "Sign the return",
+      detail: "The one that actually moves the money.",
+    },
+  ];
+
+  const settled = phase !== "flying";
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-6 pb-[clamp(1rem,4vh,2.5rem)]">
+      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-5 py-4 backdrop-blur-sm">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="field-label">Returning</p>
+          <p className="font-display text-sm font-bold tabular-nums">
+            {amount} <span className="text-xs text-[var(--paper-dim)]">{symbol}</span>
+          </p>
+        </div>
+
+        <p className="mt-2 text-xs text-[var(--paper-dim)]">
+          {settled
+            ? "Nothing further to approve."
+            : "Your wallet will ask twice. Both are for this one return."}
+        </p>
+
+        <ol className="mt-3 space-y-2">
+          {steps.map((item, index) => {
+            const position = index + 1;
+            const done = settled || step > position;
+            const current = !settled && step === position;
+            return (
+              <li key={item.title} className="flex gap-3">
+                <span
+                  className="mt-px font-mono text-xs tabular-nums"
+                  style={{
+                    color: done
+                      ? "var(--paper-faint)"
+                      : current
+                        ? "var(--frank)"
+                        : "var(--paper-faint)",
+                  }}
+                >
+                  {done ? "✓" : position}
+                </span>
+                <div className="min-w-0">
+                  <p
+                    className="text-sm transition-colors duration-200"
+                    style={{
+                      color: current
+                        ? "var(--frank)"
+                        : done
+                          ? "var(--paper-faint)"
+                          : "var(--paper-dim)",
+                    }}
+                  >
+                    {item.title}
+                    {current ? " — approve it now" : null}
+                  </p>
+                  {current ? (
+                    <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{item.detail}</p>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        {step >= 3 && !settled ? (
+          <p className="mt-3 border-t border-[var(--ink-line)] pt-3 text-xs text-[var(--paper-dim)]">
+            Signed. Waiting for the chain to confirm it, which is what the flight is
+            waiting on too.
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
