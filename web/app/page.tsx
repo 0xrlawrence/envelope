@@ -596,6 +596,8 @@ export default function CreatePage() {
         }
         publicBalance={publicBalance}
         deployed={accountDeployed}
+        accountClass={accountClass}
+        accountMaker={maker}
         busy={busy === "shielding"}
         error={shieldError}
         onShield={(shielding) => void shield(shielding)}

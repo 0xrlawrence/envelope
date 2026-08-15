@@ -22,6 +22,8 @@ export function ShieldModal({
   open,
   publicBalance,
   deployed,
+  accountClass,
+  accountMaker,
   busy,
   error,
   onShield,
@@ -31,6 +33,10 @@ export function ShieldModal({
   publicBalance: bigint | null;
   /** False when the account contract is not on-chain yet. */
   deployed: boolean;
+  /** Class hash of the connected account, for comparing one against another. */
+  accountClass: string;
+  /** Which wallet's class it is, when recognised. */
+  accountMaker: string;
   busy: boolean;
   error: string;
   onShield: (amount: bigint) => void;
@@ -152,10 +158,18 @@ export function ShieldModal({
           </div>
 
           {error ? (
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <Callout tone="bad" title="Did not shield">
                 {error}
               </Callout>
+              {/* The pool proves against the account's own signature, so which
+                  account contract is being driven decides whether it can prove
+                  at all. When one account shields and another does not, this is
+                  the line to compare between them. */}
+              <p className="font-mono text-[0.7rem] break-all text-[var(--paper-faint)]">
+                account class {accountClass || "unknown"}
+                {accountMaker ? ` (${accountMaker})` : " (not a class this app recognises)"}
+              </p>
             </div>
           ) : null}
 
