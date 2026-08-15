@@ -20,6 +20,7 @@ import {
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Approvals } from "@/components/Approvals";
 import { SecretInput } from "@/components/SecretInput";
+import { ShieldModal } from "@/components/ShieldModal";
 import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
@@ -132,6 +133,16 @@ export default function CreatePage() {
   const [sending, setSending] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
+  /**
+   * Whether the offer to shield has been made yet.
+   *
+   * "unasked" until the balances have actually been read, so the modal cannot
+   * appear on the strength of a balance that is still null because nothing has
+   * come back. Dismissing it is remembered for the session only: it is an
+   * offer, not a decision worth persisting.
+   */
+  const [shieldOffer, setShieldOffer] = useState<"unasked" | "dismissed">("unasked");
+  const [shieldError, setShieldError] = useState("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
@@ -210,27 +221,24 @@ export default function CreatePage() {
     return () => clearInterval(timer);
   }, [busy]);
 
-  async function shield() {
+  async function shield(shielding: bigint) {
     if (!account) return;
     setBusy("shielding");
-    setError("");
-    setErrorDetail("");
+    setShieldError("");
     try {
       await account.strk20InvokeTransaction(
-        buildShieldActions({ token: STRK.address, amount }),
+        buildShieldActions({ token: STRK.address, amount: shielding }),
       );
       await refreshBalance();
+      setShieldOffer("dismissed");
     } catch (cause) {
-      const explained = explainWalletError(cause);
-      setSealed((previous) =>
-        previous ? { ...previous, state: "failed", problem: explained.message } : previous,
-      );
-      setError(
+      // Reported inside the modal rather than on the page behind it, which is
+      // where this used to write and where nobody could see it.
+      setShieldError(
         looksUnimplemented(cause)
           ? "This wallet does not serve the STRK20 methods, so it cannot shield."
-          : explained.message,
+          : explainWalletError(cause).message,
       );
-      setErrorDetail(explained.raw);
       console.error("[envelope] shield failed", cause);
     } finally {
       setBusy("");
@@ -570,6 +578,28 @@ export default function CreatePage() {
 
   return (
     <>
+      {/* Offered only once the balances are known to be read. `shieldedBalance`
+          is null both for "nothing there" and for "not read yet", and the pool
+          answers NOT_REGISTERED before a first deposit, so the offer waits for
+          a definite public balance and treats an unregistered account as the
+          empty pool balance it effectively is. */}
+      <ShieldModal
+        open={
+          shieldOffer === "unasked" &&
+          !sending &&
+          !!address &&
+          supportsStrk20 &&
+          publicBalance !== null &&
+          publicBalance > 0n &&
+          (shieldedBalance === 0n || registered === false)
+        }
+        publicBalance={publicBalance}
+        busy={busy === "shielding"}
+        error={shieldError}
+        onShield={(shielding) => void shield(shielding)}
+        onDismiss={() => setShieldOffer("dismissed")}
+      />
+
       {sending ? (
         <SendOff
           amount={denomination.toString()}
