@@ -48,6 +48,11 @@
   /* The security tint reads as ink on a dark stock, so it can be assertive. */
   --tint-a: 22%;
   --tint-b: 16%;
+
+  /* The flap catches the light on dark stock, so it sits above the interior. */
+  --flap-from: var(--ink-raised);
+  --flap-to: color-mix(in srgb, var(--ink) 88%, transparent);
+  --flap-edge: var(--ink-line);
 }
 
 /*
@@ -90,6 +95,15 @@
   /* On white the same alphas would be a wall of blue. */
   --tint-a: 9%;
   --tint-b: 7%;
+
+  /* On white the fold reads the other way round: a sheet lying over another
+     sheet casts a shadow rather than catching a highlight, so the flap is very
+     slightly darker than the paper beneath it and fades out toward the point.
+     The crease itself is a step darker than the card's own border, because at
+     this end of the ramp a hairline is the only thing carrying the shape. */
+  --flap-from: color-mix(in srgb, var(--paper) 5%, transparent);
+  --flap-to: color-mix(in srgb, var(--paper) 0%, transparent);
+  --flap-edge: #d4d4d8;
 }
 
 @theme inline {

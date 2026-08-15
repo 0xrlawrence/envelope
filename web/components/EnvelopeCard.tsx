@@ -36,17 +36,42 @@ export function EnvelopeCard({
       <div className="airmail-edge h-2" />
 
       <div className="security-tint relative px-7 pt-[clamp(1rem,4vh,2.75rem)] pb-[clamp(0.9rem,3.2vh,2.25rem)]">
-        {/* The flap seam, folded down over the top of the interior. */}
+        {/* The flap, folded down over the top of the interior.
+         *
+         * The fill alone cannot carry this. It was doing the whole job before,
+         * which worked on dark stock and disappeared on white, where the flap
+         * and the paper under it are two shades of the same near-white. The
+         * `border-bottom` that was meant to help never drew anything either:
+         * the clip path cuts the box to a triangle, and the bottom edge of that
+         * triangle is a single point.
+         *
+         * So the crease is stroked as a real line. The viewBox is unitless and
+         * the aspect ratio is unconstrained, so the two edges meet the corners
+         * whatever the card measures, and a non-scaling stroke keeps the line
+         * one pixel rather than smearing with the box. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-28"
           style={{
             clipPath: "polygon(0 0, 100% 0, 50% 100%)",
             background:
-              "linear-gradient(175deg, var(--ink-raised) 0%, color-mix(in srgb, var(--ink) 88%, transparent) 100%)",
-            borderBottom: "1px solid var(--ink-line)",
+              "linear-gradient(175deg, var(--flap-from) 0%, var(--flap-to) 100%)",
           }}
         />
+        <svg
+          aria-hidden
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-x-0 top-0 h-28 w-full"
+        >
+          <path
+            d="M0 0 L50 100 L100 0"
+            fill="none"
+            stroke="var(--flap-edge)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
 
         <div className="relative">
           <p className="field-label">Contents</p>
