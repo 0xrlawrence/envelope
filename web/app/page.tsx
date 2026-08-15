@@ -18,6 +18,7 @@ import {
   type EnvelopeKeyPair,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { Approvals } from "@/components/Approvals";
 import { SecretInput } from "@/components/SecretInput";
 import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
@@ -117,6 +118,15 @@ export default function CreatePage() {
   const [publicBalance, setPublicBalance] = useState<bigint | null>(null);
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [progress, setProgress] = useState("");
+  /**
+   * Which wallet prompt is outstanding during a seal.
+   *
+   * The pool route asks twice: once to assemble and prove without submitting,
+   * once to sign the thing that moves the money. The public route asks once.
+   * The count is decided by which route is running, not assumed.
+   */
+  const [sealStep, setSealStep] = useState(0);
+  const [sealSteps, setSealSteps] = useState(2);
   const [elapsed, setElapsed] = useState(0);
   const [sending, setSending] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -291,6 +301,7 @@ export default function CreatePage() {
     setBusy("sealing");
     setError("");
     setErrorDetail("");
+    setSealStep(0);
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
     // material, so nothing on-chain ties them to each other.
@@ -378,12 +389,20 @@ export default function CreatePage() {
       });
       // Assemble and prove without submitting first: a wallet that cannot prove
       // for this account fails here, before anyone is asked to sign.
+      setSealSteps(2);
+      setSealStep(1);
       await account.strk20PrepareInvoke(actions, true);
-      return account.strk20InvokeTransaction(actions);
+      setSealStep(2);
+      const submitted = await account.strk20InvokeTransaction(actions);
+      setSealStep(3);
+      return submitted;
     };
 
-    const sealPublicly = async () =>
-      account.execute(
+    const sealPublicly = async () => {
+      // One prompt, not two: the approval and the funding call travel together.
+      setSealSteps(1);
+      setSealStep(1);
+      return account.execute(
         buildPublicFundCalls({
           anonymizer: network.anonymizer,
           token: STRK.address,
@@ -394,6 +413,7 @@ export default function CreatePage() {
           memo: memo.slice(0, 31),
         }),
       );
+    };
 
     try {
       let transactionHash = "";
@@ -569,6 +589,37 @@ export default function CreatePage() {
               setError("You declined this in your wallet. Nothing was sent and nothing moved.");
             }
           }}
+        />
+      ) : null}
+
+      {sending ? (
+        <Approvals
+          title="Sealing"
+          amount={denomination.toString()}
+          symbol={STRK.symbol}
+          step={sealStep}
+          settled={!!sealed && sealed.state !== "funding"}
+          note={progress}
+          steps={
+            sealSteps === 1
+              ? [
+                  {
+                    title: "Sign the funding",
+                    detail: "One transaction: the approval and the envelope together.",
+                  },
+                ]
+              : [
+                  {
+                    title: "Prove it can be sent",
+                    detail:
+                      "Assembled and proved without submitting, so a wallet that cannot prove for this account fails before anything is signed.",
+                  },
+                  {
+                    title: "Sign the seal",
+                    detail: "The one that actually moves the money.",
+                  },
+                ]
+          }
         />
       ) : null}
 

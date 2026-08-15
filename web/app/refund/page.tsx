@@ -9,6 +9,7 @@ import {
   resolveOpenNoteId,
   type EnvelopeState,
 } from "strk20-envelope";
+import { Approvals } from "@/components/Approvals";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
 import { SendOff } from "@/components/SendOff";
@@ -244,10 +245,21 @@ export default function RefundPage() {
 
       {flying ? (
         <Approvals
+          title="Returning"
           amount={formatAmount(envelope.amount)}
           symbol={STRK.symbol}
           step={step}
-          phase={phase}
+          settled={phase !== "flying"}
+          steps={[
+            {
+              title: "Work out where it lands",
+              detail: "Your wallet assembles the return so the pool can name the note.",
+            },
+            {
+              title: "Sign the return",
+              detail: "The one that actually moves the money.",
+            },
+          ]}
         />
       ) : null}
 
@@ -325,96 +337,3 @@ export default function RefundPage() {
  * So the two are named and counted, and the one being asked for right now is
  * the only one lit. Pinned to the bottom, clear of the flight path.
  */
-function Approvals({
-  amount,
-  symbol,
-  step,
-  phase,
-}: {
-  amount: string;
-  symbol: string;
-  /** 1 while assembling, 2 while signing, 3 once submitted. */
-  step: number;
-  phase: "idle" | "flying" | "sent" | "returned" | "failed";
-}) {
-  const steps = [
-    {
-      title: "Work out where it lands",
-      detail: "Your wallet assembles the return so the pool can name the note.",
-    },
-    {
-      title: "Sign the return",
-      detail: "The one that actually moves the money.",
-    },
-  ];
-
-  const settled = phase !== "flying";
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-6 pb-[clamp(1rem,4vh,2.5rem)]">
-      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-5 py-4 backdrop-blur-sm">
-        <div className="flex items-baseline justify-between gap-4">
-          <p className="field-label">Returning</p>
-          <p className="font-display text-sm font-bold tabular-nums">
-            {amount} <span className="text-xs text-[var(--paper-dim)]">{symbol}</span>
-          </p>
-        </div>
-
-        <p className="mt-2 text-xs text-[var(--paper-dim)]">
-          {settled
-            ? "Nothing further to approve."
-            : "Your wallet will ask twice. Both are for this one return."}
-        </p>
-
-        <ol className="mt-3 space-y-2">
-          {steps.map((item, index) => {
-            const position = index + 1;
-            const done = settled || step > position;
-            const current = !settled && step === position;
-            return (
-              <li key={item.title} className="flex gap-3">
-                <span
-                  className="mt-px font-mono text-xs tabular-nums"
-                  style={{
-                    color: done
-                      ? "var(--paper-faint)"
-                      : current
-                        ? "var(--frank)"
-                        : "var(--paper-faint)",
-                  }}
-                >
-                  {done ? "✓" : position}
-                </span>
-                <div className="min-w-0">
-                  <p
-                    className="text-sm transition-colors duration-200"
-                    style={{
-                      color: current
-                        ? "var(--frank)"
-                        : done
-                          ? "var(--paper-faint)"
-                          : "var(--paper-dim)",
-                    }}
-                  >
-                    {item.title}
-                    {current ? ": approve it now" : null}
-                  </p>
-                  {current ? (
-                    <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{item.detail}</p>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-
-        {step >= 3 && !settled ? (
-          <p className="mt-3 border-t border-[var(--ink-line)] pt-3 text-xs text-[var(--paper-dim)]">
-            Signed. Waiting for the chain to confirm it, which is what the flight is
-            waiting on too.
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
