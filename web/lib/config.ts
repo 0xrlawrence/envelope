@@ -102,14 +102,33 @@ export function formatAmount(amount: bigint, token: Token = STRK): string {
   return `${whole}.${digits}`;
 }
 
+/**
+ * How long the recipient gets.
+ *
+ * "No expiry" is deliberately absent. The contract refuses a refund on an
+ * envelope with no expiry, by design: there is no window to shut, so there is
+ * no moment the funder's key becomes valid. That made it the only setting here
+ * that could lose the money outright, because an unopened link meant the value
+ * sat in the contract with nobody, funder included, able to move it.
+ *
+ * The chain still accepts a zero expiry and older envelopes may carry one, so
+ * everything that *reads* an envelope still handles it. It is only no longer
+ * something this app will hand out.
+ */
 export const EXPIRY_CHOICES = [
-  { label: "No expiry", seconds: 0 },
   { label: "5 minutes", seconds: 300 },
   { label: "1 hour", seconds: 3_600 },
   { label: "24 hours", seconds: 86_400 },
   { label: "7 days", seconds: 7 * 86_400 },
   { label: "30 days", seconds: 30 * 86_400 },
 ];
+
+/**
+ * Named rather than indexed. Picking the default by position meant that
+ * removing an option silently moved it, which is how a one-hour window would
+ * have quietly become a day.
+ */
+export const DEFAULT_EXPIRY_SECONDS = 3_600;
 
 export function shortHex(value: string, lead = 6, tail = 4): string {
   return value.length <= lead + tail + 1 ? value : `${value.slice(0, lead)}…${value.slice(-tail)}`;

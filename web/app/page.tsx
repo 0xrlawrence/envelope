@@ -19,6 +19,7 @@ import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
   DENOMINATIONS,
+  DEFAULT_EXPIRY_SECONDS,
   EXPIRY_CHOICES,
   STRK,
   formatAmount,
@@ -96,7 +97,7 @@ export default function CreatePage() {
   const { play } = useSound();
 
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
-  const [expirySeconds, setExpirySeconds] = useState(EXPIRY_CHOICES[2]!.seconds);
+  const [expirySeconds, setExpirySeconds] = useState(DEFAULT_EXPIRY_SECONDS);
   const [memo, setMemo] = useState("");
 
   const [shieldedBalance, setShieldedBalance] = useState<bigint | null>(null);
@@ -588,14 +589,7 @@ export default function CreatePage() {
             </div>
           </Field>
 
-          <Field
-            label="Claim window"
-            hint={
-              expirySeconds === 0
-                ? "No window means no way back. Only the link can open it."
-                : "After it shuts, only you can reclaim"
-            }
-          >
+          <Field label="Claim window" hint="After it shuts, only you can reclaim">
             <div className="flex flex-wrap gap-2" role="group" aria-label="Claim window">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
@@ -616,21 +610,6 @@ export default function CreatePage() {
                 </button>
               ))}
             </div>
-
-            {/* The contract refuses a refund on an envelope with no expiry, by
-                design: there is no window to shut, so there is no moment the
-                funder's key becomes valid. That makes this the one setting on
-                the page that can lose the money outright, and it was offered
-                under a hint promising the opposite. */}
-            {expirySeconds === 0 ? (
-              <div className="mt-3">
-                <Callout tone="warn" title="This one cannot be undone">
-                  With no expiry there is no refund. If the link is lost or never
-                  opened, the {denomination.toString()} {STRK.symbol} stays in the
-                  contract and nobody, including you, can move it.
-                </Callout>
-              </div>
-            ) : null}
           </Field>
 
           <Field label="Reference" hint="Public. Keep it dull.">
