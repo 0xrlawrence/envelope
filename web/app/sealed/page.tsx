@@ -305,7 +305,13 @@ function Row({
 }) {
   const status = state?.status;
   const spent = status === "claimed" || status === "refunded";
-  const claimLink = origin ? encodeClaimLink(origin, record.claimPrivateKey) : "";
+  // Locked envelopes are listed by their salt for the same reason they are sent
+  // that way: this list is a copy of what was handed over, not a way round it.
+  const claimLink = origin
+    ? record.lockSalt
+      ? encodeClaimLink(origin, record.lockSalt, "locked")
+      : encodeClaimLink(origin, record.claimPrivateKey)
+    : "";
   const refundLink = origin
     ? encodeRefundLink(origin, record.refundPrivateKey, record.claimPublicKey)
     : "";

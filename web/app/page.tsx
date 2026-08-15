@@ -11,7 +11,10 @@ import {
   feltTokens,
   encodeClaimLink,
   encodeRefundLink,
+  deriveLockedKey,
   generateEnvelopeKey,
+  generateLockSalt,
+  toPublicKey,
   type EnvelopeKeyPair,
 } from "strk20-envelope";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
@@ -38,6 +41,8 @@ interface SealedEnvelope {
   transactionHash: string;
   /** Whether the pool hid the funder, or the funding leg was public. */
   private: boolean;
+  /** Salt for a password-locked envelope, empty for an ordinary one. */
+  lockSalt: string;
   /**
    * "funding" until the transaction lands, then settled. "declined" is kept
    * apart from "failed" because nothing went wrong: the user said no, and the
@@ -101,6 +106,11 @@ export default function CreatePage() {
   const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
   const [expirySeconds, setExpirySeconds] = useState(DEFAULT_EXPIRY_SECONDS);
   const [memo, setMemo] = useState("");
+  // Public is the default and stays it: a locked envelope cannot be opened by
+  // someone who was only handed the link, which is the whole point of the
+  // product for anyone who has never touched Starknet.
+  const [locked, setLocked] = useState(false);
+  const [password, setPassword] = useState("");
 
   const [shieldedBalance, setShieldedBalance] = useState<bigint | null>(null);
   const [publicBalance, setPublicBalance] = useState<bigint | null>(null);
@@ -283,7 +293,26 @@ export default function CreatePage() {
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
     // material, so nothing on-chain ties them to each other.
-    const claim = generateEnvelopeKey();
+    //
+    // A locked envelope derives its claim key instead: the link carries only a
+    // salt, and the key exists nowhere until the salt and the password are put
+    // back together. The refund key stays random and independent either way, so
+    // forgetting the password costs the recipient their claim rather than the
+    // funder their money.
+    const salt = locked ? generateLockSalt() : "";
+    let claim: EnvelopeKeyPair;
+    try {
+      if (locked) {
+        const privateKey = await deriveLockedKey(salt, password);
+        claim = { privateKey, publicKey: toPublicKey(privateKey) };
+      } else {
+        claim = generateEnvelopeKey();
+      }
+    } catch (cause) {
+      setBusy("");
+      setError(cause instanceof Error ? cause.message : "Could not lock the envelope.");
+      return;
+    }
     const refund = generateEnvelopeKey();
 
     // The page gets out of the way first, so the throw has somewhere to happen.
@@ -298,6 +327,10 @@ export default function CreatePage() {
       claimPrivateKey: claim.privateKey,
       claimPublicKey: claim.publicKey,
       refundPrivateKey: refund.privateKey,
+      // The salt, not the password. The password is never written down here or
+      // anywhere else: it only exists in the funder's head and whatever they
+      // tell the recipient.
+      lockSalt: salt,
       amount: amount.toString(),
       memo,
       network: network.id,
@@ -316,6 +349,7 @@ export default function CreatePage() {
       amount,
       transactionHash: "",
       private: false,
+      lockSalt: salt,
       state: "funding",
     });
 
@@ -570,6 +604,79 @@ export default function CreatePage() {
 
       <div className="order-2">
         <div>
+          <Field
+            label="Visibility"
+            hint={locked ? "Only someone with the password can open it" : "Anyone with the link can open it"}
+          >
+            <div
+              role="group"
+              aria-label="Visibility"
+              className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
+            >
+              {[
+                { value: false, label: "Public" },
+                { value: true, label: "Private" },
+              ].map((choice) => {
+                const active = choice.value === locked;
+                return (
+                  <button
+                    key={choice.label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      play("tap");
+                      setLocked(choice.value);
+                    }}
+                    className="rounded-md px-5 py-1.5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97]"
+                    style={
+                      active
+                        ? {
+                            // The reference button: a warm orange that lifts,
+                            // lit from the top so it reads as a raised key
+                            // rather than a filled rectangle.
+                            background:
+                              "linear-gradient(180deg, #f08a3e 0%, #e2711d 55%, #d2620f 100%)",
+                            color: "#fff",
+                            boxShadow:
+                              "inset 0 1px 0 rgba(255,255,255,0.38), 0 1px 2px rgba(0,0,0,0.28)",
+                          }
+                        : { color: "var(--paper-faint)" }
+                    }
+                  >
+                    {choice.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {locked ? (
+              <div className="mt-3">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
+                  placeholder="A password the recipient will know"
+                  aria-label="Envelope password"
+                  className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
+                />
+                <p className="mt-2 text-xs text-[var(--paper-faint)]">
+                  The link alone will not open this. Send the password another way,
+                  or it is worth nothing.
+                </p>
+                {password && password.length < 10 ? (
+                  <div className="mt-2">
+                    <Callout tone="warn" title="Short passwords are guessable">
+                      Anyone who gets the link can try passwords against it offline,
+                      as fast as their machine allows. Length is the only thing that
+                      makes that expensive.
+                    </Callout>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </Field>
+
           <Field label="Amount" hint="Round sizes share a crowd">
             <div className="grid grid-cols-5 gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
@@ -704,7 +811,9 @@ export default function CreatePage() {
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={seal}
-              disabled={!address || notDeployed || busy !== "" || !funded}
+              disabled={
+                !address || notDeployed || busy !== "" || !funded || (locked && !password)
+              }
             >
               {busy === "sealing" ? "Sealing…" : "Seal envelope"}
             </Button>
@@ -771,7 +880,14 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(appOrigin()), []);
 
-  const claimLink = origin ? encodeClaimLink(origin, sealed.claim.privateKey, "claim") : "";
+  // A locked envelope hands over its salt. Putting the derived key in the link
+  // would defeat the lock completely: the password would become decoration on
+  // a URL that already contains everything needed to take the money.
+  const claimLink = origin
+    ? sealed.lockSalt
+      ? encodeClaimLink(origin, sealed.lockSalt, "locked")
+      : encodeClaimLink(origin, sealed.claim.privateKey, "claim")
+    : "";
   const refundLink = origin
     ? encodeRefundLink(origin, sealed.refund.privateKey, sealed.claim.publicKey)
     : "";

@@ -6,6 +6,7 @@ import {
   buildClaimToAddressCall,
   buildClaimToNoteActions,
   decodeLinkFragment,
+  deriveLockedKey,
   readEnvelope,
   readEnvelopeHistory,
   resolveOpenNoteId,
@@ -48,6 +49,11 @@ export default function ClaimPage() {
   // request is.
   const [claimantRegistered, setClaimantRegistered] = useState<boolean | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  /** Set when the link is password-locked and the key is not known yet. */
+  const [lockSalt, setLockSalt] = useState("");
+  const [password, setPassword] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
+  const [lockError, setLockError] = useState("");
 
   useEffect(() => {
     if (outcome) play("success");
@@ -80,6 +86,14 @@ export default function ClaimPage() {
   useEffect(() => {
     const decoded = decodeLinkFragment(window.location.hash);
     if (!decoded) {
+      setLoading(false);
+      return;
+    }
+    // A locked link carries a salt where an ordinary one carries a key. There
+    // is nothing to look up until a password turns one into the other, so the
+    // page stops here and asks.
+    if (decoded.kind === "locked") {
+      setLockSalt(decoded.privateKey);
       setLoading(false);
       return;
     }
@@ -224,6 +238,85 @@ export default function ClaimPage() {
     } finally {
       setBusy("");
     }
+  }
+
+  /**
+   * Turn the password into the claim key.
+   *
+   * There is nothing to verify against: a wrong password does not fail a check,
+   * it derives a key for an envelope that was never funded. So the test is
+   * whether the chain has heard of the result, and the answer to "no" has to
+   * name the likely cause rather than claim the envelope does not exist.
+   */
+  async function unlock() {
+    if (!lockSalt || !password || unlocking) return;
+    setUnlocking(true);
+    setLockError("");
+    try {
+      const derived = await deriveLockedKey(lockSalt, password);
+      const state = await readEnvelope(provider, network.anonymizer, toPublicKey(derived));
+      if (state.status === "none") {
+        setLockError(
+          "No envelope answers to that password. Check it with whoever sent the link; the password is case sensitive.",
+        );
+        return;
+      }
+      setEnvelope(state);
+      setClaimKey(derived);
+      setLockSalt("");
+    } catch (cause) {
+      setLockError(
+        cause instanceof Error ? cause.message : "Could not open that envelope.",
+      );
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
+  if (lockSalt) {
+    return (
+      <Shell>
+        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
+          Locked.
+        </h1>
+        <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
+          This envelope was sealed with a password. The link on its own does not open
+          it and does not say what is inside, because the key is only made when the
+          password is put back together with the link.
+        </p>
+
+        <form
+          className="mt-6 max-w-sm"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void unlock();
+          }}
+        >
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoFocus
+            autoComplete="off"
+            placeholder="Password"
+            aria-label="Envelope password"
+            className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
+          />
+          {lockError ? (
+            <div className="mt-3">
+              <Callout tone="bad" title="Did not open">
+                {lockError}
+              </Callout>
+            </div>
+          ) : null}
+          <div className="mt-4">
+            <Button type="submit" disabled={!password || unlocking}>
+              {unlocking ? "Opening…" : "Open it"}
+            </Button>
+          </div>
+        </form>
+      </Shell>
+    );
   }
 
   if (wrongLink) {

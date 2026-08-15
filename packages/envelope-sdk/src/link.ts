@@ -1,9 +1,13 @@
 import { encode } from "starknet";
 
 /** Which key a link carries, and therefore what its holder can do. */
-export type LinkKind = "claim" | "refund";
+export type LinkKind = "claim" | "refund" | "locked";
 
-const PREFIX: Record<LinkKind, string> = { claim: "e1", refund: "r1" };
+/**
+ * `e2` is a locked claim link. The bytes after it are a salt rather than a key,
+ * so a reader that does not understand the prefix must not treat them as one.
+ */
+const PREFIX: Record<LinkKind, string> = { claim: "e1", refund: "r1", locked: "e2" };
 const KEY_BYTES = 32;
 
 /**
@@ -32,7 +36,7 @@ export function encodeClaimLink(
   privateKey: string,
   kind: LinkKind = "claim",
 ): string {
-  const path = kind === "claim" ? "claim" : "refund";
+  const path = kind === "refund" ? "refund" : "claim";
   return `${baseUrl.replace(/\/$/, "")}/${path}#${encodeLinkFragment(privateKey, kind)}`;
 }
 

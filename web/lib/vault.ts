@@ -18,6 +18,14 @@ export interface SealRecord {
   claimPrivateKey: string;
   claimPublicKey: string;
   refundPrivateKey: string;
+  /**
+   * Salt for a password-locked envelope, empty for an ordinary one.
+   *
+   * The password itself is deliberately absent. Storing it would undo the
+   * feature: the whole protection is that the link and the password never sit
+   * in the same place, and this browser already holds the link.
+   */
+  lockSalt?: string;
   amount: string;
   memo: string;
   network: string;
