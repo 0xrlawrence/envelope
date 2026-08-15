@@ -560,7 +560,7 @@ export default function CreatePage() {
           />
         </div>
 
-        <dl className="mt-[clamp(1rem,4vh,2.5rem)] space-y-[clamp(0.35rem,1.8vh,0.9rem)] text-sm">
+        <dl className="mt-[clamp(0.75rem,2.6vh,1.6rem)] text-sm">
           <HiddenRow hidden>Who funded it</HiddenRow>
           <HiddenRow hidden>Who claims it, if they claim privately</HiddenRow>
           <HiddenRow>The amount, on both legs</HiddenRow>
@@ -752,9 +752,11 @@ export default function CreatePage() {
 
 function HiddenRow({ children, hidden = false }: { children: string; hidden?: boolean }) {
   return (
-    <div className="flex items-baseline gap-3 border-b border-dotted border-[var(--ink-line)] pb-[clamp(0.35rem,1.8vh,0.9rem)]">
+    <div className="flex items-baseline gap-3 border-b border-dotted border-[var(--ink-line)] py-[clamp(0.3rem,1.1vh,0.55rem)]">
+      {/* Fixed width, so the four statements line up as a column of claims
+          rather than stepping in and out with the length of the label. */}
       <span
-        className="font-display text-xs font-semibold tracking-[0.2em] uppercase"
+        className="w-14 shrink-0 font-display text-[0.65rem] font-semibold tracking-[0.18em] uppercase"
         style={{ color: hidden ? "var(--frank)" : "var(--paper-faint)" }}
       >
         {hidden ? "Hidden" : "Public"}
