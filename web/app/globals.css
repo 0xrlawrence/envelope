@@ -289,3 +289,49 @@ body {
     animation: none;
   }
 }
+
+/* The theme wipe.
+ *
+ * The old theme holds perfectly still and the new one sweeps across it on a
+ * slanted edge, which is why this reads as paper being drawn over paper rather
+ * than as a screen changing colour. Animating both snapshots would cross-fade
+ * them and produce a muddy frame in the middle where neither theme is true.
+ *
+ * The polygon is a parallelogram whose top and bottom edges are offset, so the
+ * leading edge is a diagonal. It starts fully off the left of the viewport and
+ * ends fully off the right, so no part of the sweep is ever visible parked at
+ * an end.
+ *
+ * Behind `@supports` because a browser without view transitions runs the
+ * callback and swaps instantly, which is the correct fallback and needs no
+ * styling of its own.
+ */
+@keyframes theme-reveal {
+  0% {
+    clip-path: polygon(-45% -20%, -15% -20%, -60% 120%, -90% 120%);
+  }
+  100% {
+    clip-path: polygon(-45% -20%, 145% -20%, 110% 120%, -90% 120%);
+  }
+}
+
+@supports (view-transition-name: root) {
+  ::view-transition-old(root) {
+    animation: none;
+  }
+
+  ::view-transition-new(root) {
+    animation: theme-reveal 0.95s cubic-bezier(0.65, 0, 0.35, 1);
+    /* The new snapshot is drawn over the old one rather than blended with it. */
+    mix-blend-mode: normal;
+  }
+
+  /* A wipe is a large moving edge, which is exactly what motion sensitivity
+     reacts to. Without this the whole viewport sweeps regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-new(root),
+    ::view-transition-old(root) {
+      animation: none;
+    }
+  }
+}

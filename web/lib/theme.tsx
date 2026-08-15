@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
 
 export type Theme = "dark" | "light";
 
@@ -40,18 +41,55 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggle = useCallback(() => {
-    setTheme((previous) => {
-      const next: Theme = previous === "dark" ? "light" : "dark";
+    const next: Theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+
+    const apply = () => {
       document.documentElement.dataset.theme = next;
+      setTheme(next);
       try {
         window.localStorage.setItem(STORAGE_KEY, next);
       } catch {
         // A blocked store costs the preference on the next visit, nothing more.
       }
-      // Anything drawing its own pixels rather than reading CSS needs telling.
+      // Anything drawing its own pixels rather than reading CSS needs telling,
+      // and it has to happen inside this callback: the browser photographs the
+      // page the moment the callback returns, so a canvas that repaints later
+      // gets caught still wearing the old theme.
       window.dispatchEvent(new CustomEvent("envelope:theme", { detail: next }));
-      return next;
-    });
+    };
+
+    const wipe = (
+      document as Document & {
+        startViewTransition?: (update: () => void) => {
+          ready?: Promise<void>;
+          finished?: Promise<void>;
+        };
+      }
+    ).startViewTransition;
+
+    // Without support, or when large moving edges are unwelcome, the swap is
+    // instant. That is the whole fallback: the CSS wipe is decoration over a
+    // change that has already happened.
+    if (
+      typeof wipe !== "function" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      apply();
+      return;
+    }
+
+    // `flushSync`, because React would otherwise batch the state update to
+    // after the transition callback returns, and the icon would flip a beat
+    // behind the paper it belongs to.
+    const transition = wipe.call(document, () => flushSync(apply));
+
+    // A transition that gets skipped rejects both of these, and nothing else is
+    // listening, so it surfaces as an unhandled rejection. Clicking the toggle
+    // twice quickly is enough to cause it: the second wipe aborts the first.
+    // The theme still changes either way, because the callback has already run;
+    // only the animation is lost, which is not worth an error for.
+    transition?.ready?.catch(() => {});
+    transition?.finished?.catch(() => {});
   }, []);
 
   return <Context.Provider value={{ theme, toggle }}>{children}</Context.Provider>;
