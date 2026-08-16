@@ -29,8 +29,11 @@ export function ThemeToggle() {
       }}
       aria-label={`Switch to ${next} paper`}
       title={`Switch to ${next} paper`}
-      /* The icon stays 16px; the hit area around it does not. */
-      className="relative flex h-11 w-11 items-center justify-center text-[var(--paper-faint)] transition-colors duration-150 hover:text-[var(--frank)] sm:h-8 sm:w-8"
+      /* The icon stays 16px; the hit area around it does not. Narrower than it
+         is tall on a phone, because the header row is the one place where
+         horizontal space is genuinely scarce and the vertical dimension is
+         what a thumb mostly misses on. */
+      className="relative flex h-11 w-10 items-center justify-center text-[var(--paper-faint)] transition-colors duration-150 hover:text-[var(--frank)] sm:h-8 sm:w-8"
     >
       {/* Sun: shown on dark paper, because it is what the press does next. */}
       <svg

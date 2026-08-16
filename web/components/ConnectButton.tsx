@@ -68,10 +68,15 @@ export function ConnectButton() {
             play("tap");
             disconnect();
           }}
-          className="inline-flex min-h-11 items-center border border-[var(--ink-line)] px-3 py-2 font-mono text-xs text-[var(--paper-dim)] transition hover:border-[var(--seal)] hover:text-[var(--seal)] sm:min-h-0"
+          /* Shorter on a phone, where eleven characters of hex made this the
+             widest and heaviest thing in the bar for no more information: the
+             address is here to say which account is connected, and four
+             characters at each end say that. */
+          className="inline-flex min-h-9 items-center border border-[var(--ink-line)] px-1.5 py-1.5 font-mono text-[0.7rem] whitespace-nowrap text-[var(--paper-dim)] transition hover:border-[var(--seal)] hover:text-[var(--seal)] sm:min-h-0 sm:px-3 sm:py-2 sm:text-xs"
           title="Disconnect"
         >
-          {shortHex(address)}
+          <span className="sm:hidden">{shortHex(address, 4, 4)}</span>
+          <span className="hidden sm:inline">{shortHex(address)}</span>
         </button>
       </div>
     );

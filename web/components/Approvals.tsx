@@ -43,16 +43,25 @@ export function Approvals({
   const count = steps.length;
 
   return (
-    <div className="pad-safe-b pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[clamp(0.75rem,4vh,2.5rem)] sm:px-6">
-      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-4 py-3.5 backdrop-blur-sm sm:px-5 sm:py-4">
+    /*
+     * Above the flight on a phone, below it on anything wider.
+     *
+     * The dart is thrown across the middle of the screen, and a tall narrow
+     * viewport leaves very little room either side of it. Pinned to the bottom
+     * the panel sat right where the dart glides, so the two competed; at the
+     * top the whole lower two thirds of the screen is clear for the flight.
+     * Offset to clear the header, which stays visible for the duration.
+     */
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(5.6rem+env(safe-area-inset-top))] sm:top-auto sm:bottom-0 sm:px-6 sm:pt-0 sm:pb-[max(clamp(1rem,4vh,2.5rem),env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-3 py-2.5 backdrop-blur-sm sm:px-5 sm:py-4">
         <div className="flex items-baseline justify-between gap-4">
-          <p className="field-label">{title}</p>
-          <p className="font-display text-sm font-bold tabular-nums">
-            {amount} <span className="text-xs text-[var(--paper-dim)]">{symbol}</span>
+          <p className="field-label !text-[0.65rem] sm:!text-xs">{title}</p>
+          <p className="font-display text-xs font-bold tabular-nums sm:text-sm">
+            {amount} <span className="text-[0.7rem] text-[var(--paper-dim)]">{symbol}</span>
           </p>
         </div>
 
-        <p className="mt-2 text-xs text-[var(--paper-dim)]">
+        <p className="mt-1.5 text-[0.7rem] text-[var(--paper-dim)] sm:mt-2 sm:text-xs">
           {settled
             ? "Nothing further to approve."
             : count === 1
@@ -62,22 +71,22 @@ export function Approvals({
                 : `Your wallet will ask ${count} times. They are all for this one envelope.`}
         </p>
 
-        <ol className="mt-3 space-y-2">
+        <ol className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
           {steps.map((item, index) => {
             const position = index + 1;
             const done = settled || step > position;
             const current = !settled && step === position;
             return (
-              <li key={item.title} className="flex gap-3">
+              <li key={item.title} className="flex gap-2.5 sm:gap-3">
                 <span
-                  className="mt-px font-mono text-xs tabular-nums"
+                  className="mt-px font-mono text-[0.7rem] tabular-nums sm:text-xs"
                   style={{ color: current ? "var(--frank)" : "var(--paper-faint)" }}
                 >
                   {done ? "✓" : position}
                 </span>
                 <div className="min-w-0">
                   <p
-                    className="text-sm transition-colors duration-200"
+                    className="text-xs leading-snug transition-colors duration-200 sm:text-sm sm:leading-normal"
                     style={{
                       color: current
                         ? "var(--frank)"
@@ -90,7 +99,9 @@ export function Approvals({
                     {current ? ": approve it now" : null}
                   </p>
                   {current ? (
-                    <p className="mt-0.5 text-xs text-[var(--paper-faint)]">{item.detail}</p>
+                    <p className="mt-0.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
+                      {item.detail}
+                    </p>
                   ) : null}
                 </div>
               </li>
@@ -99,13 +110,13 @@ export function Approvals({
         </ol>
 
         {note && !settled ? (
-          <p className="mt-3 border-t border-[var(--ink-line)] pt-3 text-xs text-[var(--frank)]">
+          <p className="mt-2 border-t border-[var(--ink-line)] pt-2 text-[0.7rem] text-[var(--frank)] sm:mt-3 sm:pt-3 sm:text-xs">
             {note}
           </p>
         ) : null}
 
         {step > count && !settled && !note ? (
-          <p className="mt-3 border-t border-[var(--ink-line)] pt-3 text-xs text-[var(--paper-dim)]">
+          <p className="mt-2 border-t border-[var(--ink-line)] pt-2 text-[0.7rem] text-[var(--paper-dim)] sm:mt-3 sm:pt-3 sm:text-xs">
             Signed. Waiting for the chain to confirm it, which is what the flight is
             waiting on too.
           </p>
