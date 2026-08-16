@@ -68,7 +68,7 @@ export function ConnectButton() {
             play("tap");
             disconnect();
           }}
-          className="border border-[var(--ink-line)] px-3 py-2 font-mono text-xs text-[var(--paper-dim)] transition hover:border-[var(--seal)] hover:text-[var(--seal)]"
+          className="inline-flex min-h-11 items-center border border-[var(--ink-line)] px-3 py-2 font-mono text-xs text-[var(--paper-dim)] transition hover:border-[var(--seal)] hover:text-[var(--seal)] sm:min-h-0"
           title="Disconnect"
         >
           {shortHex(address)}
@@ -83,14 +83,17 @@ export function ConnectButton() {
         variant="outline"
         sound="open"
         onClick={() => setOpen(true)}
-        className="!px-4 !py-2"
+        className="!px-3 !py-2 !text-xs !tracking-[0.1em] sm:!px-4 sm:!text-sm sm:!tracking-[0.14em]"
       >
         Connect
       </Button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] p-6 backdrop-bl-sm"
+          /* Scrollable, and centred by an auto margin on the panel rather than
+             by `items-center`, so that a phone in landscape with the keyboard
+             up can still reach the top of the dialog. */
+          className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] p-4 backdrop-blur-sm sm:p-6"
           onClick={() => {
             play("tap");
             setOpen(false);
@@ -98,14 +101,14 @@ export function ConnectButton() {
           role="presentation"
         >
           <div
-            className="w-full max-w-sm border border-[var(--ink-line)] bg-[var(--ink)]"
+            className="m-auto w-full max-w-sm border border-[var(--ink-line)] bg-[var(--ink)]"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wallet-picker-title"
           >
             <div className="airmail-edge h-1.5" />
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
                 <p id="wallet-picker-title" className="field-label">
                   Select a wallet
@@ -116,7 +119,7 @@ export function ConnectButton() {
                     play("tap");
                     setOpen(false);
                   }}
-                  className="font-display text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--paper-faint)] uppercase transition-colors hover:text-[var(--paper)]"
+                  className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-end p-2 font-display text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--paper-faint)] uppercase transition-colors hover:text-[var(--paper)] sm:m-0 sm:min-h-0 sm:min-w-0 sm:p-0"
                 >
                   Close
                 </button>

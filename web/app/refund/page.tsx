@@ -189,8 +189,8 @@ export default function RefundPage() {
 
   if (!refundKey && !loading) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-14">
-        <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+        <h1 className="headline">
           Nothing to return.
         </h1>
         <p className="mt-4 text-[var(--paper-dim)]">
@@ -203,8 +203,8 @@ export default function RefundPage() {
 
   if (transactionHash && flightDone) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-14">
-        <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+        <h1 className="headline">
           Returned to sender.
         </h1>
         <p className="mt-4 text-[var(--paper-dim)]">
@@ -225,7 +225,7 @@ export default function RefundPage() {
 
   if (loading || !envelope) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-14">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
         <p className="text-sm text-[var(--paper-faint)]">Reading the envelope…</p>
       </div>
     );
@@ -264,19 +264,17 @@ export default function RefundPage() {
       ) : null}
 
       <div
-        className={`mx-auto grid max-w-5xl gap-8 px-6 py-4 transition-opacity duration-500 lg:grid-cols-[1fr_1fr] lg:items-start ${
+        className={`mx-auto flex max-w-5xl flex-col gap-6 px-4 py-4 transition-opacity duration-500 sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8 ${
           flying ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
-        <EnvelopeCard
-          amount={formatAmount(envelope.amount)}
-          symbol={STRK.symbol}
-          sealed={envelope.status === "funded"}
-          expired={envelope.refundable}
-        />
-
-        <div>
-          <h1 className="font-display text-4xl leading-tight font-bold tracking-[-0.02em]">
+        {/* Headline over the card, matching the seal and claim pages. It used
+            to sit in the right-hand column, which on one screen means beside
+            the envelope and on a phone means underneath it: the page opened on
+            an unlabelled card and only said what had happened to it after a
+            scroll. */}
+        <div className="lg:sticky lg:top-10">
+          <h1 className="headline">
             {envelope.status === "claimed"
               ? "Already opened."
               : envelope.status === "refunded"
@@ -286,7 +284,7 @@ export default function RefundPage() {
                   : "Still out for delivery."}
           </h1>
 
-          <p className="mt-4 text-[var(--paper-dim)]">
+          <p className="mt-3 max-w-[62ch] text-sm text-[var(--paper-dim)] sm:text-base">
             {envelope.status === "claimed"
               ? "Someone claimed this before it expired. There is nothing to return."
               : envelope.status === "refunded"
@@ -298,10 +296,21 @@ export default function RefundPage() {
                     ).toLocaleString()}. You can only reclaim it after that.`}
           </p>
 
+          <div className="mt-[clamp(1rem,3.5vh,2.25rem)]">
+            <EnvelopeCard
+              amount={formatAmount(envelope.amount)}
+              symbol={STRK.symbol}
+              sealed={envelope.status === "funded"}
+              expired={envelope.refundable}
+            />
+          </div>
+        </div>
+
+        <div>
           <Receipt claimPublicKey={claimPublicKey} />
 
           {envelope.refundable ? (
-            <div className="mt-8 space-y-4">
+            <div className="space-y-4 lg:mt-8">
               {!address ? (
                 <Callout title="Connect a wallet">
                   Connect the wallet that holds your shielded balance, since the returned
@@ -315,7 +324,11 @@ export default function RefundPage() {
                 </Callout>
               ) : null}
 
-              <Button onClick={reclaim} disabled={!address || !supportsStrk20 || busy}>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={reclaim}
+                disabled={!address || !supportsStrk20 || busy}
+              >
                 {busy ? "Returning…" : "Return to sender"}
               </Button>
             </div>

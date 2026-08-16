@@ -302,7 +302,7 @@ export default function ClaimPage() {
   if (lockSalt) {
     return (
       <Shell>
-        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
+        <h1 className="headline">
           Locked.
         </h1>
         <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
@@ -360,7 +360,7 @@ export default function ClaimPage() {
   if (!claimKey) {
     return (
       <Shell>
-        <h1 className="font-display text-5xl font-bold tracking-[-0.03em]">Nothing to open.</h1>
+        <h1 className="headline">Nothing to open.</h1>
         <p className="mt-4 text-[var(--paper-dim)]">
           A claim link carries its key after the <Mono>#</Mono>. If you pasted this from
           somewhere that truncates URLs, the key is what got cut.
@@ -380,7 +380,7 @@ export default function ClaimPage() {
   if (outcome) {
     return (
       <Shell>
-        <h1 className="font-display text-5xl font-bold tracking-[-0.03em]">
+        <h1 className="headline">
           {outcome.kind === "private" ? "It is in your shielded balance." : "It is yours."}
         </h1>
         <p className="mt-4 text-[var(--paper-dim)]">
@@ -405,7 +405,7 @@ export default function ClaimPage() {
   if (!envelope || envelope.status === "none") {
     return (
       <Shell>
-        <h1 className="font-display text-5xl font-bold tracking-[-0.03em]">No such envelope.</h1>
+        <h1 className="headline">No such envelope.</h1>
         <p className="mt-4 text-[var(--paper-dim)]">
           Nothing has been sealed against this key on {network.label}. Check you are on the
           right network.
@@ -463,9 +463,9 @@ export default function ClaimPage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-4 sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8">
       <div className="order-1 lg:sticky lg:top-10">
-        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
+        <h1 className="headline">
           {headline}
         </h1>
         <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">{intro}</p>
@@ -595,23 +595,26 @@ function ClaimRoute({
       }`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-xl font-semibold tracking-[-0.01em]">{title}</h2>
+        <h2 className="font-display text-lg font-semibold tracking-[-0.01em] sm:text-xl">
+          {title}
+        </h2>
         {preferred ? <p className="field-label !text-[var(--frank)]">Recommended</p> : null}
       </div>
 
       <dl className="mt-2.5 space-y-1 text-sm">
         <div className="flex gap-3">
-          <dt className="field-label w-24 shrink-0 pt-0.5">Reveals</dt>
+          <dt className="field-label w-20 shrink-0 pt-0.5 sm:w-24">Reveals</dt>
           <dd className="text-[var(--paper-dim)]">{reveals}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="field-label w-24 shrink-0 pt-0.5">Requires</dt>
+          <dt className="field-label w-20 shrink-0 pt-0.5 sm:w-24">Requires</dt>
           <dd className="text-[var(--paper-dim)]">{requires}</dd>
         </div>
       </dl>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button
+          className="w-full sm:w-auto"
           variant={preferred ? "frank" : "outline"}
           onClick={onClick}
           disabled={disabled}
@@ -625,5 +628,5 @@ function ClaimRoute({
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-2xl px-6 py-20">{children}</div>;
+  return <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-20">{children}</div>;
 }

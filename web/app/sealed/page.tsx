@@ -118,10 +118,10 @@ export default function SealedPage() {
   const refresh = () => setRecords(recall(network.id));
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10">
-      <h1 className="font-display text-4xl font-bold tracking-[-0.03em]">Envelopes.</h1>
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+      <h1 className="headline">Envelopes.</h1>
 
-      <div className="mt-6">
+      <div className="mt-5 sm:mt-6">
         <Tabs
           label="Envelopes"
           active={tab}
@@ -347,16 +347,16 @@ function Row({
 
   return (
     <div
-      className={`row-enter border p-4 transition-colors duration-200 ${
+      className={`row-enter border p-3 transition-colors duration-200 sm:p-4 ${
         status === "funded"
           ? "border-[var(--ink-line)] bg-[var(--ink-raised)]"
           : "border-[var(--ink-line)]"
       } ${spent ? "opacity-55 hover:opacity-100" : ""}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="font-display text-2xl font-bold tabular-nums">
+        <p className="font-display text-xl font-bold tabular-nums sm:text-2xl">
           {formatAmount(BigInt(record.amount))}{" "}
-          <span className="text-base font-semibold text-[var(--paper-dim)]">
+          <span className="text-sm font-semibold text-[var(--paper-dim)] sm:text-base">
             {STRK.symbol}
           </span>
           {record.memo ? (
@@ -540,7 +540,9 @@ function LinkRow({
             }
             window.setTimeout(() => setCopyState("idle"), 1400);
           }}
-          className="font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95"
+          /* Handing the link over is what this page is for, and on a phone the
+             control for it was a 10px word with no hit area of its own. */
+          className="-mr-2 -my-2 inline-flex min-h-11 items-center px-2 font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95 sm:m-0 sm:min-h-0 sm:px-0"
           style={{ color: copyState === "idle" ? "var(--paper-dim)" : "var(--frank)" }}
           aria-live="polite"
         >

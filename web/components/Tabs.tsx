@@ -44,7 +44,11 @@ export function Tabs({
       ref={listRef}
       role="tablist"
       aria-label={label}
-      className="flex gap-6 border-b border-[var(--ink-line)]"
+      /* Equal halves on a phone, where the two labels are long enough to wrap
+         and a content-width tab leaves the second one hanging in the middle of
+         the rule. Back to sitting side by side at their natural width once
+         there is room for both. */
+      className="grid grid-cols-2 border-b border-[var(--ink-line)] sm:flex sm:gap-6"
       onKeyDown={(event) => {
         if (event.key === "ArrowRight") {
           event.preventDefault();
@@ -68,7 +72,7 @@ export function Tabs({
             aria-controls={`panel-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(tab.id)}
-            className="-mb-px flex items-baseline gap-2 border-b-2 pt-1 pb-3 font-display text-sm font-semibold tracking-[0.14em] uppercase transition-colors duration-150 ease-out"
+            className="-mb-px flex min-h-11 items-baseline justify-center gap-2 border-b-2 pt-1 pb-3 font-display text-xs font-semibold tracking-[0.1em] uppercase transition-colors duration-150 ease-out sm:min-h-0 sm:justify-start sm:text-sm sm:tracking-[0.14em]"
             style={{
               borderColor: selected ? "var(--frank)" : "transparent",
               color: selected ? "var(--frank)" : "var(--paper-faint)",

@@ -121,11 +121,100 @@
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
+html {
+  /* Safari on iOS inflates text when a page is rotated to landscape, which
+     rewrites every size decision on this page at the moment the reader is
+     least expecting it. The sizes below already scale with the viewport. */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: var(--ink-deep);
   color: var(--paper);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  /* A phone has no horizontal room to give away, and a single overflowing hash
+     turns the whole page into something that slides under the thumb. Nothing
+     here is meant to be read sideways. */
+  overflow-x: hidden;
+}
+
+/*
+ * The page headline.
+ *
+ * One expression for every h1 on the site, which previously ranged from a fixed
+ * 48px to a viewport-height clamp depending on which page you landed on.
+ *
+ * `min()` of a width term and a height term is what makes it work on both. On a
+ * laptop the height term wins and the headline stays sized to fit above the
+ * fold, exactly as before. On a phone held upright there is plenty of height
+ * and almost no width, so the width term takes over and the headline stops
+ * eating a third of the screen before a word of the product is visible.
+ */
+.headline {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, min(6.2vw, 4.6vh), 3.25rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* One step down, for the headline on a screen that is mostly receipt. */
+.headline-sm {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, min(5.2vw, 3.8vh), 2.5rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/*
+ * iOS zooms the page in when a field smaller than 16px takes focus, and it does
+ * not zoom back out. Every input here is set in the small sizes the rest of the
+ * design uses, so without this, typing a password or a reference leaves the
+ * reader stranded at 1.4x with the layout pushed off-screen.
+ */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* The grey flash a phone paints over anything tappable, which lands on the
+   whole element including its border and reads as a rendering fault against
+   this palette. The controls all have their own press state. */
+@media (hover: none) {
+  a,
+  button,
+  summary,
+  [role="tab"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/*
+ * Notch clearance, applied once to the page rather than per container.
+ *
+ * A phone held sideways puts the camera cutout over one edge of the viewport,
+ * and `viewport-fit: cover` is what lets the page paint under it. Insetting the
+ * body is the only place this can be done without fighting every container's
+ * own horizontal padding, which is set in the type scale and is not the same
+ * number twice. Both values are zero on hardware without a cutout, so this
+ * costs nothing everywhere else.
+ */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Home-indicator clearance, for the two things that sit against the bottom
+   edge: the footer, and the approvals panel pinned over the flight. */
+.pad-safe-b {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* The tint itself: two counter-raked hatchings that beat against each other. */

@@ -667,19 +667,25 @@ export default function CreatePage() {
 
     <div
       ref={stageRef}
-      className="mx-auto flex w-full max-w-5xl flex-col gap-[clamp(1.5rem,5vh,4rem)] px-6 py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-start"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-[clamp(0.75rem,3.4vh,3rem)] sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-[clamp(1.5rem,5vh,4rem)]"
     >
-      <div className="order-1 lg:sticky lg:top-10">
-        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em] text-balance">
-          Private money you can send as a link.
-        </h1>
-        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[52ch] text-[var(--paper-dim)]">
-          A STRK20 private transfer needs a registered recipient. An envelope does not.
-          It pays someone who has never touched Starknet, and the pool still hides who
-          paid.
-        </p>
+      {/* `display: contents` below `lg`, so the three blocks inside become
+          direct children of the flex column above and can be ordered against
+          the form. Stacked in source order, a phone gets a headline, a full
+          screen of envelope, and a list of what is hidden before the first
+          thing it can actually do. The DOM is unchanged, which matters: the
+          send-off animation walks this tree by shape. */}
+      <div className="contents lg:sticky lg:top-10 lg:block">
+        <div className="order-1">
+          <h1 className="headline">Private money you can send as a link.</h1>
+          <p className="mt-[clamp(0.5rem,2vh,1.25rem)] max-w-[52ch] text-sm text-[var(--paper-dim)] sm:text-base">
+            A STRK20 private transfer needs a registered recipient. An envelope does not.
+            It pays someone who has never touched Starknet, and the pool still hides who
+            paid.
+          </p>
+        </div>
 
-        <div data-envelope className="mt-[clamp(1rem,3.5vh,2.25rem)]">
+        <div data-envelope className="order-3 lg:mt-[clamp(1rem,3.5vh,2.25rem)]">
           <EnvelopeCard
             amount={denomination.toString()}
             symbol={STRK.symbol}
@@ -688,7 +694,7 @@ export default function CreatePage() {
           />
         </div>
 
-        <dl className="mt-[clamp(0.75rem,2.6vh,1.6rem)] text-sm">
+        <dl className="order-4 text-sm lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
           <HiddenRow hidden>Who funded it</HiddenRow>
           <HiddenRow hidden>Who claims it, if they claim privately</HiddenRow>
           <HiddenRow>The amount, on both legs</HiddenRow>
@@ -707,7 +713,7 @@ export default function CreatePage() {
             <div
               role="group"
               aria-label="Pay with"
-              className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
+              className="flex w-full rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1 sm:inline-flex sm:w-auto"
             >
               {[
                 {
@@ -737,7 +743,7 @@ export default function CreatePage() {
                       play("tap");
                       setChosen(choice.value);
                     }}
-                    className="rounded-md px-4 py-1.5 font-display text-sm font-semibold tracking-[0.08em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="min-h-11 flex-1 rounded-md px-2 font-display text-xs font-semibold tracking-[0.08em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:flex-none sm:px-4 sm:py-1.5 sm:text-sm"
                     style={
                       active
                         ? {
@@ -769,7 +775,7 @@ export default function CreatePage() {
             <div
               role="group"
               aria-label="Visibility"
-              className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
+              className="flex w-full rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1 sm:inline-flex sm:w-auto"
             >
               {[
                 { value: false, label: "Public" },
@@ -785,7 +791,7 @@ export default function CreatePage() {
                       play("tap");
                       setLocked(choice.value);
                     }}
-                    className="rounded-md px-5 py-1.5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97]"
+                    className="min-h-11 flex-1 rounded-md px-5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] sm:min-h-0 sm:flex-none sm:py-1.5"
                     style={
                       active
                         ? {
@@ -843,7 +849,7 @@ export default function CreatePage() {
                     play("tap");
                     setDenomination(value);
                   }}
-                  className={`border px-2 py-2 text-center font-mono text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] ${
+                  className={`min-h-11 border px-2 text-center font-mono text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:py-2 ${
                     value === denomination
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -866,7 +872,7 @@ export default function CreatePage() {
                     play("tap");
                     setExpirySeconds(choice.seconds);
                   }}
-                  className={`border px-4 py-2 text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] ${
+                  className={`min-h-11 border px-4 text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:py-2 ${
                     choice.seconds === expirySeconds
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -981,6 +987,7 @@ export default function CreatePage() {
 
           <div className="flex flex-wrap gap-3">
             <Button
+              className="w-full sm:w-auto"
               onClick={seal}
               disabled={
                 !address || notDeployed || busy !== "" || !funded || (locked && !password)
@@ -1062,9 +1069,9 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
     : "";
 
   return (
-    <div className="mx-auto w-full grid max-w-5xl gap-[clamp(1.5rem,3.6vh,2.5rem)] px-6 py-[clamp(0.75rem,2.2vh,2rem)] lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto grid w-full max-w-5xl gap-[clamp(1.25rem,3.6vh,2.5rem)] px-4 py-[clamp(0.75rem,2.2vh,2rem)] sm:px-6 lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
       <div>
-        <h1 className="font-display text-[clamp(1.9rem,4.6vh,3.25rem)] leading-[1.03] font-bold tracking-[-0.03em]">
+        <h1 className="headline">
           {/* Three states, three headlines. "Hand it over" was an instruction
               standing in for all of them, which meant it told someone to send a
               link while the notice underneath said the envelope was not valid
@@ -1120,7 +1127,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
       </div>
 
       <div>
-        <div className="mt-6 space-y-4">
+        <div className="space-y-4 lg:mt-6">
           <LinkBlock
             label="Claim link"
             hint="Anyone holding this can take the contents. Send it the way you would send cash."
@@ -1194,7 +1201,9 @@ function LinkBlock({
             }
             setTimeout(() => setCopyState("idle"), 1600);
           }}
-          className="font-mono text-[0.65rem] tracking-[0.2em] text-[var(--frank)] uppercase"
+          /* Copying the link is the entire point of this screen, and on a
+             phone it was a 10px word with no hit area around it. */
+          className="-mr-2 inline-flex min-h-11 items-center px-2 font-mono text-[0.65rem] tracking-[0.2em] text-[var(--frank)] uppercase active:scale-95 sm:mr-0 sm:min-h-0 sm:px-0"
           aria-live="polite"
         >
           {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy"}

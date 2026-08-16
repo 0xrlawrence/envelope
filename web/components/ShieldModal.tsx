@@ -79,11 +79,14 @@ export function ShieldModal({
   const canShield = affordable.some((value) => value === choice) && deployed;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-6">
+    /* Scrollable, and centred by the panel's own auto margin. This dialog is
+       tall enough to exceed a phone in landscape, and a centred flex item that
+       overflows its container cannot be scrolled back up to. */
+    <div className="fixed inset-0 z-[60] flex overflow-y-auto overscroll-contain px-4 py-6 sm:px-6">
       <button
         aria-label="Close"
         onClick={() => !busy && onDismiss()}
-        className="absolute inset-0 cursor-default bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] backdrop-blur-sm"
+        className="fixed inset-0 cursor-default bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] backdrop-blur-sm"
       />
 
       <div
@@ -92,12 +95,12 @@ export function ShieldModal({
         aria-modal="true"
         aria-label="Shield STRK"
         tabIndex={-1}
-        className="relative w-full max-w-md border border-[var(--ink-line)] bg-[var(--ink)] outline-none"
+        className="relative m-auto w-full max-w-md border border-[var(--ink-line)] bg-[var(--ink)] outline-none"
       >
         <div className="airmail-edge h-1.5" />
-        <div className="security-tint px-6 py-5">
+        <div className="security-tint px-4 py-5 sm:px-6">
           <p className="field-label">Nothing shielded yet</p>
-          <h2 className="mt-2 font-display text-2xl leading-tight font-bold tracking-[-0.02em]">
+          <h2 className="mt-2 font-display text-xl leading-tight font-bold tracking-[-0.02em] sm:text-2xl">
             Shield first, and the envelope stands on its own.
           </h2>
 
@@ -139,7 +142,7 @@ export function ShieldModal({
                     disabled={!enough || busy}
                     aria-pressed={value === choice}
                     onClick={() => setChoice(value)}
-                    className={`border px-2 py-2 text-center font-mono text-sm transition-[border-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-35 ${
+                    className={`min-h-11 border px-2 text-center font-mono text-sm transition-[border-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:py-2 ${
                       value === choice
                         ? "border-[var(--frank)] text-[var(--frank)]"
                         : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"

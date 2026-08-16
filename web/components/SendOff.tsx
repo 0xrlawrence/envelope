@@ -217,8 +217,40 @@ export function SendOff({
     // Above the flight line rather than level with it. A dart seen from the
     // side is a line; the wings, the creases and the printing only exist if you
     // are looking down on them.
-    camera.position.set(0, 4.4, 6.0);
-    camera.lookAt(0, 0.2, 0);
+    const LOOK = new Vector3(0, 0.2, 0);
+    const EYE = new Vector3(0, 4.4, 6.0);
+    const VIEW = EYE.clone().sub(LOOK).normalize();
+    const BASE_DISTANCE = EYE.distanceTo(LOOK);
+    /**
+     * The flight is composed across the width of the screen, and a three.js
+     * camera holds its *vertical* field fixed. On a phone held upright that
+     * leaves barely two units of world visible across, against a dart that is
+     * two and a half wide and throws itself four: the whole sequence would play
+     * out just off the edges of the screen with a wingtip filling the middle.
+     *
+     * So the camera is pulled back until the horizontal extent is right,
+     * instead of the field being widened, which would have bent the dart into a
+     * fisheye at the one moment it is being looked at.
+     */
+    const BASE_ASPECT = 1.6;
+    const HALF_TAN = Math.tan((42 * Math.PI) / 180 / 2);
+    const COMPOSED_WIDTH = 2 * BASE_DISTANCE * HALF_TAN * BASE_ASPECT;
+
+    const frameCamera = () => {
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = aspect;
+      // A phone is given a tighter crop than the laptop framing rather than the
+      // same one. Matching it exactly is possible and looks wrong: the dart
+      // ends up a thumbnail in the middle of a tall empty screen. The entry and
+      // the exit run off the edges instead, which is where they are going.
+      const reach = Math.min(Math.max((aspect - 0.4) / (BASE_ASPECT - 0.4), 0), 1);
+      const wanted = COMPOSED_WIDTH * (0.62 + 0.38 * reach);
+      const distance = Math.max(BASE_DISTANCE, wanted / (2 * HALF_TAN * aspect));
+      camera.position.copy(LOOK).addScaledVector(VIEW, distance);
+      camera.lookAt(LOOK);
+      camera.updateProjectionMatrix();
+    };
+    frameCamera();
 
     scene.add(new AmbientLight(0xffffff, 0.62));
     const key = new DirectionalLight(0xffffff, 1.7);
@@ -498,9 +530,14 @@ varying float vInk;`,
 
     // All of it behind the dart. A streak crossing in front cuts a bright line
     // across the paper, which reads as a rendering fault rather than as air.
+    // Spread taller than the laptop framing needs. A phone held upright sees a
+    // much taller slice of the same scene, and a field sized to the wide case
+    // leaves a band of dead air across the top and bottom of the screen.
+    const SPREAD_Y = 17;
+
     const seeds = Array.from({ length: STREAKS }, () => ({
       x: Math.random() * 26 - 13,
-      y: Math.random() * 11 - 5.5,
+      y: Math.random() * SPREAD_Y - SPREAD_Y / 2,
       z: -0.9 - Math.random() * 6,
       length: 0.5 + Math.random() * 2.6,
       speed: 5 + Math.random() * 16,
@@ -517,7 +554,7 @@ varying float vInk;`,
         seed.x -= flip * seed.speed * delta;
         if (flip > 0 ? seed.x < -14 : seed.x > 14) {
           seed.x = flip * (14 + Math.random() * 6);
-          seed.y = Math.random() * 11 - 5.5;
+          seed.y = Math.random() * SPREAD_Y - SPREAD_Y / 2;
         }
         position.set(seed.x, seed.y, seed.z);
         scale.set(seed.length, 1, 1);
@@ -530,8 +567,7 @@ varying float vInk;`,
 
     const resize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight, false);
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      frameCamera();
     };
     window.addEventListener("resize", resize);
 

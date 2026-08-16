@@ -29,7 +29,8 @@ export function ThemeToggle() {
       }}
       aria-label={`Switch to ${next} paper`}
       title={`Switch to ${next} paper`}
-      className="relative flex h-8 w-8 items-center justify-center text-[var(--paper-faint)] transition-colors duration-150 hover:text-[var(--frank)]"
+      /* The icon stays 16px; the hit area around it does not. */
+      className="relative flex h-11 w-11 items-center justify-center text-[var(--paper-faint)] transition-colors duration-150 hover:text-[var(--frank)] sm:h-8 sm:w-8"
     >
       {/* Sun: shown on dark paper, because it is what the press does next. */}
       <svg

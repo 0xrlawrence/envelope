@@ -35,7 +35,12 @@ export function EnvelopeCard({
     <div className="relative border border-[var(--ink-line)] bg-[var(--ink)]">
       <div className="airmail-edge h-2" />
 
-      <div className="security-tint relative px-6 pt-[clamp(0.85rem,3vh,1.9rem)] pb-[clamp(0.75rem,2.4vh,1.6rem)]">
+      {/* Every size here is a `min()` of a width term and the height term the
+          card was built with. On a laptop the height term is the smaller of the
+          two and nothing changes; on a phone, where there is height to spare
+          and no width, the width term takes over and the card stops being the
+          tallest thing between the reader and the form. */}
+      <div className="security-tint relative px-4 pt-[clamp(0.7rem,min(3.6vw,3vh),1.9rem)] pb-[clamp(0.65rem,min(3vw,2.4vh),1.6rem)] sm:px-6">
         {/* The flap, folded down over the top of the interior.
          *
          * The fill alone cannot carry this. It was doing the whole job before,
@@ -51,7 +56,7 @@ export function EnvelopeCard({
          * one pixel rather than smearing with the box. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-24"
+          className="pointer-events-none absolute inset-x-0 top-0 h-20 sm:h-24"
           style={{
             clipPath: "polygon(0 0, 100% 0, 50% 100%)",
             background:
@@ -62,7 +67,7 @@ export function EnvelopeCard({
           aria-hidden
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 w-full"
+          className="pointer-events-none absolute inset-x-0 top-0 h-20 sm:h-24 w-full"
         >
           <path
             d="M0 0 L50 100 L100 0"
@@ -75,28 +80,28 @@ export function EnvelopeCard({
 
         <div className="relative">
           <p className="field-label">Contents</p>
-          <p className="mt-2 font-display text-[clamp(1.9rem,4.9vh,3.1rem)] leading-none font-bold tracking-[-0.03em] tabular-nums">
+          <p className="mt-1.5 font-display text-[clamp(1.75rem,min(8vw,4.9vh),3.1rem)] leading-none font-bold tracking-[-0.03em] tabular-nums sm:mt-2">
             {amount}
-            <span className="ml-3 align-baseline font-display text-lg font-semibold tracking-[0.18em] text-[var(--paper-dim)]">
+            <span className="ml-3 align-baseline font-display text-base font-semibold tracking-[0.18em] text-[var(--paper-dim)] sm:text-lg">
               {symbol}
             </span>
           </p>
           {caption ? (
-            <p className="mt-2 max-w-sm text-sm text-[var(--paper-dim)]">{caption}</p>
+            <p className="mt-2 max-w-sm text-xs text-[var(--paper-dim)] sm:text-sm">{caption}</p>
           ) : null}
           {children}
         </div>
 
         {/* The address block. On a real envelope this is the only part anyone
             reads, and here it is the whole point: it is addressed to no one. */}
-        <div className="relative mt-[clamp(0.7rem,2.6vh,1.5rem)] flex items-end justify-between gap-6 border-t border-dashed border-[var(--ink-line)] pt-[clamp(0.5rem,1.2vh,0.8rem)]">
+        <div className="relative mt-[clamp(0.6rem,min(3vw,2.6vh),1.5rem)] flex items-end justify-between gap-4 border-t border-dashed border-[var(--ink-line)] pt-[clamp(0.45rem,1.2vh,0.8rem)] sm:gap-6">
           <div className="min-w-0">
             <p className="field-label">Addressed to</p>
-            <p className="mt-1.5 font-display text-[clamp(1rem,2.2vh,1.25rem)] font-semibold tracking-[0.04em] uppercase">
+            <p className="mt-1 font-display text-[clamp(0.95rem,min(4.4vw,2.2vh),1.25rem)] font-semibold tracking-[0.04em] uppercase sm:mt-1.5">
               {addressee}
             </p>
             {reference ? (
-              <p className="mt-3 truncate font-mono text-xs text-[var(--paper-faint)]">
+              <p className="mt-2 truncate font-mono text-xs text-[var(--paper-faint)] sm:mt-3">
                 Ref. {reference}
               </p>
             ) : null}
@@ -104,13 +109,17 @@ export function EnvelopeCard({
 
           {sealed && !expired ? (
             <div
-              className="animate-strike flex h-[clamp(2.75rem,5.6vh,4rem)] w-[clamp(2.75rem,5.6vh,4rem)] shrink-0 -rotate-[9deg] items-center justify-center rounded-full border-[3px] font-display text-[0.7rem] leading-tight font-bold tracking-[0.12em] uppercase"
+              /* The wording is sized off the same expression as the disc it is
+                 struck inside. Left at a fixed 0.7rem it stayed put while the
+                 disc shrank on a phone, and "Sealed" ended up wider than the
+                 ring around it. */
+              className="animate-strike flex h-[clamp(2.5rem,min(11vw,5.6vh),4rem)] w-[clamp(2.5rem,min(11vw,5.6vh),4rem)] shrink-0 -rotate-[9deg] items-center justify-center rounded-full border-[3px] font-display text-[clamp(0.52rem,min(2.3vw,1.16vh),0.7rem)] leading-tight font-bold tracking-[0.12em] uppercase"
               style={{ borderColor: "var(--seal)", color: "var(--seal)" }}
             >
               <span className="text-center">
                 Sealed
                 <br />
-                <span className="text-[0.55rem] tracking-[0.2em] opacity-70">STRK20</span>
+                <span className="text-[0.78em] tracking-[0.2em] opacity-70">STRK20</span>
               </span>
             </div>
           ) : null}

@@ -43,8 +43,8 @@ export function Approvals({
   const count = steps.length;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-6 pb-[clamp(1rem,4vh,2.5rem)]">
-      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-5 py-4 backdrop-blur-sm">
+    <div className="pad-safe-b pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[clamp(0.75rem,4vh,2.5rem)] sm:px-6">
+      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-4 py-3.5 backdrop-blur-sm sm:px-5 sm:py-4">
         <div className="flex items-baseline justify-between gap-4">
           <p className="field-label">{title}</p>
           <p className="font-display text-sm font-bold tabular-nums">

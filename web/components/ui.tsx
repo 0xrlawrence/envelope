@@ -51,8 +51,15 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   sound?: SoundCue | false;
 };
 
+/*
+ * `min-h-11` is 44px, the smallest target a thumb hits reliably. The padding is
+ * viewport-height based, so on a short phone it collapses to about eight pixels
+ * and every button on the site came out at 37 or 38: fine under a cursor, a
+ * miss under a thumb. The floor only applies below the tablet breakpoint, so
+ * nothing on a laptop changes size.
+ */
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100";
+  "inline-flex min-h-11 items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 sm:min-h-0";
 
 const BUTTON_VARIANTS = {
   frank:
@@ -168,7 +175,10 @@ export function ExplorerLink({
 }) {
   return (
     <a
-      className="font-mono text-sm text-[var(--frank)] underline decoration-dotted underline-offset-4 break-all"
+      /* Vertical padding on an inline element paints outside the line box
+         without pushing the line apart, so the hash keeps its place in the row
+         and still has something bigger than 20px to aim a thumb at. */
+      className="py-2 font-mono text-sm text-[var(--frank)] underline decoration-dotted underline-offset-4 break-all sm:py-0"
       href={`${explorer}/${kind}/${value}`}
       target="_blank"
       rel="noreferrer"

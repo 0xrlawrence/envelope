@@ -21,6 +21,24 @@ export const THEME_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   STORAGE_KEY,
 )});if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
+/**
+ * The colour a phone paints its own browser chrome with.
+ *
+ * On mobile the address bar and the gesture area sit directly against the page,
+ * so leaving this unset means a white strip above a black page. These are the
+ * two `--ink-deep` values, written literally because the meta tag is read by
+ * the browser rather than by the stylesheet and cannot resolve a variable.
+ */
+const CHROME_COLOUR: Record<Theme, string> = {
+  dark: "#080c11",
+  light: "#ffffff",
+};
+
+function paintBrowserChrome(theme: Theme): void {
+  const tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (tag) tag.content = CHROME_COLOUR[theme];
+}
+
 interface ThemeState {
   theme: Theme;
   toggle: () => void;
@@ -38,6 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = document.documentElement.dataset.theme;
     if (stored === "light" || stored === "dark") setTheme(stored);
+    paintBrowserChrome(stored === "light" ? "light" : "dark");
   }, []);
 
   const toggle = useCallback(() => {
@@ -46,6 +65,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const apply = () => {
       document.documentElement.dataset.theme = next;
       setTheme(next);
+      paintBrowserChrome(next);
       try {
         window.localStorage.setItem(STORAGE_KEY, next);
       } catch {
