@@ -25,21 +25,42 @@ export async function recentEnvelopes(
   provider: RpcProvider,
   anonymizer: string,
   pool: string,
-  span = 40_000,
+  fromBlock: number,
   limit = 12,
 ): Promise<FundedEnvelope[]> {
   if (!anonymizer) return [];
 
-  const latest = await provider.getBlockLatestAccepted();
-  const events = await provider.getEvents({
-    address: anonymizer,
-    from_block: { block_number: Math.max(0, latest.block_number - span) },
-    to_block: "latest",
-    keys: [[hash.getSelectorFromName("EnvelopeFunded")]],
-    chunk_size: limit,
-  });
+  // Anchored to the block the contract was deployed in, not to a window
+  // trailing the chain head. A rolling window empties itself: every envelope
+  // drops out of it once the tip has moved on far enough, and this page then
+  // says no envelope was ever funded, which is the opposite of what it exists
+  // to show. Measured at the point it broke, the newest envelope was already
+  // 47,000 blocks behind a 40,000 block window.
+  const selector = hash.getSelectorFromName("EnvelopeFunded");
+  const found: Array<Awaited<ReturnType<RpcProvider["getEvents"]>>["events"][number]> = [];
+  let continuation: string | undefined;
 
-  const recent = events.events.slice(-limit).reverse();
+  // Bounded rather than open ended. The page wants the last handful, so it
+  // walks forward until the events run out, and gives up rather than paging
+  // forever against a contract that has been busy for a long time.
+  for (let page = 0; page < 12; page += 1) {
+    const chunk = await provider.getEvents({
+      address: anonymizer,
+      from_block: { block_number: Math.max(0, fromBlock) },
+      to_block: "latest",
+      keys: [[selector]],
+      chunk_size: 100,
+      ...(continuation ? { continuation_token: continuation } : {}),
+    });
+    found.push(...(chunk.events ?? []));
+    continuation = chunk.continuation_token;
+    if (!continuation) break;
+  }
+
+  // Events arrive oldest first, so the tail is the recent end. Taking the head
+  // of the first page, which is what a single small chunk gave, showed the
+  // twelve oldest envelopes under a heading promising the newest.
+  const recent = found.slice(-limit).reverse();
 
   return Promise.all(
     recent.map(async (event) => {

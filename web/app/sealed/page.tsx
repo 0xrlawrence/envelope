@@ -7,6 +7,7 @@ import {
   readEnvelope,
   type EnvelopeState,
 } from "strk20-envelope";
+import { Tabs } from "@/components/Tabs";
 import { Button, Callout, ExplorerLink } from "@/components/ui";
 import {
   STRK,
@@ -42,6 +43,9 @@ export default function SealedPage() {
   const [origin, setOrigin] = useState("");
   const [onChain, setOnChain] = useState<FundedEnvelope[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // Yours first. The other tab is the same contract seen from outside, which is
+  // worth showing but is not what anyone opens this page to do.
+  const [tab, setTab] = useState<"mine" | "chain">("mine");
 
   useEffect(() => {
     setOrigin(appOrigin());
@@ -73,13 +77,13 @@ export default function SealedPage() {
 
   useEffect(() => {
     let cancelled = false;
-    recentEnvelopes(provider, network.anonymizer, network.pool)
+    recentEnvelopes(provider, network.anonymizer, network.pool, network.firstBlock)
       .then((found) => !cancelled && setOnChain(found))
       .catch(() => !cancelled && setOnChain([]));
     return () => {
       cancelled = true;
     };
-  }, [provider, network.anonymizer, network.pool]);
+  }, [provider, network.anonymizer, network.pool, network.firstBlock]);
 
   // One clock for the page rather than one per row, so the countdowns stay in
   // step with the grouping: an envelope whose window shuts while you are
@@ -115,10 +119,31 @@ export default function SealedPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
-      <h1 className="font-display text-4xl font-bold tracking-[-0.03em]">
-        Sealed from this browser
-      </h1>
-      <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
+      <h1 className="font-display text-4xl font-bold tracking-[-0.03em]">Envelopes.</h1>
+
+      <div className="mt-6">
+        <Tabs
+          label="Envelopes"
+          active={tab}
+          onSelect={(id) => setTab(id as "mine" | "chain")}
+          tabs={[
+            { id: "mine", label: "From this browser", count: records.length },
+            {
+              id: "chain",
+              label: "On this anonymizer",
+              count: onChain?.length,
+            },
+          ]}
+        />
+      </div>
+
+      <div
+        role="tabpanel"
+        id="panel-mine"
+        aria-labelledby="tab-mine"
+        hidden={tab !== "mine"}
+      >
+      <p className="mt-6 max-w-[62ch] text-[var(--paper-dim)]">
         The key is the envelope, so it is written here before anything is signed and an
         interrupted seal cannot strand the money. Anyone holding a claim link can take
         the contents.
@@ -203,11 +228,15 @@ export default function SealedPage() {
         ))}
       </Section>
 
-      <div className="mt-14 border-t border-[var(--ink-line)] pt-8">
-        <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">
-          On this anonymizer
-        </h2>
-        <p className="mt-2 max-w-[62ch] text-sm text-[var(--paper-dim)]">
+      </div>
+
+      <div
+        role="tabpanel"
+        id="panel-chain"
+        aria-labelledby="tab-chain"
+        hidden={tab !== "chain"}
+      >
+        <p className="mt-6 max-w-[62ch] text-sm text-[var(--paper-dim)]">
           Every envelope the contract has funded, from its own events. One funded through
           the pool carries the pool&rsquo;s events in the same transaction and is
           submitted by a relayer rather than by whoever funded it. That separation is the
