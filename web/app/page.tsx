@@ -115,14 +115,10 @@ export default function CreatePage() {
   // someone who was only handed the link, which is the whole point of the
   // product for anyone who has never touched Starknet.
   /**
-   * Which pot the envelope is paid from.
-   *
-   * "auto" is the default and behaves as the app always has: spend a shielded
-   * note when there is one, otherwise deposit from the wallet in the same
-   * transaction. Choosing explicitly is for anyone who would rather decide, and
-   * a stated choice is never quietly overridden.
+   * Which STRK the envelope is paid with. Null until the funder picks, so the
+   * default can follow the balances instead of being frozen at mount.
    */
-  const [source, setSource] = useState<"auto" | "shielded" | "wallet">("auto");
+  const [chosen, setChosen] = useState<"shielded" | "wallet" | null>(null);
   const [locked, setLocked] = useState(false);
   const [password, setPassword] = useState("");
 
@@ -218,19 +214,6 @@ export default function CreatePage() {
       setSending(true);
     };
   }, []);
-
-  // A chosen pot that stops covering the amount hands back to automatic rather
-  // than sitting there disabled. Raising the denomination past a shielded note
-  // otherwise left the choice selected, the button dead, and nothing on screen
-  // connecting the two.
-  useEffect(() => {
-    if (source === "shielded" && shieldedBalance !== null && shieldedBalance < amount) {
-      setSource("auto");
-    }
-    if (source === "wallet" && publicBalance !== null && publicBalance < amount) {
-      setSource("auto");
-    }
-  }, [source, shieldedBalance, publicBalance, amount]);
 
   // A long silent wait is indistinguishable from a hang. Counting it out loud
   // at least says which of the two it is.
@@ -472,9 +455,7 @@ export default function CreatePage() {
             // Only ever switches pots when the app was guessing. Someone who
             // asked for the shielded note gets told it did not work rather
             // than having their wallet quietly spent instead.
-            if (source !== "auto" || fromWallet || shieldedBalance !== null) {
-              throw poolAttempt;
-            }
+            if (fromWallet || shieldedBalance !== null) throw poolAttempt;
             setProgress("No shielded note to spend. Funding from your wallet instead.");
             const result = await sealThroughPool("wallet");
             transactionHash = result.transaction_hash;
@@ -597,20 +578,24 @@ export default function CreatePage() {
   const maker = accountClassName(accountClass);
   const shieldedCovers = shieldedBalance !== null && shieldedBalance >= amount;
   const walletCovers = publicBalance !== null && publicBalance >= amount;
+  // Shielded when there is a note to spend, otherwise the wallet. A pick that
+  // stops covering the amount falls back rather than sitting there selected
+  // and unusable.
+  const source: "shielded" | "wallet" =
+    chosen === "shielded" && shieldedCovers
+      ? "shielded"
+      : chosen === "wallet" && walletCovers
+        ? "wallet"
+        : shieldedCovers
+          ? "shielded"
+          : "wallet";
   // Fund from the wallet only when the shielded balance is known and short of
   // the envelope. An unreadable balance previously counted as zero, which
   // meant a failed read silently deposited the user's money a second time
   // while a perfectly good shielded note sat unspent.
-  const fromWallet =
-    source === "wallet" ||
-    (source === "auto" && shieldedBalance !== null && shieldedBalance < amount);
+  const fromWallet = source === "wallet";
   // Enough to seal, from wherever it has to come.
-  const funded =
-    source === "shielded"
-      ? shieldedCovers
-      : source === "wallet"
-        ? walletCovers
-        : (shieldedBalance ?? 0n) >= amount || walletCovers;
+  const funded = source === "shielded" ? shieldedCovers : walletCovers;
 
   return (
     <>
@@ -734,11 +719,7 @@ export default function CreatePage() {
             <p className="mb-2 text-xs text-[var(--paper-faint)]">
               {source === "shielded"
                 ? "Spends a note already in the pool. Nothing on-chain ties the envelope to you."
-                : source === "wallet"
-                  ? "Deposits and funds in one transaction, so that deposit leaves your address alongside the envelope."
-                  : shieldedCovers
-                    ? "A note in the pool, since there is one to spend."
-                    : "Your wallet, since there is no note in the pool to spend."}
+                : "Deposits and funds in one transaction, so that deposit leaves your address alongside the envelope."}
             </p>
             <div
               role="group"
@@ -746,13 +727,12 @@ export default function CreatePage() {
               className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
             >
               {[
-                { value: "auto" as const, label: "Automatic", available: true },
+                { value: "wallet" as const, label: "STRK", available: walletCovers },
                 {
                   value: "shielded" as const,
-                  label: "Shielded",
+                  label: "Shielded STRK",
                   available: shieldedCovers,
                 },
-                { value: "wallet" as const, label: "Wallet", available: walletCovers },
               ].map((choice) => {
                 const active = choice.value === source;
                 return (
@@ -764,11 +744,13 @@ export default function CreatePage() {
                     title={
                       choice.available
                         ? undefined
-                        : `Not enough ${choice.value === "shielded" ? "shielded" : "wallet"} balance for ${denomination.toString()} ${STRK.symbol}`
+                        : choice.value === "shielded"
+                          ? `Nothing shielded to cover ${denomination.toString()} ${STRK.symbol}`
+                          : `Not enough in your wallet to cover ${denomination.toString()} ${STRK.symbol}`
                     }
                     onClick={() => {
                       play("tap");
-                      setSource(choice.value);
+                      setChosen(choice.value);
                     }}
                     className="rounded-md px-4 py-1.5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
                     style={
