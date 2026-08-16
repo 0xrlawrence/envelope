@@ -89,6 +89,16 @@ export const STRK: Token = { symbol: "STRK", address: STRK_ADDRESS, decimals: 18
  */
 export const DENOMINATIONS = [1n, 5n, 10n, 25n, 100n];
 
+/**
+ * The size the form opens on. Named rather than indexed, for the same reason
+ * the expiry default below is: the list is ordered for the row of buttons, so
+ * a position quietly means a different amount the moment a size is added.
+ *
+ * The smallest one, because whoever is trying this for the first time should
+ * not have to notice they are about to send ten.
+ */
+export const DEFAULT_DENOMINATION = 1n;
+
 export function toSmallestUnit(whole: bigint, token: Token = STRK): bigint {
   return whole * 10n ** BigInt(token.decimals);
 }

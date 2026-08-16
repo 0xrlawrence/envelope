@@ -25,6 +25,7 @@ import { SendOff } from "@/components/SendOff";
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
   DENOMINATIONS,
+  DEFAULT_DENOMINATION,
   DEFAULT_EXPIRY_SECONDS,
   EXPIRY_CHOICES,
   STRK,
@@ -108,7 +109,7 @@ export default function CreatePage() {
   } = useWallet();
   const { play } = useSound();
 
-  const [denomination, setDenomination] = useState(DENOMINATIONS[2]!);
+  const [denomination, setDenomination] = useState(DEFAULT_DENOMINATION);
   const [expirySeconds, setExpirySeconds] = useState(DEFAULT_EXPIRY_SECONDS);
   const [memo, setMemo] = useState("");
   // Public is the default and stays it: a locked envelope cannot be opened by
