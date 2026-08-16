@@ -729,10 +729,10 @@ export default function CreatePage() {
               {[
                 {
                   value: "shielded" as const,
-                  label: "Shielded STRK",
+                  label: "STRK (shielded)",
                   available: shieldedCovers,
                 },
-                { value: "wallet" as const, label: "STRK", available: walletCovers },
+                { value: "wallet" as const, label: "STRK (normal)", available: walletCovers },
               ].map((choice) => {
                 const active = choice.value === source;
                 return (
@@ -752,7 +752,7 @@ export default function CreatePage() {
                       play("tap");
                       setChosen(choice.value);
                     }}
-                    className="rounded-md px-4 py-1.5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="rounded-md px-4 py-1.5 font-display text-sm font-semibold tracking-[0.08em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
                     style={
                       active
                         ? {
