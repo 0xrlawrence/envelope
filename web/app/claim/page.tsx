@@ -17,7 +17,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
 import { SecretInput } from "@/components/SecretInput";
-import { Button, Callout, ExplorerLink, Mono } from "@/components/ui";
+import { Button, Callout, ExplorerLink, LinkButton, Mono } from "@/components/ui";
 import {
   STRK,
   decodeMemo,
@@ -386,12 +386,17 @@ export default function ClaimPage() {
         <p className="mt-4 text-[var(--paper-dim)]">
           {outcome.kind === "private"
             ? "The value landed as a private note. Nothing on-chain connects it to you."
-            : "Paid to your address. Whoever funded it is still hidden, but this payout is public."}
+            : fundedPrivately === false
+              ? "Paid to your address, in the open. This envelope was funded in the open too, so both ends of it are now on-chain."
+              : "Paid to your address. Whoever funded it is still hidden, but this payout is public."}
         </p>
         <div className="mt-6">
           <ExplorerLink explorer={network.explorer} kind="tx" value={outcome.transactionHash}>
             {outcome.transactionHash}
           </ExplorerLink>
+        </div>
+        <div className="mt-10">
+          <LinkButton href="/">Go to home</LinkButton>
         </div>
       </Shell>
     );
@@ -420,9 +425,52 @@ export default function ClaimPage() {
     envelope.status === "funded" && seconds >= envelope.unlockAt && !expired;
   const reference = decodeMemo(envelope.memo);
 
+  // Lifted out of the column that used to hold them, because the headline and
+  // the sentence under it now sit above the envelope while everything that can
+  // be acted on stays in the other column. Both vary by state, so they are
+  // built once here rather than branching twice in the markup.
+  const headline = spent
+    ? envelope.status === "claimed"
+      ? "Already opened."
+      : "Returned to sender."
+    : expired
+      ? "Too late."
+      : "Someone sent you this.";
+
+  const intro = expired ? (
+    <>
+      The claim window shut on {formatDeadline(envelope.expiry)} without anyone opening
+      this. The contract will refuse a claim now, so there is nothing a wallet can do
+      here. The {formatAmount(envelope.amount)} {STRK.symbol} is not lost: only whoever
+      funded it can move it, using their return link.
+    </>
+  ) : spent ? (
+    <>
+      This envelope has been settled. An envelope releases exactly once, which is what
+      makes the link safe to send over a channel you do not control.
+    </>
+  ) : fundedPrivately === false ? (
+    <>
+      This one was funded from an address in the open, so whoever paid for it is already
+      on-chain. Nothing below changes that. What the two routes change is what becomes
+      public about <em>you</em>.
+    </>
+  ) : (
+    <>
+      Whoever funded this stays hidden either way. What changes between the two routes
+      below is what becomes public about <em>you</em>.
+    </>
+  );
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start">
-      <div className="order-2 lg:order-first lg:sticky lg:top-10">
+      <div className="order-1 lg:sticky lg:top-10">
+        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
+          {headline}
+        </h1>
+        <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">{intro}</p>
+
+        <div className="mt-[clamp(1rem,3.5vh,2.25rem)]">
         <EnvelopeCard
           amount={formatAmount(envelope.amount)}
           symbol={STRK.symbol}
@@ -437,55 +485,15 @@ export default function ClaimPage() {
                 : `Claimable until ${formatDeadline(envelope.expiry)}, ${timeRemaining(envelope.expiry)}.`
           }
         />
+        </div>
       </div>
 
-      <div className="order-1">
-        <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em]">
-          {spent
-            ? envelope.status === "claimed"
-              ? "Already opened."
-              : "Returned to sender."
-            : expired
-              ? "Too late."
-              : "Someone sent you this."}
-        </h1>
-
-        {expired ? (
-          <>
-            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-              The claim window shut on {formatDeadline(envelope.expiry)} without anyone
-              opening this. The contract will refuse a claim now, so there is nothing a
-              wallet can do here. The {formatAmount(envelope.amount)} {STRK.symbol} is not
-              lost: only whoever funded it can move it, using their return link.
-            </p>
-            <Receipt claimPublicKey={claimPublicKey} />
-          </>
-        ) : spent ? (
-          <>
-            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-              This envelope has been settled. An envelope releases exactly once, which is
-              what makes the link safe to send over a channel you do not control.
-            </p>
-            <Receipt claimPublicKey={claimPublicKey} />
-          </>
+      <div className="order-2">
+        {expired || spent ? (
+          <Receipt claimPublicKey={claimPublicKey} />
         ) : (
           <>
-            <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-              {fundedPrivately === false ? (
-                <>
-                  This one was funded from an address in the open, so whoever paid for it
-                  is already on-chain. Nothing below changes that. What the two routes
-                  change is what becomes public about <em>you</em>.
-                </>
-              ) : (
-                <>
-                  Whoever funded this stays hidden either way. What changes between the
-                  two routes below is what becomes public about <em>you</em>.
-                </>
-              )}
-            </p>
-
-            <div className="mt-5 space-y-2">
+            <div className="space-y-2">
               {!claimable && envelope.unlockAt > seconds ? (
                 <Callout tone="warn" title="Not open yet">
                   Time-locked until {formatDeadline(envelope.unlockAt)}.
