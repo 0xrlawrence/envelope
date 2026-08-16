@@ -130,12 +130,10 @@ export default function CreatePage() {
   /**
    * Which wallet prompt is outstanding during a seal.
    *
-   * The pool route asks twice: once to assemble and prove without submitting,
-   * once to sign the thing that moves the money. The public route asks once.
-   * The count is decided by which route is running, not assumed.
+   * Both routes ask once. Past the first step the signature is in and the page
+   * is waiting on the chain, which is what the flight is waiting on too.
    */
   const [sealStep, setSealStep] = useState(0);
-  const [sealSteps, setSealSteps] = useState(2);
   const [elapsed, setElapsed] = useState(0);
   const [sending, setSending] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -390,12 +388,10 @@ export default function CreatePage() {
     const watch = { cancelled: false, found: false };
     const watching = watchForEnvelope(claim.publicKey, watch);
 
-    // Two routes, and the app must never hand back a dead end because the
-    // first one did not work. The pool route hides the funder but needs a
-    // wallet that can prove for this account; the public route needs only an
-    // approval and works from any wallet. Either way the funder gets an
-    // envelope, and nothing has moved when a route fails, so falling through
-    // costs a second signature and no money.
+    // Two routes, one prompt each, chosen by the funder rather than by falling
+    // through from one to the other. The pool route hides the funder but needs
+    // a wallet that can prove for this account; the public route needs only an
+    // approval and works from any wallet.
     const sealThroughPool = async (fundFrom: "shielded" | "wallet") => {
       const actions = buildFundActions({
         anonymizer: network.anonymizer,
@@ -407,20 +403,28 @@ export default function CreatePage() {
         expiry: expirySeconds === 0 ? 0 : Math.floor(Date.now() / 1000) + expirySeconds,
         memo: memo.slice(0, 31),
       });
-      // Assemble and prove without submitting first: a wallet that cannot prove
-      // for this account fails here, before anyone is asked to sign.
-      setSealSteps(2);
+      // One prompt. There used to be a `strk20PrepareInvoke` before this one,
+      // meant to fail early on a wallet that cannot prove for this account, and
+      // it could not do that: its second argument is `simulate`, and simulate
+      // mode is defined as skipping proof generation and returning an empty
+      // proof. So it asked the funder to approve an operation, discarded the
+      // answer, and proved nothing.
+      //
+      // It also put a second wallet dialog on the wrong side of the flight. The
+      // flight ends when the chain shows the envelope, not when the wallet
+      // returns, so a further prompt after that one arrives over the success
+      // screen, on an envelope that is already sealed and paid for.
+      //
+      // Nothing is lost by dropping it. The shielded route is only offered when
+      // the wallet has answered a STRK20 balance query for this account and the
+      // shielded balance covers the amount, and a wallet that still cannot
+      // prove fails on this call with the same error, one dialog earlier.
       setSealStep(1);
-      await account.strk20PrepareInvoke(actions, true);
-      setSealStep(2);
-      const submitted = await account.strk20InvokeTransaction(actions);
-      setSealStep(3);
-      return submitted;
+      return account.strk20InvokeTransaction(actions);
     };
 
     const sealPublicly = async () => {
       // One prompt, not two: the approval and the funding call travel together.
-      setSealSteps(1);
       setSealStep(1);
       return account.execute(
         buildPublicFundCalls({
@@ -457,6 +461,9 @@ export default function CreatePage() {
         transactionHash = result.transaction_hash;
       }
 
+      // Past the last prompt on either route, so the panel stops naming a
+      // signature and says what it is actually waiting on.
+      setSealStep(2);
       markSubmitted(claim.publicKey, transactionHash);
       setSealed((previous) =>
         previous ? { ...previous, transactionHash, private: viaPool } : previous,
@@ -532,7 +539,11 @@ export default function CreatePage() {
           ? "This wallet does not serve the STRK20 methods, so it cannot seal an envelope. Ready has privacy live on mainnet; the claim page still works with any Starknet wallet."
           : explained.message,
       );
-      setErrorDetail(`${explained.raw} (during strk20InvokeTransaction)`);
+      setErrorDetail(
+        `${explained.raw} (during ${
+          source === "shielded" ? "strk20InvokeTransaction" : "execute"
+        })`,
+      );
       // The action list is logged alongside so a shape problem is visible
       // rather than inferred.
       console.error("[envelope] seal failed", cause, {
@@ -642,26 +653,15 @@ export default function CreatePage() {
           step={sealStep}
           settled={!!sealed && sealed.state !== "funding"}
           note={progress}
-          steps={
-            sealSteps === 1
-              ? [
-                  {
-                    title: "Sign the funding",
-                    detail: "One transaction: the approval and the envelope together.",
-                  },
-                ]
-              : [
-                  {
-                    title: "Prove it can be sent",
-                    detail:
-                      "Assembled and proved without submitting, so a wallet that cannot prove for this account fails before anything is signed.",
-                  },
-                  {
-                    title: "Sign the seal",
-                    detail: "The one that actually moves the money.",
-                  },
-                ]
-          }
+          steps={[
+            {
+              title: "Sign the funding",
+              detail:
+                source === "shielded"
+                  ? "One transaction. Your wallet proves it before submitting, which is the part that takes a moment."
+                  : "One transaction: the approval and the envelope together.",
+            },
+          ]}
         />
       ) : null}
 
