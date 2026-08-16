@@ -951,16 +951,29 @@ export default function CreatePage() {
             </Callout>
           ) : null}
 
+          {/* A balance that was read is money, and gets the one green on the
+              site. A balance that could not be read is not a figure at all, so
+              it stays in the quiet colour rather than being dressed up as one. */}
           {address ? (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 border-y border-[var(--ink-line)] py-2.5 text-sm">
               <dt className="field-label">In your wallet</dt>
-              <dd className="text-right font-mono text-[var(--paper-dim)]">
+              <dd
+                className="text-right font-mono tabular-nums"
+                style={{
+                  color: publicBalance === null ? "var(--paper-faint)" : "var(--credit)",
+                }}
+              >
                 {publicBalance === null
                   ? "unreadable"
                   : `${formatAmount(publicBalance)} ${STRK.symbol}`}
               </dd>
               <dt className="field-label">Shielded in the pool</dt>
-              <dd className="text-right font-mono text-[var(--paper-dim)]">
+              <dd
+                className="text-right font-mono tabular-nums"
+                style={{
+                  color: shieldedBalance === null ? "var(--paper-faint)" : "var(--credit)",
+                }}
+              >
                 {shieldedBalance === null
                   ? "unreadable"
                   : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}

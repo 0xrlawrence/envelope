@@ -45,6 +45,12 @@
 
   --seal: #a8332f;
 
+  /* Money you hold. The one green on the site, so it means exactly one thing.
+     Pulled toward the muted end of the palette rather than a signal green: the
+     rest of this page is kraft and airmail ink, and a saturated green next to
+     it reads as an alert rather than as a figure. 8.4:1 on the page. */
+  --credit: #6bbf8a;
+
   /* The security tint reads as ink on a dark stock, so it can be assertive. */
   --tint-a: 22%;
   --tint-b: 16%;
@@ -91,6 +97,11 @@
   --airmail-blue: #35619f;
 
   --seal: #a8332f;
+
+  /* The dark theme's green is a pastel and vanishes on white, so the same
+     pigment is laid on much heavier. Measured against the raised surface as
+     well as the page, because the balances sit on both: 4.9:1 and 5.1:1. */
+  --credit: #1f7a45;
 
   /* On white the same alphas would be a wall of blue. */
   --tint-a: 9%;
