@@ -55,6 +55,11 @@ export default function ClaimPage() {
   const [password, setPassword] = useState("");
   const [unlocking, setUnlocking] = useState(false);
   const [lockError, setLockError] = useState("");
+  /**
+   * Whether the funding leg went through the pool. Undefined until it is known,
+   * and the copy stays neutral until then rather than guessing either way.
+   */
+  const [fundedPrivately, setFundedPrivately] = useState<boolean | undefined>();
 
   useEffect(() => {
     if (outcome) play("success");
@@ -123,6 +128,26 @@ export default function ClaimPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // How the envelope was funded is not the recipient's choice, but it decides
+  // whether the page can honestly say the funder is hidden.
+  useEffect(() => {
+    if (!claimPublicKey || !network.anonymizer) return;
+    let cancelled = false;
+    void readEnvelopeHistory(
+      provider,
+      network.anonymizer,
+      claimPublicKey,
+      network.firstBlock,
+      network.pool,
+    ).then((events) => {
+      const funded = events.find((event) => event.kind === "funded");
+      if (!cancelled) setFundedPrivately(funded?.throughPool);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [claimPublicKey, network.anonymizer, network.firstBlock, network.pool, provider]);
 
   /**
    * `readEnvelope` decides claimable and refundable against the clock at the
@@ -446,8 +471,18 @@ export default function ClaimPage() {
         ) : (
           <>
             <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">
-              Whoever funded this stays hidden either way. What changes between the two
-              routes below is what becomes public about <em>you</em>.
+              {fundedPrivately === false ? (
+                <>
+                  This one was funded from an address in the open, so whoever paid for it
+                  is already on-chain. Nothing below changes that. What the two routes
+                  change is what becomes public about <em>you</em>.
+                </>
+              ) : (
+                <>
+                  Whoever funded this stays hidden either way. What changes between the
+                  two routes below is what becomes public about <em>you</em>.
+                </>
+              )}
             </p>
 
             <div className="mt-5 space-y-2">

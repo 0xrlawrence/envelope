@@ -21,6 +21,12 @@ export interface EnvelopeEvent {
    * public address. Undefined for the other two.
    */
   intoPool?: boolean;
+  /**
+   * For a funding, whether it went through the pool. Only meaningful when a
+   * pool address was supplied, since it is decided by whether the pool emitted
+   * anything in the same transaction.
+   */
+  throughPool?: boolean;
 }
 
 const EVENTS: ReadonlyArray<readonly [string, EnvelopeEventKind]> = [
@@ -54,6 +60,7 @@ export async function readEnvelopeHistory(
   anonymizer: string,
   claimPublicKey: string,
   fromBlock: number,
+  pool?: string,
 ): Promise<EnvelopeEvent[]> {
   if (!anonymizer) return [];
 
@@ -96,5 +103,25 @@ export async function readEnvelopeHistory(
     return found;
   }
 
-  return found.sort((a, b) => a.blockNumber - b.blockNumber);
+  found.sort((a, b) => a.blockNumber - b.blockNumber);
+
+  // Whether the funding went through the pool is not in the envelope's own
+  // event: the anonymizer records the same thing either way. It is decided by
+  // whether the pool emitted anything in that transaction, which costs one
+  // receipt and is only worth fetching when a caller asks.
+  const funded = pool ? found.find((event) => event.kind === "funded") : undefined;
+  if (funded) {
+    try {
+      const receipt = (await provider.getTransactionReceipt(
+        funded.transactionHash,
+      )) as unknown as { events?: Array<{ from_address: string }> };
+      funded.throughPool = (receipt.events ?? []).some(
+        (entry) => BigInt(entry.from_address) === BigInt(pool!),
+      );
+    } catch {
+      // Left undefined, which reads as "not known" rather than "not private".
+    }
+  }
+
+  return found;
 }
