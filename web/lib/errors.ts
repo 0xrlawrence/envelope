@@ -1,3 +1,12 @@
+import { walletErrorCodes, walletErrorText } from "strk20-envelope";
+
+/**
+ * Telling a refusal from a fault lives in the SDK, where it has tests. What
+ * stays here is the copy: what to say to the person once the error is
+ * understood, which is this app's business rather than the protocol's.
+ */
+export { looksRejected } from "strk20-envelope";
+
 /**
  * Wallet API error codes, mapped to something a person can act on.
  *
@@ -47,49 +56,28 @@ const BY_NAME: Array<[RegExp, string]> = [
 ];
 
 /**
- * Did the person say no?
+ * Best available explanation, with the wallet's own words kept for reference.
  *
- * This has to be told apart from every other failure, because the app's answer
- * to a failed seal is to spend forty seconds asking the chain whether the
- * transaction landed anyway. That is right for a wallet that timed out holding
- * a transaction it had already submitted. It is wrong for a refusal: nothing
- * was ever sent, there is nothing to find, and the user is left watching an
- * envelope fly for a transaction they cancelled.
+ * Both lookups run against the whole error rather than against its message.
+ * The code that names the problem is routinely nested a layer or two down, and
+ * an explanation that misses it falls through to whatever generic sentence the
+ * bridge put on the outside.
  */
-export function looksRejected(error: unknown): boolean {
-  // The code is the reliable signal. Wallets word the message however they
-  // like, and some send none at all, but `USER_REFUSED_OP` is 113 by spec.
-  if ((error as { code?: unknown })?.code === 113) return true;
-
-  const raw =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : JSON.stringify(error ?? {});
-  // Careful with the wording: "the wallet rejected the request payload" is a
-  // malformed call, not a refusal, and must not land here. Every pattern below
-  // names the user as the one doing the refusing.
-  return /USER_REFUSED|USER_DENIED|USER_REJECTED|USER_ABORT|ABORTED_BY_USER|(reject|refus|declin|cancell?|abort)(ed)?\s+by\s+(the\s+)?user|user\s+(rejected|refused|denied|declined|abort(ed)?|cancell?ed)|request\s+(rejected|cancell?ed)/i.test(
-    raw,
-  );
-}
-
-/** Best available explanation, with the wallet's own words kept for reference. */
 export function explainWalletError(error: unknown): { message: string; raw: string } {
   const raw =
     error instanceof Error
       ? error.message
       : typeof error === "string"
         ? error
-        : JSON.stringify(error ?? {});
+        : walletErrorText(error);
 
-  const code = (error as { code?: unknown })?.code;
-  if (typeof code === "number" && BY_CODE[code]) {
-    return { message: BY_CODE[code], raw };
+  for (const code of walletErrorCodes(error)) {
+    if (BY_CODE[code]) return { message: BY_CODE[code], raw: raw || walletErrorText(error) };
   }
+
+  const searchable = walletErrorText(error) || raw;
   for (const [pattern, message] of BY_NAME) {
-    if (pattern.test(raw)) return { message, raw };
+    if (pattern.test(searchable)) return { message, raw: raw || searchable };
   }
   return { message: raw || "The wallet could not complete this.", raw };
 }

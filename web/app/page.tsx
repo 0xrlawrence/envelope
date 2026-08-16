@@ -150,6 +150,8 @@ export default function CreatePage() {
   const [shieldError, setShieldError] = useState("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
+  /** Whether the message above is a refusal rather than something going wrong. */
+  const [declined, setDeclined] = useState(false);
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
 
   useEffect(() => {
@@ -319,6 +321,7 @@ export default function CreatePage() {
     setBusy("sealing");
     setError("");
     setErrorDetail("");
+    setDeclined(false);
     setSealStep(0);
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
@@ -639,6 +642,7 @@ export default function CreatePage() {
             if (sealed?.state === "declined") {
               setSealed(null);
               undoSendOff(stageRef.current);
+              setDeclined(true);
               setError("You declined this in your wallet. Nothing was sent and nothing moved.");
             }
           }}
@@ -974,8 +978,14 @@ export default function CreatePage() {
             </Callout>
           ) : null}
 
+          {/* A decline is not a failure. Nothing broke, nothing moved, and the
+              person did it on purpose, so it is not stamped in the colour this
+              app uses for something going wrong. */}
           {error ? (
-            <Callout tone="bad" title="Failed">
+            <Callout
+              tone={declined ? "warn" : "bad"}
+              title={declined ? "Not sent" : "Failed"}
+            >
               <p>{error}</p>
               {errorDetail && errorDetail !== error ? (
                 <p className="mt-2 font-mono text-xs break-all text-[var(--paper-faint)]">

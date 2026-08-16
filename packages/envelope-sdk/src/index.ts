@@ -60,3 +60,9 @@ export {
   type EnvelopeEvent,
   type EnvelopeEventKind,
 } from "./history.js";
+export {
+  looksRejected,
+  walletErrorCodes,
+  walletErrorText,
+  USER_REFUSED_OP,
+} from "./wallet-errors.js";
