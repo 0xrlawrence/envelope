@@ -727,12 +727,12 @@ export default function CreatePage() {
               className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
             >
               {[
-                { value: "wallet" as const, label: "STRK", available: walletCovers },
                 {
                   value: "shielded" as const,
                   label: "Shielded STRK",
                   available: shieldedCovers,
                 },
+                { value: "wallet" as const, label: "STRK", available: walletCovers },
               ].map((choice) => {
                 const active = choice.value === source;
                 return (
