@@ -282,6 +282,12 @@ export default function RefundPage() {
           step={step}
           settled={phase !== "flying"}
           onStopWaiting={() => stopWaitingRef.current?.()}
+          // A return is always a STRK20 call, and declining one of those does
+          // not come back as a rejected promise. So the way out is offered
+          // almost at once here rather than after a wait for an answer that is
+          // never coming.
+          stopWaitingAfterMs={2_500}
+          stopWaitingHint="Declined it? A shielded return does not report that back to this page, so it will keep waiting until you say so."
           steps={[
             {
               title: "Work out where it lands",

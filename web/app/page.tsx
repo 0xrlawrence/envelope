@@ -702,6 +702,27 @@ export default function CreatePage() {
           settled={!!sealed && sealed.state !== "funding"}
           note={progress}
           onStopWaiting={() => stopWaitingRef.current?.()}
+          {...(source === "shielded"
+            ? {
+                /*
+                 * The shielded route goes through
+                 * `wallet_strk20InvokeTransaction`, and declining that does not
+                 * come back as a rejected promise the way declining an ordinary
+                 * `wallet_addInvokeTransaction` does. Both reach the wallet
+                 * through the same channel in starknet.js and only the method
+                 * name differs, so this is the wallet's side and no amount of
+                 * error handling here can see it: the call simply stays pending
+                 * and the envelope flies on.
+                 *
+                 * Since a refusal on this route is never going to arrive, there
+                 * is nothing to wait for. The way out is offered almost at
+                 * once, and says why.
+                 */
+                stopWaitingAfterMs: 2_500,
+                stopWaitingHint:
+                  "Declined it? A shielded send does not report that back to this page, so it will keep waiting until you say so.",
+              }
+            : {})}
           steps={[
             {
               title: "Sign the funding",

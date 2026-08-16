@@ -24,11 +24,13 @@ export interface ApprovalStep {
  * has already slid off the screen.
  */
 /**
- * How long to wait before offering the way out.
+ * How long to wait before offering the way out, when the wallet can be trusted
+ * to report a refusal on its own.
  *
  * Long enough that it is not the first thing a working flow shows, short
- * enough that nobody sits through a minute of an animation for a prompt they
- * already dismissed.
+ * enough that nobody sits through a minute of animation for a prompt they
+ * already dismissed. Callers whose wallet method never reports one pass
+ * something much shorter.
  */
 const OFFER_AFTER_MS = 7_000;
 
@@ -41,6 +43,8 @@ export function Approvals({
   settled,
   note = "",
   onStopWaiting,
+  stopWaitingAfterMs,
+  stopWaitingHint,
 }: {
   title: string;
   amount: string;
@@ -62,6 +66,14 @@ export function Approvals({
    * on the wallet saying anything.
    */
   onStopWaiting?: () => void;
+  /**
+   * How long to wait before offering it. Short when the caller knows the wallet
+   * method in use does not report a refusal at all, in which case waiting is
+   * only ever wasted time.
+   */
+  stopWaitingAfterMs?: number;
+  /** Replaces the default wording, for a caller that knows more than this. */
+  stopWaitingHint?: string;
 }) {
   const count = steps.length;
 
@@ -73,9 +85,12 @@ export function Approvals({
   const canStopWaiting = Boolean(onStopWaiting);
   useEffect(() => {
     if (settled || !canStopWaiting) return;
-    const timer = window.setTimeout(() => setOfferWayOut(true), OFFER_AFTER_MS);
+    const timer = window.setTimeout(
+      () => setOfferWayOut(true),
+      stopWaitingAfterMs ?? OFFER_AFTER_MS,
+    );
     return () => window.clearTimeout(timer);
-  }, [settled, canStopWaiting]);
+  }, [settled, canStopWaiting, stopWaitingAfterMs]);
 
   return (
     /*
@@ -160,8 +175,8 @@ export function Approvals({
         {offerWayOut && !settled && onStopWaiting ? (
           <div className="pointer-events-auto mt-2 border-t border-[var(--ink-line)] pt-2 sm:mt-3 sm:pt-3">
             <p className="text-[0.7rem] text-[var(--paper-faint)] sm:text-xs">
-              Declined it, or nothing came up? Some wallets never say so, and this
-              page cannot tell on its own.
+              {stopWaitingHint ||
+                "Declined it, or nothing came up? Some wallets never say so, and this page cannot tell on its own."}
             </p>
             <button
               type="button"
