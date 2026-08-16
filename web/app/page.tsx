@@ -438,38 +438,20 @@ export default function CreatePage() {
       let transactionHash = "";
       let viaPool = false;
 
-      if (supportsStrk20) {
-        try {
-          const result = await sealThroughPool(fromWallet ? "wallet" : "shielded");
-          transactionHash = result.transaction_hash;
-          viaPool = true;
-        } catch (poolAttempt) {
-          console.debug("[envelope] pool route unavailable", poolAttempt);
-          // A refusal ends it. Falling through to the next route would put a
-          // second signature prompt in front of someone who has just said no.
-          if (looksRejected(poolAttempt)) throw poolAttempt;
-          // Spending a note is a guess whenever the shielded balance could not
-          // be read, so try the pool once more from the wallet before giving up
-          // on privacy altogether.
-          try {
-            // Only ever switches pots when the app was guessing. Someone who
-            // asked for the shielded note gets told it did not work rather
-            // than having their wallet quietly spent instead.
-            if (fromWallet || shieldedBalance !== null) throw poolAttempt;
-            setProgress("No shielded note to spend. Funding from your wallet instead.");
-            const result = await sealThroughPool("wallet");
-            transactionHash = result.transaction_hash;
-            viaPool = true;
-          } catch (walletAttempt) {
-            if (looksRejected(walletAttempt)) throw walletAttempt;
-            setProgress(
-              "This wallet cannot prove a private seal for this account, so the envelope is funded from your address.",
-            );
-            const result = await sealPublicly();
-            transactionHash = result.transaction_hash;
-          }
-        }
+      // One label, one route. This used to try the pool whichever token was
+      // chosen, because "normal STRK" was wired to a wallet deposit that still
+      // went through the pool, and only reached a public seal by failing first.
+      // On an account that cannot prove a STRK20 action that guaranteed a
+      // rejected prompt before the one that works, and on any account it meant
+      // the label described the token rather than what would happen.
+      if (source === "shielded") {
+        const result = await sealThroughPool("shielded");
+        transactionHash = result.transaction_hash;
+        viaPool = true;
       } else {
+        // No pool attempt to fall back from. Choosing normal STRK is choosing
+        // to fund from the address in the open, and quietly routing it through
+        // the pool anyway would be deciding that for the funder.
         const result = await sealPublicly();
         transactionHash = result.transaction_hash;
       }
@@ -559,7 +541,7 @@ export default function CreatePage() {
           amount,
           claimPublicKey: claim.publicKey,
           refundPublicKey: refund.publicKey,
-          fundFrom: fromWallet ? "wallet" : "shielded",
+          fundFrom: "shielded",
         }),
       });
     } finally {
@@ -576,7 +558,8 @@ export default function CreatePage() {
 
   const notDeployed = network.anonymizer === "";
   const maker = accountClassName(accountClass);
-  const shieldedCovers = shieldedBalance !== null && shieldedBalance >= amount;
+  const shieldedCovers =
+    supportsStrk20 && shieldedBalance !== null && shieldedBalance >= amount;
   const walletCovers = publicBalance !== null && publicBalance >= amount;
   // Shielded when there is a note to spend, otherwise the wallet. A pick that
   // stops covering the amount falls back rather than sitting there selected
@@ -593,7 +576,6 @@ export default function CreatePage() {
   // the envelope. An unreadable balance previously counted as zero, which
   // meant a failed read silently deposited the user's money a second time
   // while a perfectly good shielded note sat unspent.
-  const fromWallet = source === "wallet";
   // Enough to seal, from wherever it has to come.
   const funded = source === "shielded" ? shieldedCovers : walletCovers;
 
@@ -718,8 +700,8 @@ export default function CreatePage() {
           <Field label="Pay with">
             <p className="mb-2 text-xs text-[var(--paper-faint)]">
               {source === "shielded"
-                ? "Spends a note already in the pool. Nothing on-chain ties the envelope to you."
-                : "Deposits and funds in one transaction, so that deposit leaves your address alongside the envelope."}
+                ? "Spends a note already in the pool. A relayer submits it, so nothing on-chain ties the envelope to you."
+                : "Funds the contract straight from your address, in the open. Works with any wallet."}
             </p>
             <div
               role="group"
@@ -745,7 +727,9 @@ export default function CreatePage() {
                       choice.available
                         ? undefined
                         : choice.value === "shielded"
-                          ? `Nothing shielded to cover ${denomination.toString()} ${STRK.symbol}`
+                          ? supportsStrk20
+                            ? `Nothing shielded to cover ${denomination.toString()} ${STRK.symbol}`
+                            : "This wallet cannot prove a STRK20 action for this account"
                           : `Not enough in your wallet to cover ${denomination.toString()} ${STRK.symbol}`
                     }
                     onClick={() => {
@@ -1012,11 +996,9 @@ export default function CreatePage() {
           {busy !== "" ? (
             <div className="text-sm text-[var(--paper-dim)]">
               <p>
-                {fromWallet
-                  ? "Shielding and sealing in one transaction. "
-                  : "Spending a shielded note. "}
-                The wallet generates a STARK proof before anything is submitted, which
-                takes about half a minute on a fast machine.
+                {source === "shielded"
+                  ? "Spending a shielded note. The wallet generates a STARK proof before anything is submitted, which takes about half a minute on a fast machine."
+                  : "Funding from your address. One ordinary transaction, no proof to generate."}
               </p>
               <p className="mt-2 font-mono text-xs tracking-widest text-[var(--paper-faint)] uppercase">
                 {Math.floor(elapsed / 60)}m {String(elapsed % 60).padStart(2, "0")}s
