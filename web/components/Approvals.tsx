@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 export interface ApprovalStep {
   title: string;
   /** Shown only while this step is the one outstanding. */
@@ -21,6 +23,15 @@ export interface ApprovalStep {
  * route changing under it, which the page would otherwise report to a form that
  * has already slid off the screen.
  */
+/**
+ * How long to wait before offering the way out.
+ *
+ * Long enough that it is not the first thing a working flow shows, short
+ * enough that nobody sits through a minute of an animation for a prompt they
+ * already dismissed.
+ */
+const OFFER_AFTER_MS = 7_000;
+
 export function Approvals({
   title,
   amount,
@@ -29,6 +40,7 @@ export function Approvals({
   step,
   settled,
   note = "",
+  onStopWaiting,
 }: {
   title: string;
   amount: string;
@@ -39,8 +51,31 @@ export function Approvals({
   /** True once the flight has an answer and nothing further will be asked. */
   settled: boolean;
   note?: string;
+  /**
+   * Give up on a wallet that is not answering.
+   *
+   * A wallet is supposed to reject its promise when the request is declined,
+   * and not every one does: a refusal can leave the call pending for good,
+   * which leaves this page waiting on an answer that is never coming while the
+   * envelope flies on. Nothing in an error handler can catch that, because
+   * there is no error. The only honest fix is a way out that does not depend
+   * on the wallet saying anything.
+   */
+  onStopWaiting?: () => void;
 }) {
   const count = steps.length;
+
+  const [offerWayOut, setOfferWayOut] = useState(false);
+  // Keyed on whether there is a handler at all, never on its identity. The
+  // caller passes an inline closure and re-renders once a second to tick the
+  // elapsed counter, so depending on the function itself restarted this timer
+  // on every tick and the way out never appeared.
+  const canStopWaiting = Boolean(onStopWaiting);
+  useEffect(() => {
+    if (settled || !canStopWaiting) return;
+    const timer = window.setTimeout(() => setOfferWayOut(true), OFFER_AFTER_MS);
+    return () => window.clearTimeout(timer);
+  }, [settled, canStopWaiting]);
 
   return (
     /*
@@ -120,6 +155,22 @@ export function Approvals({
             Signed. Waiting for the chain to confirm it, which is what the flight is
             waiting on too.
           </p>
+        ) : null}
+
+        {offerWayOut && !settled && onStopWaiting ? (
+          <div className="pointer-events-auto mt-2 border-t border-[var(--ink-line)] pt-2 sm:mt-3 sm:pt-3">
+            <p className="text-[0.7rem] text-[var(--paper-faint)] sm:text-xs">
+              Declined it, or nothing came up? Some wallets never say so, and this
+              page cannot tell on its own.
+            </p>
+            <button
+              type="button"
+              onClick={onStopWaiting}
+              className="mt-1.5 -ml-1 inline-flex min-h-11 items-center px-1 font-display text-[0.7rem] font-semibold tracking-[0.16em] text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:mt-2 sm:min-h-0 sm:px-0 sm:text-xs"
+            >
+              Stop waiting
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

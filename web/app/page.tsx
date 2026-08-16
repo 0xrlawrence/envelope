@@ -152,6 +152,19 @@ export default function CreatePage() {
   const [errorDetail, setErrorDetail] = useState("");
   /** Whether the message above is a refusal rather than something going wrong. */
   const [declined, setDeclined] = useState(false);
+  /**
+   * Whether the funder gave up on a wallet that never answered, rather than the
+   * wallet reporting a refusal. The two need different words: in the first case
+   * this page genuinely does not know what the wallet did.
+   */
+  const [gaveUp, setGaveUp] = useState(false);
+  /**
+   * How to abandon the seal in flight.
+   *
+   * Set by `seal` because it closes over that attempt's watcher, and read by
+   * the approvals panel, which is rendered outside it.
+   */
+  const stopWaitingRef = useRef<(() => void) | null>(null);
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
 
   useEffect(() => {
@@ -322,6 +335,7 @@ export default function CreatePage() {
     setError("");
     setErrorDetail("");
     setDeclined(false);
+    setGaveUp(false);
     setSealStep(0);
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
@@ -390,6 +404,27 @@ export default function CreatePage() {
     // envelope exists from the chain rather than from the wallet finishing.
     const watch = { cancelled: false, found: false };
     const watching = watchForEnvelope(claim.publicKey, watch);
+
+    /**
+     * The way out of a wallet that never answers.
+     *
+     * A refusal is supposed to reject the call. Not every wallet does it, and a
+     * call left pending for good is not something an error handler can catch,
+     * because there is no error: the page simply waits, and the envelope flies,
+     * until someone reloads.
+     *
+     * Deliberately gentle about it. Nothing here knows what the wallet actually
+     * did, so the keys are kept and the watcher is left running rather than
+     * thrown away the way a confirmed refusal throws them away. If the
+     * transaction was signed after all and lands later, the envelope is on the
+     * sealed page with everything needed to claim or reclaim it.
+     */
+    stopWaitingRef.current = () => {
+      setGaveUp(true);
+      setBusy("");
+      setProgress("");
+      setSealed((previous) => (previous ? { ...previous, state: "declined" } : previous));
+    };
 
     // Two routes, one prompt each, chosen by the funder rather than by falling
     // through from one to the other. The pool route hides the funder but needs
@@ -560,6 +595,7 @@ export default function CreatePage() {
         }),
       });
     } finally {
+      stopWaitingRef.current = null;
       setBusy("");
       setProgress("");
     }
@@ -643,7 +679,15 @@ export default function CreatePage() {
               setSealed(null);
               undoSendOff(stageRef.current);
               setDeclined(true);
-              setError("You declined this in your wallet. Nothing was sent and nothing moved.");
+              // Two different facts. The wallet reporting a refusal is
+              // certainty; giving up on a wallet that said nothing is not, and
+              // saying "nothing moved" there would be a guess about someone's
+              // money.
+              setError(
+                gaveUp
+                  ? "Stopped waiting. If you declined in the wallet, nothing was sent and nothing moved. If you did approve it, the envelope is still on its way: it will appear on the sealed page, with its keys."
+                  : "You declined this in your wallet. Nothing was sent and nothing moved.",
+              );
             }
           }}
         />
@@ -657,6 +701,7 @@ export default function CreatePage() {
           step={sealStep}
           settled={!!sealed && sealed.state !== "funding"}
           note={progress}
+          onStopWaiting={() => stopWaitingRef.current?.()}
           steps={[
             {
               title: "Sign the funding",

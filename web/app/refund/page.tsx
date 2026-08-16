@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildRefundActions,
   decodeRefundFragment,
@@ -45,6 +45,12 @@ export default function RefundPage() {
    * looks like the wallet asking twice for the same thing.
    */
   const [step, setStep] = useState(0);
+  /** Whether the funder gave up on a wallet that never answered either way. */
+  const [gaveUp, setGaveUp] = useState(false);
+  /** Whether the wallet reported a refusal, which is not a failure either. */
+  const [declined, setDeclined] = useState(false);
+  /** Set by `reclaim`, read by the approvals panel rendered outside it. */
+  const stopWaitingRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (error && phase === "idle") play("error");
@@ -83,6 +89,8 @@ export default function RefundPage() {
     if (!account || !refundKey || !envelope) return;
     setBusy(true);
     setError("");
+    setDeclined(false);
+    setGaveUp(false);
     // Reset, so a second attempt after a declined one flies again rather than
     // silently doing nothing visible.
     setFlightDone(false);
@@ -106,6 +114,27 @@ export default function RefundPage() {
       (state) => state.status === "refunded",
       watch,
     );
+
+    /**
+     * The way out of a wallet that never answers.
+     *
+     * A declined request is supposed to reject the call, and not every wallet
+     * does it: the call can stay pending for good, which no error handler can
+     * catch because there is no error. Without this the page waits and the
+     * envelope flies until someone reloads.
+     *
+     * Nothing is thrown away. The return link still works, and the watcher is
+     * left running, so a return that was signed after all still lands and still
+     * shows up here.
+     */
+    stopWaitingRef.current = () => {
+      setGaveUp(true);
+      setBusy(false);
+      setPhase("returned");
+      setError(
+        "Stopped waiting. If you declined in the wallet, nothing moved and the return link still works. If you did approve it, the return is still on its way and this page will show it once it lands.",
+      );
+    };
 
     void watching.then(async (state) => {
       if (!state) return;
@@ -168,6 +197,7 @@ export default function RefundPage() {
       if (looksRejected(cause)) {
         watch.cancelled = true;
         setPhase("returned");
+        setDeclined(true);
         setError("You declined this in your wallet. Nothing was sent and nothing moved.");
         return;
       }
@@ -181,6 +211,7 @@ export default function RefundPage() {
       setPhase("failed");
       setError(cause instanceof Error ? cause.message : "The return failed.");
     } finally {
+      stopWaitingRef.current = null;
       setBusy(false);
     }
   }
@@ -250,6 +281,7 @@ export default function RefundPage() {
           symbol={STRK.symbol}
           step={step}
           settled={phase !== "flying"}
+          onStopWaiting={() => stopWaitingRef.current?.()}
           steps={[
             {
               title: "Work out where it lands",
@@ -318,8 +350,14 @@ export default function RefundPage() {
                 </Callout>
               ) : null}
 
+              {/* Giving up on a silent wallet is not a failure, and neither is
+                  declining. Neither gets the colour this app uses for
+                  something going wrong. */}
               {error ? (
-                <Callout tone="bad" title="Failed">
+                <Callout
+                  tone={gaveUp || declined ? "warn" : "bad"}
+                  title={gaveUp ? "Stopped" : declined ? "Not sent" : "Failed"}
+                >
                   {error}
                 </Callout>
               ) : null}
