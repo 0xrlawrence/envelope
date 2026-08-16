@@ -114,6 +114,15 @@ export default function CreatePage() {
   // Public is the default and stays it: a locked envelope cannot be opened by
   // someone who was only handed the link, which is the whole point of the
   // product for anyone who has never touched Starknet.
+  /**
+   * Which pot the envelope is paid from.
+   *
+   * "auto" is the default and behaves as the app always has: spend a shielded
+   * note when there is one, otherwise deposit from the wallet in the same
+   * transaction. Choosing explicitly is for anyone who would rather decide, and
+   * a stated choice is never quietly overridden.
+   */
+  const [source, setSource] = useState<"auto" | "shielded" | "wallet">("auto");
   const [locked, setLocked] = useState(false);
   const [password, setPassword] = useState("");
 
@@ -209,6 +218,19 @@ export default function CreatePage() {
       setSending(true);
     };
   }, []);
+
+  // A chosen pot that stops covering the amount hands back to automatic rather
+  // than sitting there disabled. Raising the denomination past a shielded note
+  // otherwise left the choice selected, the button dead, and nothing on screen
+  // connecting the two.
+  useEffect(() => {
+    if (source === "shielded" && shieldedBalance !== null && shieldedBalance < amount) {
+      setSource("auto");
+    }
+    if (source === "wallet" && publicBalance !== null && publicBalance < amount) {
+      setSource("auto");
+    }
+  }, [source, shieldedBalance, publicBalance, amount]);
 
   // A long silent wait is indistinguishable from a hang. Counting it out loud
   // at least says which of the two it is.
@@ -447,7 +469,12 @@ export default function CreatePage() {
           // be read, so try the pool once more from the wallet before giving up
           // on privacy altogether.
           try {
-            if (fromWallet || shieldedBalance !== null) throw poolAttempt;
+            // Only ever switches pots when the app was guessing. Someone who
+            // asked for the shielded note gets told it did not work rather
+            // than having their wallet quietly spent instead.
+            if (source !== "auto" || fromWallet || shieldedBalance !== null) {
+              throw poolAttempt;
+            }
             setProgress("No shielded note to spend. Funding from your wallet instead.");
             const result = await sealThroughPool("wallet");
             transactionHash = result.transaction_hash;
@@ -568,14 +595,22 @@ export default function CreatePage() {
 
   const notDeployed = network.anonymizer === "";
   const maker = accountClassName(accountClass);
+  const shieldedCovers = shieldedBalance !== null && shieldedBalance >= amount;
+  const walletCovers = publicBalance !== null && publicBalance >= amount;
   // Fund from the wallet only when the shielded balance is known and short of
   // the envelope. An unreadable balance previously counted as zero, which
   // meant a failed read silently deposited the user's money a second time
   // while a perfectly good shielded note sat unspent.
-  const fromWallet = shieldedBalance !== null && shieldedBalance < amount;
+  const fromWallet =
+    source === "wallet" ||
+    (source === "auto" && shieldedBalance !== null && shieldedBalance < amount);
   // Enough to seal, from wherever it has to come.
   const funded =
-    (shieldedBalance ?? 0n) >= amount || (publicBalance !== null && publicBalance >= amount);
+    source === "shielded"
+      ? shieldedCovers
+      : source === "wallet"
+        ? walletCovers
+        : (shieldedBalance ?? 0n) >= amount || walletCovers;
 
   return (
     <>
@@ -695,6 +730,66 @@ export default function CreatePage() {
 
       <div className="order-2">
         <div>
+          <Field label="Pay with">
+            <p className="mb-2 text-xs text-[var(--paper-faint)]">
+              {source === "shielded"
+                ? "Spends a note already in the pool. Nothing on-chain ties the envelope to you."
+                : source === "wallet"
+                  ? "Deposits and funds in one transaction, so that deposit leaves your address alongside the envelope."
+                  : shieldedCovers
+                    ? "A note in the pool, since there is one to spend."
+                    : "Your wallet, since there is no note in the pool to spend."}
+            </p>
+            <div
+              role="group"
+              aria-label="Pay with"
+              className="inline-flex rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1"
+            >
+              {[
+                { value: "auto" as const, label: "Automatic", available: true },
+                {
+                  value: "shielded" as const,
+                  label: "Shielded",
+                  available: shieldedCovers,
+                },
+                { value: "wallet" as const, label: "Wallet", available: walletCovers },
+              ].map((choice) => {
+                const active = choice.value === source;
+                return (
+                  <button
+                    key={choice.label}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={!choice.available}
+                    title={
+                      choice.available
+                        ? undefined
+                        : `Not enough ${choice.value === "shielded" ? "shielded" : "wallet"} balance for ${denomination.toString()} ${STRK.symbol}`
+                    }
+                    onClick={() => {
+                      play("tap");
+                      setSource(choice.value);
+                    }}
+                    className="rounded-md px-4 py-1.5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
+                    style={
+                      active
+                        ? {
+                            background:
+                              "linear-gradient(180deg, #f08a3e 0%, #e2711d 55%, #d2620f 100%)",
+                            color: "#fff",
+                            boxShadow:
+                              "inset 0 1px 0 rgba(255,255,255,0.38), 0 1px 2px rgba(0,0,0,0.28)",
+                          }
+                        : { color: "var(--paper-faint)" }
+                    }
+                  >
+                    {choice.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
           <Field label="Visibility">
             {/* Sits over the control rather than beside it, so the sentence and
                 the thing it describes are read in that order. It states what
