@@ -22,10 +22,10 @@ export function Field({
   hint?: string;
 }) {
   return (
-    <div className="grid gap-2 border-b border-dotted border-[var(--ink-line)] py-[clamp(0.4rem,1.55vh,0.9rem)] sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6">
+    <div className="grid gap-1.5 border-b border-dotted border-[var(--ink-line)] py-2 sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6 sm:py-[clamp(0.4rem,1.55vh,0.9rem)]">
       <div>
         <Eyebrow>{label}</Eyebrow>
-        {hint ? <p className="mt-1 text-xs text-[var(--paper-faint)]">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-[0.7rem] text-[var(--paper-faint)] sm:mt-1 sm:text-xs">{hint}</p> : null}
       </div>
       <div className="min-w-0">{children}</div>
     </div>
@@ -59,7 +59,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
  * nothing on a laptop changes size.
  */
 const BUTTON_BASE =
-  "inline-flex min-h-11 items-center justify-center gap-2 px-5 py-[clamp(0.5rem,1.5vh,0.75rem)] font-display text-sm font-semibold uppercase tracking-[0.14em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 sm:min-h-0";
+  "inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 font-display text-sm font-semibold uppercase tracking-[0.12em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 sm:min-h-0 sm:px-5 sm:py-[clamp(0.5rem,1.5vh,0.75rem)] sm:tracking-[0.14em]";
 
 const BUTTON_VARIANTS = {
   frank:
@@ -138,7 +138,7 @@ export function Callout({
   }[tone];
 
   return (
-    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-4 py-[clamp(0.45rem,1.4vh,0.75rem)] text-sm`}>
+    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-3 py-2 text-[0.8rem] sm:px-4 sm:py-[clamp(0.45rem,1.4vh,0.75rem)] sm:text-sm`}>
       {title ? (
         <p className="field-label mb-1 !text-[var(--paper-dim)]">{title}</p>
       ) : null}
@@ -154,7 +154,7 @@ export function Stamp({ children, tone = "frank" }: { children: ReactNode; tone?
   const colour = tone === "seal" ? "var(--seal)" : "var(--frank)";
   return (
     <div
-      className="animate-strike inline-flex items-center border-4 px-4 py-1.5 font-display text-lg font-bold uppercase tracking-[0.2em]"
+      className="animate-strike inline-flex items-center border-[3px] px-3 py-1 font-display text-base font-bold uppercase tracking-[0.18em] sm:border-4 sm:px-4 sm:py-1.5 sm:text-lg sm:tracking-[0.2em]"
       style={{ borderColor: colour, color: colour, opacity: 0.9 }}
     >
       {children}
@@ -178,7 +178,7 @@ export function ExplorerLink({
       /* Vertical padding on an inline element paints outside the line box
          without pushing the line apart, so the hash keeps its place in the row
          and still has something bigger than 20px to aim a thumb at. */
-      className="py-2 font-mono text-sm text-[var(--frank)] underline decoration-dotted underline-offset-4 break-all sm:py-0"
+      className="py-2 font-mono text-xs text-[var(--frank)] underline decoration-dotted underline-offset-4 break-all sm:py-0 sm:text-sm"
       href={`${explorer}/${kind}/${value}`}
       target="_blank"
       rel="noreferrer"

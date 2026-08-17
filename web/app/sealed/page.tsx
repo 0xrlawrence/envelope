@@ -124,10 +124,10 @@ export default function SealedPage() {
   const refresh = () => setRecords(recall(network.id));
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-6 sm:py-10">
       <h1 className="headline">Envelopes.</h1>
 
-      <div className="mt-5 sm:mt-6">
+      <div className="mt-3 sm:mt-6">
         <Tabs
           label="Envelopes"
           active={tab}
@@ -149,14 +149,14 @@ export default function SealedPage() {
         aria-labelledby="tab-mine"
         hidden={tab !== "mine"}
       >
-      <p className="mt-6 max-w-[62ch] text-[var(--paper-dim)]">
+      <p className="mt-3 max-w-[62ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-6 sm:text-base sm:leading-normal">
         The key is the envelope, so it is written here before anything is signed and an
         interrupted seal cannot strand the money. Anyone holding a claim link can take
         the contents.
       </p>
 
       {origin.includes("localhost") && records.length > 0 ? (
-        <div className="mt-6">
+        <div className="mt-3 sm:mt-6">
           <Callout tone="warn" title="These links only work on this machine">
             They point at <code className="font-mono">{origin}</code>. The envelopes are
             already on-chain and do not change; only the links do.
@@ -165,13 +165,13 @@ export default function SealedPage() {
       ) : null}
 
       {records.length === 0 ? (
-        <p className="mt-10 text-sm text-[var(--paper-faint)]">
+        <p className="mt-6 text-sm text-[var(--paper-faint)] sm:mt-10">
           Nothing sealed from this browser on {network.label} yet.
         </p>
       ) : null}
 
       {records.length > 0 ? (
-        <div className="mt-10">
+        <div className="mt-5 sm:mt-10">
           <Tabs
             label="Envelope actions"
             active={actionTab}
@@ -192,11 +192,11 @@ export default function SealedPage() {
             aria-labelledby="tab-out"
             hidden={actionTab !== "out"}
           >
-            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+            <p className="mt-2 text-[0.7rem] text-[var(--paper-faint)] sm:mt-3 sm:text-xs">
               Send these. They can be claimed.
             </p>
             {live.length > 0 ? (
-              <div className="mt-4 space-y-3">
+              <div className="mt-2.5 space-y-2 sm:mt-4 sm:space-y-3">
                 {live.map((record) => (
                   <Row
                     key={record.claimPublicKey}
@@ -210,7 +210,7 @@ export default function SealedPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+              <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">
                 No envelopes waiting to be claimed.
               </p>
             )}
@@ -222,11 +222,11 @@ export default function SealedPage() {
             aria-labelledby="tab-return"
             hidden={actionTab !== "return"}
           >
-            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+            <p className="mt-2 text-[0.7rem] text-[var(--paper-faint)] sm:mt-3 sm:text-xs">
               The claim window shut with nobody opening them. The return link works now.
             </p>
             {reclaimable.length > 0 ? (
-              <div className="mt-4 space-y-3">
+              <div className="mt-2.5 space-y-2 sm:mt-4 sm:space-y-3">
                 {reclaimable.map((record) => (
                   <Row
                     key={record.claimPublicKey}
@@ -240,7 +240,7 @@ export default function SealedPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+              <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">
                 Nothing ready to take back.
               </p>
             )}
@@ -252,12 +252,12 @@ export default function SealedPage() {
             aria-labelledby="tab-failed"
             hidden={actionTab !== "failed"}
           >
-            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+            <p className="mt-2 text-[0.7rem] text-[var(--paper-faint)] sm:mt-3 sm:text-xs">
               No envelope on-chain against these keys. Kept in case a transaction arrives
               late.
             </p>
             {unknown.length > 0 ? (
-              <div className="mt-4 space-y-3">
+              <div className="mt-2.5 space-y-2 sm:mt-4 sm:space-y-3">
                 {unknown.map((record) => (
                   <Row
                     key={record.claimPublicKey}
@@ -271,7 +271,7 @@ export default function SealedPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+              <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">
                 No transactions are waiting to land.
               </p>
             )}
@@ -283,11 +283,11 @@ export default function SealedPage() {
             aria-labelledby="tab-finished"
             hidden={actionTab !== "finished"}
           >
-            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+            <p className="mt-2 text-[0.7rem] text-[var(--paper-faint)] sm:mt-3 sm:text-xs">
               Receipts. Nothing to send.
             </p>
             {settled.length > 0 ? (
-              <div className="mt-4 space-y-3">
+              <div className="mt-2.5 space-y-2 sm:mt-4 sm:space-y-3">
                 {settled.map((record) => (
                   <Row
                     key={record.claimPublicKey}
@@ -301,7 +301,7 @@ export default function SealedPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+              <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">
                 No finished envelopes yet.
               </p>
             )}
@@ -317,7 +317,7 @@ export default function SealedPage() {
         aria-labelledby="tab-chain"
         hidden={tab !== "chain"}
       >
-        <p className="mt-6 max-w-[62ch] text-sm text-[var(--paper-dim)]">
+        <p className="mt-3 max-w-[62ch] text-[0.75rem] leading-snug text-[var(--paper-dim)] sm:mt-6 sm:text-sm sm:leading-normal">
           Every envelope the contract has funded, from its own events. One funded through
           the pool carries the pool&rsquo;s events in the same transaction and is
           submitted by a relayer rather than by whoever funded it. That separation is the
@@ -325,13 +325,13 @@ export default function SealedPage() {
         </p>
 
         {onChain === null ? (
-          <p className="mt-4 text-sm text-[var(--paper-faint)]">Reading the chain…</p>
+          <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">Reading the chain…</p>
         ) : onChain.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--paper-faint)]">
+          <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">
             No envelopes funded on this contract yet.
           </p>
         ) : (
-          <div className="mt-5 space-y-2">
+          <div className="mt-3 space-y-1.5 sm:mt-5 sm:space-y-2">
             {onChain.map((item) => (
               <div
                 key={item.transactionHash}
@@ -404,14 +404,14 @@ function Row({
 
   return (
     <div
-      className={`row-enter border p-3 transition-colors duration-200 sm:p-4 ${
+      className={`row-enter border p-2.5 transition-colors duration-200 sm:p-4 ${
         status === "funded"
           ? "border-[var(--ink-line)] bg-[var(--ink-raised)]"
           : "border-[var(--ink-line)]"
       } ${spent ? "opacity-55 hover:opacity-100" : ""}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="font-display text-xl font-bold tabular-nums sm:text-2xl">
+        <p className="font-display text-lg font-bold tabular-nums sm:text-2xl">
           {formatAmount(BigInt(record.amount))}{" "}
           <span className="text-sm font-semibold text-[var(--paper-dim)] sm:text-base">
             {STRK.symbol}
@@ -437,12 +437,12 @@ function Row({
           receipt, and a link nobody can use should not be the loudest thing on
           the row. */}
       {status === "funded" ? (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
           <LinkRow label="Claim link" value={claimLink} action="Copy claim" emphasis />
           <LinkRow label="Return link" value={refundLink} action="Copy return" />
         </div>
       ) : (
-        <details className="group mt-3">
+        <details className="group mt-2.5 sm:mt-3">
           <summary className="cursor-pointer list-none font-display text-xs font-semibold tracking-[0.16em] text-[var(--paper-faint)] uppercase transition-colors duration-150 hover:text-[var(--paper-dim)]">
             Keys
             <span className="ml-2 font-mono tracking-normal normal-case group-open:hidden">
@@ -452,14 +452,14 @@ function Row({
               hide
             </span>
           </summary>
-          <div className="mt-3 space-y-3">
+          <div className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3">
             <LinkRow label="Claim link" value={claimLink} action="Copy claim" />
             <LinkRow label="Return link" value={refundLink} action="Copy return" />
           </div>
         </details>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 sm:mt-4 sm:gap-3">
         {record.transactionHash ? (
           <ExplorerLink
             explorer={network.explorer}

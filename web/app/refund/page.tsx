@@ -220,11 +220,11 @@ export default function RefundPage() {
 
   if (!refundKey && !loading) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
         <h1 className="headline">
           Nothing to return.
         </h1>
-        <p className="mt-4 text-[var(--paper-dim)]">
+        <p className="mt-2 text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-4 sm:text-base sm:leading-normal">
           A return link carries its key after the <code className="font-mono">#</code>. If
           this was pasted from somewhere that truncates URLs, that is what got cut.
         </p>
@@ -234,20 +234,20 @@ export default function RefundPage() {
 
   if (transactionHash && flightDone) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
         <h1 className="headline">
           Returned to sender.
         </h1>
-        <p className="mt-4 text-[var(--paper-dim)]">
+        <p className="mt-2 text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-4 sm:text-base sm:leading-normal">
           Back in your shielded balance as a fresh note. Nothing links it to the envelope
           it came from.
         </p>
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <ExplorerLink explorer={network.explorer} kind="tx" value={transactionHash}>
             {transactionHash}
           </ExplorerLink>
         </div>
-        <div className="mt-10">
+        <div className="mt-6 sm:mt-10">
           <LinkButton href="/">Go back to home page</LinkButton>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function RefundPage() {
 
   if (loading || !envelope) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
         <p className="text-sm text-[var(--paper-faint)]">Reading the envelope…</p>
       </div>
     );
@@ -302,7 +302,7 @@ export default function RefundPage() {
       ) : null}
 
       <div
-        className={`mx-auto flex max-w-5xl flex-col gap-6 px-4 py-4 transition-opacity duration-500 sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8 ${
+        className={`mx-auto flex max-w-5xl flex-col gap-3 px-3 py-3 transition-opacity duration-500 sm:gap-6 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8 ${
           flying ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
@@ -322,7 +322,7 @@ export default function RefundPage() {
                   : "Still out for delivery."}
           </h1>
 
-          <p className="mt-3 max-w-[62ch] text-sm text-[var(--paper-dim)] sm:text-base">
+          <p className="mt-1.5 max-w-[62ch] text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-3 sm:text-base sm:leading-normal">
             {envelope.status === "claimed"
               ? "Someone claimed this before it expired. There is nothing to return."
               : envelope.status === "refunded"
@@ -334,7 +334,7 @@ export default function RefundPage() {
                     ).toLocaleString()}. You can only reclaim it after that.`}
           </p>
 
-          <div className="mt-[clamp(1rem,3.5vh,2.25rem)]">
+          <div className="mt-3 sm:mt-[clamp(1rem,3.5vh,2.25rem)]">
             <EnvelopeCard
               amount={formatAmount(envelope.amount)}
               symbol={STRK.symbol}
@@ -348,7 +348,7 @@ export default function RefundPage() {
           <Receipt claimPublicKey={claimPublicKey} />
 
           {envelope.refundable ? (
-            <div className="space-y-4 lg:mt-8">
+            <div className="space-y-2.5 sm:space-y-4 lg:mt-8">
               {!address ? (
                 <Callout title="Connect a wallet">
                   Connect the wallet that holds your shielded balance, since the returned

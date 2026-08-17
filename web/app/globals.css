@@ -188,6 +188,38 @@ body {
  * reader stranded at 1.4x with the layout pushed off-screen.
  */
 @media (max-width: 640px) {
+  body {
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .headline {
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+
+  .headline-sm {
+    font-size: 1.35rem;
+    line-height: 1.04;
+  }
+
+  .field-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  [role="tablist"] {
+    scrollbar-width: none;
+  }
+
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+
   input,
   select,
   textarea {

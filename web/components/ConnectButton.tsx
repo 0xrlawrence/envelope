@@ -98,7 +98,7 @@ export function ConnectButton() {
           /* Scrollable, and centred by an auto margin on the panel rather than
              by `items-center`, so that a phone in landscape with the keyboard
              up can still reach the top of the dialog. */
-          className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain bg-[color-mix(in_srgb,var(--ink-deep)_78%,transparent)] p-3 backdrop-blur-sm sm:p-6"
           onClick={() => {
             play("tap");
             setOpen(false);
@@ -112,8 +112,8 @@ export function ConnectButton() {
             aria-modal="true"
             aria-labelledby="wallet-picker-title"
           >
-            <div className="airmail-edge h-1.5" />
-            <div className="p-5 sm:p-6">
+            <div className="airmail-edge h-1 sm:h-1.5" />
+            <div className="p-4 sm:p-6">
               <div className="flex items-center justify-between gap-4">
                 <p id="wallet-picker-title" className="field-label">
                   Select a wallet
@@ -129,7 +129,7 @@ export function ConnectButton() {
                   Close
                 </button>
               </div>
-              <div className="mt-4 grid gap-2">
+              <div className="mt-3 grid gap-1.5 sm:mt-4 sm:gap-2">
                 {pickable.length === 0 ? (
                   <p className="text-sm text-[var(--paper-dim)]">
                     No Starknet wallet announced itself.{" "}
@@ -156,7 +156,7 @@ export function ConnectButton() {
                       await connect(wallet);
                       setOpen(false);
                     }}
-                    className="flex items-center gap-3 border border-[var(--ink-line)] px-4 py-3 text-left transition hover:border-[var(--frank)] disabled:opacity-50"
+                    className="flex min-h-11 items-center gap-2.5 border border-[var(--ink-line)] px-3 py-2.5 text-left transition hover:border-[var(--frank)] disabled:opacity-50 sm:gap-3 sm:px-4 sm:py-3"
                   >
                     {wallet.icon ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -167,9 +167,9 @@ export function ConnectButton() {
                 ))}
               </div>
 
-              {error ? <p className="mt-4 text-sm text-[var(--seal)]">{error}</p> : null}
+              {error ? <p className="mt-3 text-sm text-[var(--seal)] sm:mt-4">{error}</p> : null}
 
-              <div className="mt-4 border-t border-[var(--ink-line)] pt-3">
+              <div className="mt-3 border-t border-[var(--ink-line)] pt-2.5 sm:mt-4 sm:pt-3">
                 <p className="font-mono text-[0.65rem] tracking-widest text-[var(--paper-faint)] uppercase">
                   {pickable.length} announced
                   {injected.length ? ` · ${injected.length} on window` : ""}

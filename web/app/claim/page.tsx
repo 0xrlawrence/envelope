@@ -473,14 +473,14 @@ export default function ClaimPage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-4 sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-6 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8">
       <div className="order-1 lg:sticky lg:top-10">
         <h1 className="headline">
           {headline}
         </h1>
-        <p className="mt-3 max-w-[62ch] text-[var(--paper-dim)]">{intro}</p>
+        <p className="mt-1.5 max-w-[62ch] text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-3 sm:text-base sm:leading-normal">{intro}</p>
 
-        <div className="mt-[clamp(1rem,3.5vh,2.25rem)]">
+        <div className="mt-3 sm:mt-[clamp(1rem,3.5vh,2.25rem)]">
         <EnvelopeCard
           amount={formatAmount(envelope.amount)}
           symbol={STRK.symbol}
@@ -518,9 +518,9 @@ export default function ClaimPage() {
             </div>
 
             {!address ? (
-              <div className="mt-5 flex flex-wrap items-center gap-4">
+              <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-4">
                 <ConnectButton />
-                <p className="text-sm text-[var(--paper-faint)]">
+                <p className="text-xs leading-snug text-[var(--paper-faint)] sm:text-sm sm:leading-normal">
                   {privateClaimOnly
                     ? "Connect a registered STRK20 wallet, such as Ready."
                     : fundedPrivately === false
@@ -530,7 +530,7 @@ export default function ClaimPage() {
               </div>
             ) : null}
 
-            <div className="mt-4 grid gap-3">
+            <div className="mt-3 grid gap-2 sm:mt-4 sm:gap-3">
               <ClaimRoute
                 title="Into a shielded balance"
                 reveals="Nothing. No observer learns who claimed it."
@@ -608,31 +608,31 @@ function ClaimRoute({
 }) {
   return (
     <div
-      className={`border p-4 transition-colors duration-150 ${
+      className={`border p-2.5 transition-colors duration-150 sm:p-4 ${
         preferred
           ? "border-[var(--frank)]/40 bg-[var(--ink-raised)]"
           : "border-[var(--ink-line)]"
       }`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold tracking-[-0.01em] sm:text-xl">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 sm:gap-3">
+        <h2 className="font-display text-base font-semibold tracking-[-0.01em] sm:text-xl">
           {title}
         </h2>
         {preferred ? <p className="field-label !text-[var(--frank)]">Recommended</p> : null}
       </div>
 
-      <dl className="mt-2.5 space-y-1 text-sm">
-        <div className="flex gap-3">
-          <dt className="field-label w-20 shrink-0 pt-0.5 sm:w-24">Reveals</dt>
+      <dl className="mt-2 space-y-0.5 text-[0.78rem] leading-snug sm:mt-2.5 sm:space-y-1 sm:text-sm sm:leading-normal">
+        <div className="flex gap-2 sm:gap-3">
+          <dt className="field-label w-16 shrink-0 pt-0.5 sm:w-24">Reveals</dt>
           <dd className="text-[var(--paper-dim)]">{reveals}</dd>
         </div>
-        <div className="flex gap-3">
-          <dt className="field-label w-20 shrink-0 pt-0.5 sm:w-24">Requires</dt>
+        <div className="flex gap-2 sm:gap-3">
+          <dt className="field-label w-16 shrink-0 pt-0.5 sm:w-24">Requires</dt>
           <dd className="text-[var(--paper-dim)]">{requires}</dd>
         </div>
       </dl>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3 sm:gap-3">
         <Button
           className="w-full sm:w-auto"
           variant={preferred ? "frank" : "outline"}
@@ -648,5 +648,5 @@ function ClaimRoute({
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-20">{children}</div>;
+  return <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-20">{children}</div>;
 }

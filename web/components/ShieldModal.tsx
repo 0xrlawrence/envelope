@@ -82,7 +82,7 @@ export function ShieldModal({
     /* Scrollable, and centred by the panel's own auto margin. This dialog is
        tall enough to exceed a phone in landscape, and a centred flex item that
        overflows its container cannot be scrolled back up to. */
-    <div className="fixed inset-0 z-[60] flex overflow-y-auto overscroll-contain px-4 py-6 sm:px-6">
+    <div className="fixed inset-0 z-[60] flex overflow-y-auto overscroll-contain p-3 sm:px-6 sm:py-6">
       <button
         aria-label="Close"
         onClick={() => !busy && onDismiss()}
@@ -97,14 +97,14 @@ export function ShieldModal({
         tabIndex={-1}
         className="relative m-auto w-full max-w-md border border-[var(--ink-line)] bg-[var(--ink)] outline-none"
       >
-        <div className="airmail-edge h-1.5" />
-        <div className="security-tint px-4 py-5 sm:px-6">
+        <div className="airmail-edge h-1 sm:h-1.5" />
+        <div className="security-tint px-3 py-4 sm:px-6 sm:py-5">
           <p className="field-label">Nothing shielded yet</p>
-          <h2 className="mt-2 font-display text-xl leading-tight font-bold tracking-[-0.02em] sm:text-2xl">
+          <h2 className="mt-1.5 font-display text-lg leading-tight font-bold tracking-[-0.02em] sm:mt-2 sm:text-2xl">
             Shield first, and the envelope stands on its own.
           </h2>
 
-          <p className="mt-3 text-sm text-[var(--paper-dim)]">
+          <p className="mt-2 text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-3 sm:text-sm sm:leading-normal">
             You do not have to. Sealing with an empty pool balance deposits and funds in
             one transaction, and it works. But that puts the money leaving your address
             and the envelope appearing in the same transaction, for the same amount.
@@ -118,7 +118,7 @@ export function ShieldModal({
               cause, so it is worth saying before the attempt rather than
               translating it afterwards. */}
           {!deployed ? (
-            <div className="mt-4">
+            <div className="mt-3 sm:mt-4">
               <Callout tone="warn" title="This account is not on-chain yet">
                 Wallets let you create and fund an account before it exists, and it is
                 only deployed by its first outgoing transaction. Until then the pool has
@@ -129,9 +129,9 @@ export function ShieldModal({
             </div>
           ) : null}
 
-          <div className="mt-5">
+          <div className="mt-3.5 sm:mt-5">
             <p className="field-label">Amount</p>
-            <div className="mt-2 grid grid-cols-5 gap-2" role="group" aria-label="Shield amount">
+            <div className="mt-1.5 grid grid-cols-5 gap-1.5 sm:mt-2 sm:gap-2" role="group" aria-label="Shield amount">
               {DENOMINATIONS.map((value) => {
                 const enough =
                   publicBalance !== null && toSmallestUnit(value) <= publicBalance;
@@ -153,7 +153,7 @@ export function ShieldModal({
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-[var(--paper-faint)]">
+            <p className="mt-1.5 text-[0.7rem] text-[var(--paper-faint)] sm:mt-2 sm:text-xs">
               {publicBalance === null
                 ? "Your wallet balance could not be read."
                 : `${formatAmount(publicBalance)} ${STRK.symbol} in your wallet.`}
@@ -161,7 +161,7 @@ export function ShieldModal({
           </div>
 
           {error ? (
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 space-y-1.5 sm:mt-4 sm:space-y-2">
               <Callout tone="bad" title="Did not shield">
                 {error}
               </Callout>
@@ -176,7 +176,7 @@ export function ShieldModal({
             </div>
           ) : null}
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
             <Button
               onClick={() => onShield(toSmallestUnit(choice))}
               disabled={busy || !canShield}

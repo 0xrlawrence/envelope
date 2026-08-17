@@ -33,14 +33,14 @@ export function EnvelopeCard({
 }) {
   return (
     <div className="relative border border-[var(--ink-line)] bg-[var(--ink)]">
-      <div className="airmail-edge h-2" />
+      <div className="airmail-edge h-1.5 sm:h-2" />
 
       {/* Every size here is a `min()` of a width term and the height term the
           card was built with. On a laptop the height term is the smaller of the
           two and nothing changes; on a phone, where there is height to spare
           and no width, the width term takes over and the card stops being the
           tallest thing between the reader and the form. */}
-      <div className="security-tint relative px-4 pt-[clamp(0.7rem,min(3.6vw,3vh),1.9rem)] pb-[clamp(0.65rem,min(3vw,2.4vh),1.6rem)] sm:px-6">
+      <div className="security-tint relative px-3 pt-2.5 pb-2.5 sm:px-6 sm:pt-[clamp(0.7rem,min(3.6vw,3vh),1.9rem)] sm:pb-[clamp(0.65rem,min(3vw,2.4vh),1.6rem)]">
         {/* The flap, folded down over the top of the interior.
          *
          * The fill alone cannot carry this. It was doing the whole job before,
@@ -80,21 +80,21 @@ export function EnvelopeCard({
 
         <div className="relative">
           <p className="field-label">Contents</p>
-          <p className="mt-1.5 font-display text-[clamp(1.75rem,min(8vw,4.9vh),3.1rem)] leading-none font-bold tracking-[-0.03em] tabular-nums sm:mt-2">
+          <p className="mt-1 font-display text-[1.75rem] leading-none font-bold tracking-[-0.03em] tabular-nums sm:mt-2 sm:text-[clamp(1.75rem,min(8vw,4.9vh),3.1rem)]">
             {amount}
             <span className="ml-3 align-baseline font-display text-base font-semibold tracking-[0.18em] text-[var(--paper-dim)] sm:text-lg">
               {symbol}
             </span>
           </p>
           {caption ? (
-            <p className="mt-2 max-w-sm text-xs text-[var(--paper-dim)] sm:text-sm">{caption}</p>
+            <p className="mt-1.5 max-w-sm text-[0.7rem] leading-snug text-[var(--paper-dim)] sm:mt-2 sm:text-sm">{caption}</p>
           ) : null}
           {children}
         </div>
 
         {/* The address block. On a real envelope this is the only part anyone
             reads, and here it is the whole point: it is addressed to no one. */}
-        <div className="relative mt-[clamp(0.6rem,min(3vw,2.6vh),1.5rem)] flex items-end justify-between gap-4 border-t border-dashed border-[var(--ink-line)] pt-[clamp(0.45rem,1.2vh,0.8rem)] sm:gap-6">
+        <div className="relative mt-2 flex items-end justify-between gap-3 border-t border-dashed border-[var(--ink-line)] pt-2 sm:mt-[clamp(0.6rem,min(3vw,2.6vh),1.5rem)] sm:gap-6 sm:pt-[clamp(0.45rem,1.2vh,0.8rem)]">
           <div className="min-w-0">
             <p className="field-label">Addressed to</p>
             <p className="mt-1 font-display text-[clamp(0.95rem,min(4.4vw,2.2vh),1.25rem)] font-semibold tracking-[0.04em] uppercase sm:mt-1.5">

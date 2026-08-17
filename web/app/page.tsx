@@ -800,7 +800,7 @@ export default function CreatePage() {
 
     <div
       ref={stageRef}
-      className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-[clamp(0.75rem,3.4vh,3rem)] sm:px-6 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-[clamp(1.5rem,5vh,4rem)]"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-6 sm:px-6 sm:py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-[clamp(1.5rem,5vh,4rem)]"
     >
       {/* `display: contents` below `lg`, so the three blocks inside become
           direct children of the flex column above and can be ordered against
@@ -811,7 +811,7 @@ export default function CreatePage() {
       <div className="contents lg:sticky lg:top-10 lg:block">
         <div className="order-1">
           <h1 className="headline">Private money you can send as a link.</h1>
-          <p className="mt-[clamp(0.5rem,2vh,1.25rem)] max-w-[52ch] text-sm text-[var(--paper-dim)] sm:text-base">
+          <p className="mt-1.5 max-w-[52ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-[clamp(0.5rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
             {source === "shielded"
               ? "Seal from a private note and the pool hides who paid. The link can only be claimed into a registered shielded balance."
               : "Pay someone by link even if they have never used STRK20. Funding and a public claim work with any Starknet wallet."}
@@ -827,7 +827,7 @@ export default function CreatePage() {
           />
         </div>
 
-        <dl className="order-4 text-sm lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
+        <dl className="order-4 text-[0.78rem] sm:text-sm lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
           <HiddenRow hidden>Who funded it</HiddenRow>
           <HiddenRow hidden>
             {source === "shielded" ? "Who claims it" : "Who claims it, if they claim privately"}
@@ -844,7 +844,7 @@ export default function CreatePage() {
       <div className="order-2">
         <div>
           <Field label="Pay with">
-            <p className="mb-2 text-xs text-[var(--paper-faint)]">
+            <p className="mb-1.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mb-2 sm:text-xs">
               {source === "shielded"
                 ? "Spends a note already in the pool. A relayer submits it, so nothing on-chain ties the envelope to you."
                 : "Funds the contract straight from your address, in the open. Works with any wallet."}
@@ -906,7 +906,7 @@ export default function CreatePage() {
             {/* Sits over the control rather than beside it, so the sentence and
                 the thing it describes are read in that order. It states what
                 the current choice means, not what the other one would do. */}
-            <p className="mb-2 text-xs text-[var(--paper-faint)]">
+            <p className="mb-1.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mb-2 sm:text-xs">
               {locked
                 ? "Only someone with the password can open it"
                 : "Anyone with the link can open it"}
@@ -953,14 +953,14 @@ export default function CreatePage() {
             </div>
 
             {locked ? (
-              <div className="mt-3">
+              <div className="mt-2 sm:mt-3">
                 <SecretInput
                   value={password}
                   onChange={setPassword}
                   placeholder="A password the recipient will know"
                   label="Envelope password"
                 />
-                <p className="mt-2 text-xs text-[var(--paper-faint)]">
+                <p className="mt-1.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mt-2 sm:text-xs">
                   The link alone will not open this. Send the password another way,
                   or it is worth nothing.
                 </p>
@@ -978,7 +978,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Amount" hint="Round sizes share a crowd">
-            <div className="grid grid-cols-5 gap-2" role="group" aria-label="Amount">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
                 <button
                   key={value.toString()}
@@ -1001,7 +1001,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Claim window" hint="After it shuts, only you can reclaim">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Claim window">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Claim window">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
                   key={choice.label}
@@ -1011,7 +1011,7 @@ export default function CreatePage() {
                     play("tap");
                     setExpirySeconds(choice.seconds);
                   }}
-                  className={`min-h-11 border px-4 text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:py-2 ${
+                  className={`min-h-11 border px-3 text-xs transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm ${
                     choice.seconds === expirySeconds
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -1030,12 +1030,12 @@ export default function CreatePage() {
               maxLength={31}
               onChange={(event) => setMemo(event.target.value)}
               placeholder="Payment for your bounty Ref# 1101"
-              className="w-full border border-[var(--ink-line)] bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)]"
+              className="w-full border border-[var(--ink-line)] bg-transparent px-2.5 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)] sm:px-3"
             />
           </Field>
         </div>
 
-        <div className="mt-[clamp(0.75rem,3vh,2rem)] space-y-[clamp(0.4rem,1.8vh,1rem)]">
+        <div className="mt-3 space-y-2 sm:mt-[clamp(0.75rem,3vh,2rem)] sm:space-y-[clamp(0.4rem,1.8vh,1rem)]">
           {!address ? (
             <Callout title="Not connected">
               Connect a STRK20 wallet, such as Ready, to seal an envelope.
@@ -1090,7 +1090,7 @@ export default function CreatePage() {
               site. A balance that could not be read is not a figure at all, so
               it stays in the quiet colour rather than being dressed up as one. */}
           {address ? (
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 border-y border-[var(--ink-line)] py-2.5 text-sm">
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-y border-[var(--ink-line)] py-2 text-[0.75rem] sm:gap-x-6 sm:py-2.5 sm:text-sm">
               <dt className="field-label">In your wallet</dt>
               <dd
                 className="text-right font-mono tabular-nums"
@@ -1195,7 +1195,7 @@ export default function CreatePage() {
 
 function HiddenRow({ children, hidden = false }: { children: string; hidden?: boolean }) {
   return (
-    <div className="flex items-baseline gap-3 border-b border-dotted border-[var(--ink-line)] py-[clamp(0.3rem,1.1vh,0.55rem)]">
+    <div className="flex items-baseline gap-2 border-b border-dotted border-[var(--ink-line)] py-1.5 sm:gap-3 sm:py-[clamp(0.3rem,1.1vh,0.55rem)]">
       {/* Fixed width, so the four statements line up as a column of claims
           rather than stepping in and out with the length of the label. */}
       <span
@@ -1227,7 +1227,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
     : "";
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-[clamp(1.25rem,3.6vh,2.5rem)] px-4 py-[clamp(0.75rem,2.2vh,2rem)] sm:px-6 lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
+    <div className="mx-auto grid w-full max-w-5xl gap-4 px-3 py-3 sm:gap-[clamp(1.25rem,3.6vh,2.5rem)] sm:px-6 sm:py-[clamp(0.75rem,2.2vh,2rem)] lg:h-full lg:grid-cols-[1fr_1fr] lg:items-start">
       <div>
         <h1 className="headline">
           {/* Three states, three headlines. "Hand it over" was an instruction
@@ -1241,7 +1241,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
               : "Sealed."}
         </h1>
         {sealed.state === "funding" ? (
-          <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+          <div className="mt-3 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-3 py-2 text-[0.8rem] sm:mt-4 sm:px-4 sm:py-3 sm:text-sm">
             <p className="field-label !text-[var(--frank)]">Funding</p>
             <p className="mt-1 text-[var(--paper-dim)]">
               Not valid yet. The wallet is still proving the funding transaction, and
@@ -1252,7 +1252,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         ) : null}
 
         {sealed.state === "funded" ? (
-          <div className="mt-4 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+          <div className="mt-3 border-l border-[var(--frank)] bg-[var(--ink-raised)] px-3 py-2 text-[0.8rem] sm:mt-4 sm:px-4 sm:py-3 sm:text-sm">
             <p className="field-label !text-[var(--frank)]">Confirmed on-chain</p>
             <p className="mt-1 text-[var(--paper-dim)]">
               The envelope exists and the link below works. Send it.
@@ -1261,7 +1261,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         ) : null}
 
         {sealed.state === "failed" ? (
-          <div className="mt-4 border-l border-[var(--seal)] bg-[var(--ink-raised)] px-4 py-3 text-sm">
+          <div className="mt-3 border-l border-[var(--seal)] bg-[var(--ink-raised)] px-3 py-2 text-[0.8rem] sm:mt-4 sm:px-4 sm:py-3 sm:text-sm">
             <p className="field-label !text-[var(--seal)]">Do not send this link</p>
             <p className="mt-1 text-[var(--paper-dim)]">
               {sealed.problem ?? "The funding transaction did not go through."} The keys
@@ -1270,7 +1270,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           </div>
         ) : null}
 
-        <p className="mt-[clamp(0.6rem,2vh,1.25rem)] max-w-[62ch] text-[var(--paper-dim)]">
+        <p className="mt-2 max-w-[62ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-[clamp(0.6rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
           The key lives in the part of the URL after the <Mono>#</Mono>, which browsers
           never send to a server. It has not reached ours, and it will not reach the
           recipient&rsquo;s either.
@@ -1279,13 +1279,13 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         {/* The flap animation stays on the card alone. Wrapping the headline in
             it would scale the type open too, which reads as a glitch rather
             than as an envelope. */}
-        <div className="animate-flap mt-[clamp(1rem,3.5vh,2.25rem)]">
+        <div className="animate-flap mt-3 sm:mt-[clamp(1rem,3.5vh,2.25rem)]">
           <EnvelopeCard amount={formatAmount(sealed.amount)} symbol={STRK.symbol} sealed />
         </div>
       </div>
 
       <div>
-        <div className="space-y-4 lg:mt-6">
+        <div className="space-y-3 sm:space-y-4 lg:mt-6">
           <LinkBlock
             label="Claim link"
             hint={
@@ -1302,7 +1302,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           />
         </div>
 
-        <div className="mt-6 border-t border-[var(--ink-line)] pt-4">
+        <div className="mt-4 border-t border-[var(--ink-line)] pt-3 sm:mt-6 sm:pt-4">
           <Eyebrow>Funding transaction</Eyebrow>
           <div className="mt-2">
             {sealed.transactionHash ? (
@@ -1325,7 +1325,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <Button variant="outline" onClick={onReset}>
             Seal another
           </Button>
@@ -1371,8 +1371,8 @@ function LinkBlock({
           {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy"}
         </button>
       </div>
-      <p className="mt-1 text-xs text-[var(--paper-faint)]">{hint}</p>
-      <p className="security-tint-dense mt-2 border border-[var(--ink-line)] px-3 py-3 font-mono text-xs break-all">
+      <p className="mt-0.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mt-1 sm:text-xs">{hint}</p>
+      <p className="security-tint-dense mt-1.5 border border-[var(--ink-line)] px-2.5 py-2 font-mono text-[0.7rem] break-all sm:mt-2 sm:px-3 sm:py-3 sm:text-xs">
         {value}
       </p>
     </div>

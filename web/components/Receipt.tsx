@@ -50,9 +50,9 @@ export function Receipt({ claimPublicKey }: { claimPublicKey: string }) {
   };
 
   return (
-    <div className="mt-8 border-t border-[var(--ink-line)] pt-4">
+    <div className="mt-5 border-t border-[var(--ink-line)] pt-3 sm:mt-8 sm:pt-4">
       <p className="field-label">On-chain</p>
-      <ul className="mt-3 space-y-3.5">
+      <ul className="mt-2 space-y-2.5 sm:mt-3 sm:space-y-3.5">
         {events.map((event) => (
           <li key={event.transactionHash} className="text-sm leading-relaxed">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">

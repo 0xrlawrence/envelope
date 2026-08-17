@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
 import type { ReactNode } from "react";
 import { SecurityField } from "@/components/SecurityField";
+import { MobileNav } from "@/components/MobileNav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SoundProvider } from "@/lib/sound";
 import { THEME_SCRIPT, ThemeProvider } from "@/lib/theme";
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SoundProvider>
           <WalletProvider>
             <SecurityField />
-            <div className="flex min-h-dvh flex-col">
+            <div className="flex min-h-dvh flex-col pb-[calc(3.65rem+env(safe-area-inset-bottom))] sm:pb-0">
               <SiteHeader />
               {/* The centring is done with an auto margin rather than
                   `items-center`. They look identical while the page fits, and
@@ -85,16 +86,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <div className="mx-auto mb-auto w-full lg:my-auto">{children}</div>
               </main>
               <footer className="pad-safe-b border-t border-[var(--ink-line)]">
-                <div className="mx-auto flex max-w-5xl flex-col gap-1.5 px-4 py-[clamp(0.6rem,1.7vh,1.25rem)] text-sm text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6">
-                  <p className="text-xs sm:text-sm">
+                <div className="mx-auto flex max-w-5xl flex-col gap-0.5 px-3 py-2 text-[var(--paper-faint)] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-[clamp(0.6rem,1.7vh,1.25rem)] sm:text-sm">
+                  <p className="text-[0.68rem] leading-snug sm:text-sm">
                     Unaudited. It moves real money on mainnet. Read it before you trust it.
                   </p>
                   <nav
                     aria-label="Project links"
-                    className="flex self-start font-mono text-xs tracking-widest uppercase sm:self-auto"
+                    className="flex self-start font-mono text-[0.65rem] tracking-widest uppercase sm:self-auto sm:text-xs"
                   >
                     <a
-                      className="inline-flex min-h-11 items-center pr-4 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0"
+                      className="inline-flex min-h-9 items-center pr-3 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0 sm:pr-4"
                       href="https://x.com/0xrlawrence"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -103,7 +104,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       @0xrlawrence
                     </a>
                     <a
-                      className="inline-flex min-h-11 items-center border-l border-[var(--ink-line)] pl-4 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0"
+                      className="inline-flex min-h-9 items-center border-l border-[var(--ink-line)] pl-3 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0 sm:pl-4"
                       href="https://github.com/0xrlawrence/envelope"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -113,6 +114,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   </nav>
                 </div>
               </footer>
+              <MobileNav />
             </div>
           </WalletProvider>
         </SoundProvider>
