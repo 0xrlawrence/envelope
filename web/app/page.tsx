@@ -749,9 +749,9 @@ export default function CreatePage() {
         <div className="order-1">
           <h1 className="headline">Private money you can send as a link.</h1>
           <p className="mt-[clamp(0.5rem,2vh,1.25rem)] max-w-[52ch] text-sm text-[var(--paper-dim)] sm:text-base">
-            A STRK20 private transfer needs a registered recipient. An envelope does not.
-            It pays someone who has never touched Starknet, and the pool still hides who
-            paid.
+            {source === "shielded"
+              ? "Seal from a private note and the pool hides who paid. The link can only be claimed into a registered shielded balance."
+              : "Pay someone by link even if they have never used STRK20. Funding and a public claim work with any Starknet wallet."}
           </p>
         </div>
 
@@ -766,9 +766,15 @@ export default function CreatePage() {
 
         <dl className="order-4 text-sm lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
           <HiddenRow hidden>Who funded it</HiddenRow>
-          <HiddenRow hidden>Who claims it, if they claim privately</HiddenRow>
+          <HiddenRow hidden>
+            {source === "shielded" ? "Who claims it" : "Who claims it, if they claim privately"}
+          </HiddenRow>
           <HiddenRow>The amount, on both legs</HiddenRow>
-          <HiddenRow>The recipient, if they claim to a public address</HiddenRow>
+          <HiddenRow>
+            {source === "shielded"
+              ? "The contract parking it before the private claim"
+              : "The recipient, if they claim to a public address"}
+          </HiddenRow>
         </dl>
       </div>
 
@@ -1219,7 +1225,11 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         <div className="space-y-4 lg:mt-6">
           <LinkBlock
             label="Claim link"
-            hint="Anyone holding this can take the contents. Send it the way you would send cash."
+            hint={
+              sealed.private
+                ? "Anyone holding this can claim the contents into a registered STRK20 shielded balance."
+                : "Anyone holding this can take the contents. Send it the way you would send cash."
+            }
             value={claimLink}
           />
           <LinkBlock

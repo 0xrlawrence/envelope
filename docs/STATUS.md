@@ -5,7 +5,7 @@ the honest version with the caveats attached.
 
 | | State |
 |---|---|
-| `EnvelopeAnonymizer` contract | Written, 21 tests passing |
+| `EnvelopeAnonymizer` contract | Written, 28 tests passing. The private-claim-only patch requires a new deployment. |
 | `strk20-envelope` SDK | Written, 8 tests passing, pinned to the contract by a shared vector |
 | Sepolia declare + deploy | **Done**. [`0x05c5cd…`](https://sepolia.voyager.online/contract/0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604) |
 | Signature scheme, on a live chain | **Done**. See below |

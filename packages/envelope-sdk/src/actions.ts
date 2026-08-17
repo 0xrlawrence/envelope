@@ -397,11 +397,12 @@ export interface ClaimToAddressParams extends AnonymizerTarget {
 }
 
 /**
- * Claim to a public address, as an ordinary Starknet call.
+ * Claim a publicly funded envelope to an address, as an ordinary Starknet call.
  *
  * This is the path that makes an envelope sendable to someone who has never
  * heard of the pool: no registration, no viewing key, no STRK20-capable wallet.
- * They pay publicly, and in exchange they need nothing but the link.
+ * The funder paid publicly, and in exchange the claimant needs nothing but the
+ * link. Pool-funded envelopes reject this route on-chain.
  */
 export function buildClaimToAddressCall({
   anonymizer,

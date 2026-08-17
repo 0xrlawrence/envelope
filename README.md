@@ -3,17 +3,19 @@
 **Private money you can send as a link, to someone who has never heard of Starknet.**
 
 Envelope is a [STRK20](https://strk20.starknet.io) anonymizer contract and app.
-You shield tokens, seal an amount into an envelope, and hand over a URL. Whoever
-opens the link takes the money: into their own shielded balance if they have
-one, or straight to any Starknet address if they do not.
+You shield tokens, seal an amount into an envelope, and hand over a URL. A
+pool-funded envelope can only be opened into the recipient's shielded balance.
+An envelope funded from a normal wallet keeps the fallback that pays any
+Starknet address.
 
-The pool hides who paid. The link means the recipient needs no viewing key, no
-registration, and no privacy-capable wallet to get paid.
+The pool hides who paid. A recipient opening a pool-funded envelope needs a
+registered STRK20 wallet because that route is private-claim-only. Normal-wallet
+funding retains the no-registration public-address fallback.
 
 ```
 shield  →  seal an envelope  →  send a link  →  claimed
           (pool hides you)     (never hits      (into a private note,
-                                a server)        or any address)
+                                a server)        never a public address)
 ```
 
 ## Why this doesn't already exist
@@ -55,7 +57,7 @@ here is the whole truth.
 |---|---|---|
 | **Funding an envelope** | Who funded it. The pool spends a shielded note; the funder's address appears nowhere. | That the pool paid the anonymizer, the token, and the amount. |
 | **Claiming to a private note** | Who claimed it, and where the value went next. | That the anonymizer released an envelope, and for how much. |
-| **Claiming to a public address** | Who funded it. | The recipient's address and the amount. |
+| **Claiming a publicly funded envelope to an address** | Nothing further. | The funder, recipient, and amount. Pool-funded envelopes reject this route. |
 | **Refunding** | That the refund went back to the original funder. | That an expired envelope was reclaimed. |
 
 **Amounts are public throughout.** An envelope's funding leg and its claim leg
@@ -89,10 +91,10 @@ entry point for recipients who are not in the pool:
 
 | Operation | Driven by | Effect |
 |---|---|---|
-| `Fund` | the pool | Parks the value the pool just withdrew. Returns an **empty** span, so nothing is credited, which is what leaves it for the recipient. |
+| `Fund` | the pool | Parks the value the pool just withdrew and marks the envelope private-claim-only. Returns an **empty** span, so nothing is credited yet. |
 | `Claim` | the pool | Releases into an open note. Returns one `OpenNoteDeposit`. |
 | `Refund` | the pool | After expiry only, returns the value to the funder as an open note. |
-| `claim_to_address` | anyone | Releases as a plain ERC-20 transfer. No pool involvement. |
+| `claim_to_address` | anyone | Releases a publicly funded envelope as a plain ERC-20 transfer. Pool-funded envelopes reject it. |
 
 Envelopes carry a time lock, an expiry, a refund key, and a memo, so the same
 primitive covers a payment link, a vesting cliff, a bounty with a deadline, and

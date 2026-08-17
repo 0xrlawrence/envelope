@@ -132,6 +132,7 @@ export default function ClaimPage() {
   // How the envelope was funded is not the recipient's choice, but it decides
   // whether the page can honestly say the funder is hidden.
   useEffect(() => {
+    setFundedPrivately(undefined);
     if (!claimPublicKey || !network.anonymizer) return;
     let cancelled = false;
     void readEnvelopeHistory(
@@ -195,7 +196,10 @@ export default function ClaimPage() {
 
   /** The path that works for someone who has never touched the pool. */
   async function claimToAddress() {
-    if (!account || !claimKey) return;
+    // Public release is deliberately unavailable until the funding route is
+    // known to be public. The patched contract enforces the same rule, so this
+    // is UX alignment rather than the security boundary.
+    if (!account || !claimKey || fundedPrivately !== false) return;
     setBusy("public");
     setError("");
     const { watch, watching } = watchForClaim("public");
@@ -424,6 +428,7 @@ export default function ClaimPage() {
   const claimable =
     envelope.status === "funded" && seconds >= envelope.unlockAt && !expired;
   const reference = decodeMemo(envelope.memo);
+  const privateClaimOnly = fundedPrivately === true;
 
   // Lifted out of the column that used to hold them, because the headline and
   // the sentence under it now sit above the envelope while everything that can
@@ -449,6 +454,11 @@ export default function ClaimPage() {
       This envelope has been settled. An envelope releases exactly once, which is what
       makes the link safe to send over a channel you do not control.
     </>
+  ) : fundedPrivately === undefined ? (
+    <>
+      Checking how this envelope was funded. Until that is known, only the private claim
+      route is offered.
+    </>
   ) : fundedPrivately === false ? (
     <>
       This one was funded from an address in the open, so whoever paid for it is already
@@ -457,8 +467,8 @@ export default function ClaimPage() {
     </>
   ) : (
     <>
-      Whoever funded this stays hidden either way. What changes between the two routes
-      below is what becomes public about <em>you</em>.
+      Whoever funded this stays hidden. This envelope can only be claimed into your
+      shielded balance; it cannot release to a public address.
     </>
   );
 
@@ -511,7 +521,11 @@ export default function ClaimPage() {
               <div className="mt-5 flex flex-wrap items-center gap-4">
                 <ConnectButton />
                 <p className="text-sm text-[var(--paper-faint)]">
-                  Any Starknet wallet works for the public route.
+                  {privateClaimOnly
+                    ? "Connect a registered STRK20 wallet, such as Ready."
+                    : fundedPrivately === false
+                      ? "Any Starknet wallet works for the public route."
+                      : "Connect a STRK20 wallet to claim privately."}
                 </p>
               </div>
             ) : null}
@@ -522,7 +536,7 @@ export default function ClaimPage() {
                 reveals="Nothing. No observer learns who claimed it."
                 requires="Needs a STRK20 wallet, such as Ready."
                 action={busy === "private" ? "Claiming…" : "Claim privately"}
-                preferred={claimantRegistered !== false}
+                preferred={privateClaimOnly || claimantRegistered !== false}
                 disabled={
                   !address ||
                   !supportsStrk20 ||
@@ -537,21 +551,27 @@ export default function ClaimPage() {
                       ? "This wallet does not support STRK20."
                       : claimantRegistered === false
                         ? accountDeployed
-                          ? "This account has no viewing key with the pool, so it cannot receive a private note yet. Take it to your address instead, or shield once from this account first."
-                          : "This account is not deployed on-chain yet, so the pool cannot register it. Send one ordinary transaction from it first, then shield. Taking it to your address works either way."
+                          ? privateClaimOnly
+                            ? "This envelope only releases privately. Shield once from this account to register its viewing key, then return to this link."
+                            : "This account has no viewing key with the pool, so it cannot receive a private note yet. Take it to your address instead, or shield once from this account first."
+                          : privateClaimOnly
+                            ? "This envelope only releases privately. Send one ordinary transaction to deploy this account, then shield once and return to this link."
+                            : "This account is not deployed on-chain yet, so the pool cannot register it. Send one ordinary transaction from it first, then shield. Taking it to your address works either way."
                         : undefined
                 }
                 onClick={claimToNote}
               />
-              <ClaimRoute
-                title="To a public address"
-                reveals="Your address, and the amount, on-chain forever."
-                requires="Works with any Starknet wallet."
-                action={busy === "public" ? "Claiming…" : "Claim to my address"}
-                preferred={claimantRegistered === false}
-                disabled={!address || !claimable || busy !== ""}
-                onClick={claimToAddress}
-              />
+              {fundedPrivately === false ? (
+                <ClaimRoute
+                  title="To a public address"
+                  reveals="Your address, and the amount, on-chain forever."
+                  requires="Works with any Starknet wallet."
+                  action={busy === "public" ? "Claiming…" : "Claim to my address"}
+                  preferred={claimantRegistered === false}
+                  disabled={!address || !claimable || busy !== ""}
+                  onClick={claimToAddress}
+                />
+              ) : null}
             </div>
           </>
         )}

@@ -189,8 +189,9 @@ fn an_envelope_that_unlocks_after_it_expires_is_rejected() {
 #[test]
 fn claim_to_address_pays_a_recipient_who_never_touched_the_pool() {
     let key = new_key();
-    let (envelope, token) = setup(FUNDED_AMOUNT);
-    fund_simple(envelope, token.contract_address, key);
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+    fund_publicly(envelope, token, addr(ALICE), key);
 
     let (r, s) = sign(
         key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
@@ -204,6 +205,21 @@ fn claim_to_address_pays_a_recipient_who_never_touched_the_pool() {
     assert!(envelope.reserved_of(token.contract_address) == 0, "reservation should be released");
 }
 
+/// Choosing shielded funding is a contract-level promise: even a claimant who
+/// bypasses the app cannot turn that envelope into a public ERC-20 payment.
+#[test]
+#[should_panic(expected: 'PRIVATE_CLAIM_ONLY')]
+fn a_pool_funded_envelope_cannot_claim_to_a_public_address() {
+    let key = new_key();
+    let (envelope, token) = setup(FUNDED_AMOUNT);
+    fund_simple(envelope, token.contract_address, key);
+
+    let (r, s) = sign(
+        key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
+    );
+    envelope.claim_to_address(key.public_key, addr(ALICE), r, s);
+}
+
 /// The front-running property, and the reason envelopes commit to a public key
 /// rather than a hash preimage. Mallory watches the mempool, lifts the whole
 /// signed claim, and resubmits it pointing at herself. The signature does not
@@ -212,8 +228,9 @@ fn claim_to_address_pays_a_recipient_who_never_touched_the_pool() {
 #[should_panic(expected: 'BAD_SIGNATURE')]
 fn a_claim_signature_cannot_be_retargeted_by_a_front_runner() {
     let key = new_key();
-    let (envelope, token) = setup(FUNDED_AMOUNT);
-    fund_simple(envelope, token.contract_address, key);
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+    fund_publicly(envelope, token, addr(ALICE), key);
 
     // Alice's authorisation, in the clear, exactly as an observer would see it.
     let (r, s) = sign(
@@ -246,8 +263,9 @@ fn a_public_claim_signature_does_not_work_on_the_private_path() {
 #[should_panic(expected: 'ENVELOPE_NOT_FUNDED')]
 fn an_envelope_cannot_be_claimed_twice() {
     let key = new_key();
-    let (envelope, token) = setup(FUNDED_AMOUNT);
-    fund_simple(envelope, token.contract_address, key);
+    let (envelope, token) = setup(0);
+    token.mint(addr(ALICE), FUNDED_AMOUNT.into());
+    fund_publicly(envelope, token, addr(ALICE), key);
 
     let (r, s) = sign(
         key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
@@ -328,10 +346,12 @@ fn a_time_locked_envelope_cannot_be_claimed_early() {
         NOW + 500,
     );
 
-    let (r, s) = sign(
-        key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
-    );
-    envelope.claim_to_address(key.public_key, addr(ALICE), r, s);
+    let (r, s) = sign(key, envelope.contract_address, MODE_NOTE, key.public_key, NOTE_ID);
+    start_cheat_caller_address(envelope.contract_address, addr(POOL));
+    envelope
+        .privacy_invoke(
+            EnvelopeOp::Claim, key.public_key, addr(0), 0, 0, 0, 0, 0, r, s, NOTE_ID,
+        );
 }
 
 #[test]
@@ -350,11 +370,13 @@ fn a_time_locked_envelope_opens_at_its_unlock_time() {
     );
 
     start_cheat_block_timestamp_global(NOW + 100);
-    let (r, s) = sign(
-        key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
-    );
-    envelope.claim_to_address(key.public_key, addr(ALICE), r, s);
-    assert!(token.balance_of(addr(ALICE)) == FUNDED_AMOUNT.into(), "alice should be paid");
+    let (r, s) = sign(key, envelope.contract_address, MODE_NOTE, key.public_key, NOTE_ID);
+    start_cheat_caller_address(envelope.contract_address, addr(POOL));
+    let deposits = envelope
+        .privacy_invoke(
+            EnvelopeOp::Claim, key.public_key, addr(0), 0, 0, 0, 0, 0, r, s, NOTE_ID,
+        );
+    assert!(deposits.len() == 1, "the unlocked envelope should credit one private note");
 }
 
 #[test]
@@ -374,10 +396,12 @@ fn an_expired_envelope_cannot_be_claimed() {
     );
 
     start_cheat_block_timestamp_global(NOW + 100);
-    let (r, s) = sign(
-        key, envelope.contract_address, MODE_ADDRESS, key.public_key, addr(ALICE).into(),
-    );
-    envelope.claim_to_address(key.public_key, addr(ALICE), r, s);
+    let (r, s) = sign(key, envelope.contract_address, MODE_NOTE, key.public_key, NOTE_ID);
+    start_cheat_caller_address(envelope.contract_address, addr(POOL));
+    envelope
+        .privacy_invoke(
+            EnvelopeOp::Claim, key.public_key, addr(0), 0, 0, 0, 0, 0, r, s, NOTE_ID,
+        );
 }
 
 // ─── Refunds ────────────────────────────────────────────────────────────────
@@ -488,15 +512,15 @@ fn an_envelope_with_no_expiry_can_never_be_refunded() {
 #[should_panic(expected: 'BAD_SIGNATURE')]
 fn a_signature_does_not_replay_across_deployments() {
     let key = new_key();
-    let (first, token) = setup(FUNDED_AMOUNT);
+    let (first, token) = setup(0);
 
     let envelope_class = declare("EnvelopeAnonymizer").unwrap().contract_class();
     let (second_address, _) = envelope_class.deploy(@array![POOL]).unwrap();
     let second = IEnvelopeDispatcher { contract_address: second_address };
-    token.mint(second_address, FUNDED_AMOUNT.into());
+    token.mint(addr(ALICE), (FUNDED_AMOUNT * 2).into());
 
-    fund_simple(first, token.contract_address, key);
-    fund_simple(second, token.contract_address, key);
+    fund_publicly(first, token, addr(ALICE), key);
+    fund_publicly(second, token, addr(ALICE), key);
 
     // Signed for the first deployment, presented to the second.
     let (r, s) = sign(

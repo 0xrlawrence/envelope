@@ -39,11 +39,9 @@ pub trait IEnvelope<TState> {
     /// ERC-20 approval and an ordinary transaction, so an envelope can be sent
     /// from any Starknet wallet.
     ///
-    /// The trade is the funder's privacy, and only the funder's: the transfer
-    /// into this contract is a public one from a public address. Everything
-    /// else an envelope does is unchanged, including the claim link, the
-    /// time lock, the refund, and the fact that a claim cannot be front-run.
-    /// A recipient claiming into the pool is still unobservable.
+    /// The trade is the funder's privacy: the transfer into this contract is a
+    /// public one from a public address. Unlike a pool-funded envelope, this
+    /// route may later release either to a private note or to a public address.
     fn fund_public(
         ref self: TState,
         claim_pubkey: felt252,
@@ -55,7 +53,7 @@ pub trait IEnvelope<TState> {
         memo: felt252,
     );
 
-    /// Release an envelope as an ordinary public ERC-20 transfer.
+    /// Release a publicly funded envelope as an ordinary public ERC-20 transfer.
     ///
     /// This is the path for a recipient who has never touched the privacy pool:
     /// it needs no viewing key, no registration and no STRK20-capable wallet,
@@ -87,8 +85,10 @@ pub trait IEnvelope<TState> {
 ///
 /// A funder spends a shielded note, the pool withdraws the value to this
 /// contract, and this contract parks it under a **claim public key**. Whoever
-/// holds the matching private key can release it later, either into a fresh
-/// open note inside the pool, or as a plain ERC-20 transfer to any address.
+/// holds the matching private key can release it later. Pool-funded envelopes
+/// may release only into a fresh note inside the pool; publicly funded
+/// envelopes may instead use the plain ERC-20 route for recipients without a
+/// STRK20 wallet.
 ///
 /// # Why a key and not a secret
 ///
@@ -140,6 +140,7 @@ pub mod EnvelopeAnonymizer {
         pub const LOCK_AFTER_EXPIRY: felt252 = 'LOCK_AFTER_EXPIRY';
         pub const ZERO_REFUND_KEY: felt252 = 'ZERO_REFUND_KEY';
         pub const BAD_SIGNATURE: felt252 = 'BAD_SIGNATURE';
+        pub const PRIVATE_CLAIM_ONLY: felt252 = 'PRIVATE_CLAIM_ONLY';
         pub const TRANSFER_FAILED: felt252 = 'TRANSFER_FAILED';
     }
 
@@ -150,6 +151,9 @@ pub mod EnvelopeAnonymizer {
         pool: ContractAddress,
         /// claim public key -> envelope.
         envelopes: Map<felt252, EnvelopeData>,
+        /// Pool-funded envelopes must return to the pool when claimed. Kept in
+        /// a separate map so `get_envelope` retains its deployed ABI shape.
+        private_claim_only: Map<felt252, bool>,
         /// token -> value owed to unclaimed envelopes.
         reserved: Map<ContractAddress, u128>,
     }
@@ -231,7 +235,14 @@ pub mod EnvelopeAnonymizer {
                 EnvelopeOp::Fund => {
                     self
                         .fund(
-                            claim_pubkey, token, amount, refund_pubkey, unlock_at, expiry, memo,
+                            claim_pubkey,
+                            token,
+                            amount,
+                            refund_pubkey,
+                            unlock_at,
+                            expiry,
+                            memo,
+                            true,
                         );
                     // Nothing to credit: the value stays parked until a claim.
                     [].span()
@@ -260,7 +271,17 @@ pub mod EnvelopeAnonymizer {
                 .transfer_from(get_caller_address(), get_contract_address(), amount.into());
             assert(ok, errors::TRANSFER_FAILED);
 
-            self.fund(claim_pubkey, token, amount, refund_pubkey, unlock_at, expiry, memo);
+            self
+                .fund(
+                    claim_pubkey,
+                    token,
+                    amount,
+                    refund_pubkey,
+                    unlock_at,
+                    expiry,
+                    memo,
+                    false,
+                );
         }
 
         fn claim_to_address(
@@ -273,6 +294,7 @@ pub mod EnvelopeAnonymizer {
             assert(recipient.is_non_zero(), errors::ZERO_RECIPIENT);
 
             let env = self.load_claimable(claim_pubkey);
+            assert(!self.private_claim_only.read(claim_pubkey), errors::PRIVATE_CLAIM_ONLY);
             self
                 .check_signature(
                     claim_pubkey, MODE_ADDRESS, recipient.into(), claim_pubkey, sig_r, sig_s,
@@ -330,6 +352,7 @@ pub mod EnvelopeAnonymizer {
             unlock_at: u64,
             expiry: u64,
             memo: felt252,
+            private_claim_only: bool,
         ) {
             assert(claim_pubkey.is_non_zero(), errors::ZERO_CLAIM_KEY);
             assert(token.is_non_zero(), errors::ZERO_TOKEN);
@@ -355,6 +378,7 @@ pub mod EnvelopeAnonymizer {
             assert(held >= needed, errors::UNDERFUNDED);
 
             self.reserved.write(token, needed);
+            self.private_claim_only.write(claim_pubkey, private_claim_only);
             self
                 .envelopes
                 .write(

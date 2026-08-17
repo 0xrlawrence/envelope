@@ -29,7 +29,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Envelope: private money, sent as a link",
   description:
-    "Seal shielded tokens into an envelope and hand over a link. The STRK20 pool hides who paid; the recipient needs no viewing key, no registration, and no privacy wallet to get paid.",
+    "Seal shielded tokens into an envelope and hand over a link. The STRK20 pool hides who paid, and shielded-funded envelopes can only be claimed into a private balance.",
 };
 
 /**
