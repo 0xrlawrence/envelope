@@ -843,6 +843,39 @@ export default function CreatePage() {
 
       <div className="order-2">
         <div>
+          {/* Above the form rather than below it, because the first question
+              the form asks is which of these two to spend from, and it used to
+              be answered several fields further down.
+              A balance that was read is money, and gets the one green on the
+              site. A balance that could not be read is not a figure at all, so
+              it stays in the quiet colour rather than being dressed up as one. */}
+          {address ? (
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 border-b border-[var(--ink-line)] pb-1.5 text-[0.68rem] leading-tight sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1 sm:pb-2.5 sm:text-sm sm:leading-normal">
+              <dt className="field-label">In your wallet</dt>
+              <dd
+                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
+                style={{
+                  color: publicBalance === null ? "var(--paper-faint)" : "var(--credit)",
+                }}
+              >
+                {publicBalance === null
+                  ? "unreadable"
+                  : `${formatAmount(publicBalance)} ${STRK.symbol}`}
+              </dd>
+              <dt className="field-label">Shielded in the pool</dt>
+              <dd
+                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
+                style={{
+                  color: shieldedBalance === null ? "var(--paper-faint)" : "var(--credit)",
+                }}
+              >
+                {shieldedBalance === null
+                  ? "unreadable"
+                  : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}
+              </dd>
+            </dl>
+          ) : null}
+
           <Field label="Pay with">
             <p className="mb-1 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mb-2 sm:text-xs sm:leading-snug">
               {source === "shielded"
@@ -1084,36 +1117,6 @@ export default function CreatePage() {
                 </p>
               ) : null}
             </Callout>
-          ) : null}
-
-          {/* A balance that was read is money, and gets the one green on the
-              site. A balance that could not be read is not a figure at all, so
-              it stays in the quiet colour rather than being dressed up as one. */}
-          {address ? (
-            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 border-y border-[var(--ink-line)] py-1.5 text-[0.68rem] leading-tight sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1 sm:py-2.5 sm:text-sm sm:leading-normal">
-              <dt className="field-label">In your wallet</dt>
-              <dd
-                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
-                style={{
-                  color: publicBalance === null ? "var(--paper-faint)" : "var(--credit)",
-                }}
-              >
-                {publicBalance === null
-                  ? "unreadable"
-                  : `${formatAmount(publicBalance)} ${STRK.symbol}`}
-              </dd>
-              <dt className="field-label">Shielded in the pool</dt>
-              <dd
-                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
-                style={{
-                  color: shieldedBalance === null ? "var(--paper-faint)" : "var(--credit)",
-                }}
-              >
-                {shieldedBalance === null
-                  ? "unreadable"
-                  : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}
-              </dd>
-            </dl>
           ) : null}
 
           {address && supportsStrk20 && !funded ? (
