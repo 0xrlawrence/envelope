@@ -46,10 +46,10 @@ export default function SealedPage() {
   // Yours first. The other tab is the same contract seen from outside, which is
   // worth showing but is not what anyone opens this page to do.
   const [tab, setTab] = useState<"mine" | "chain">("mine");
-  // The two active jobs are mutually exclusive: either hand the claim link
-  // over, or take the envelope back. Tabs keep a backlog of returnable
-  // envelopes from pushing the links that still need sending out of sight.
-  const [actionTab, setActionTab] = useState<"out" | "return">("out");
+  // These work queues are mutually exclusive: hand the claim link over, take
+  // the envelope back, or investigate one that never landed. Tabs keep any one
+  // backlog from pushing the other jobs out of sight.
+  const [actionTab, setActionTab] = useState<"out" | "return" | "failed">("out");
 
   useEffect(() => {
     setOrigin(appOrigin());
@@ -173,10 +173,11 @@ export default function SealedPage() {
           <Tabs
             label="Envelope actions"
             active={actionTab}
-            onSelect={(id) => setActionTab(id as "out" | "return")}
+            onSelect={(id) => setActionTab(id as "out" | "return" | "failed")}
             tabs={[
               { id: "out", label: "Out there", count: live.length },
               { id: "return", label: "Yours to take back", count: reclaimable.length },
+              { id: "failed", label: "Not landed (Failed TXNS)", count: unknown.length },
             ]}
           />
 
@@ -239,26 +240,39 @@ export default function SealedPage() {
               </p>
             )}
           </div>
+
+          <div
+            role="tabpanel"
+            id="panel-failed"
+            aria-labelledby="tab-failed"
+            hidden={actionTab !== "failed"}
+          >
+            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+              No envelope on-chain against these keys. Kept in case a transaction arrives
+              late.
+            </p>
+            {unknown.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {unknown.map((record) => (
+                  <Row
+                    key={record.claimPublicKey}
+                    record={record}
+                    state={states[record.claimPublicKey]}
+                    origin={origin}
+                    now={now}
+                    network={network}
+                    onCleared={refresh}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+                No transactions are waiting to land.
+              </p>
+            )}
+          </div>
         </div>
       ) : null}
-
-      <Section
-        title="Not landed"
-        count={unknown.length}
-        hint="No envelope on-chain against these keys. Kept in case a transaction arrives late."
-      >
-        {unknown.map((record) => (
-          <Row
-            key={record.claimPublicKey}
-            record={record}
-            state={states[record.claimPublicKey]}
-            origin={origin}
-            now={now}
-            network={network}
-            onCleared={refresh}
-          />
-        ))}
-      </Section>
 
       <Section title="Finished" count={settled.length} hint="Receipts. Nothing to send.">
         {settled.map((record) => (

@@ -44,11 +44,11 @@ export function Tabs({
       ref={listRef}
       role="tablist"
       aria-label={label}
-      /* Equal halves on a phone, where the two labels are long enough to wrap
-         and a content-width tab leaves the second one hanging in the middle of
-         the rule. Back to sitting side by side at their natural width once
-         there is room for both. */
-      className="grid grid-cols-2 border-b border-[var(--ink-line)] sm:flex sm:gap-6"
+      /* Equal columns on a phone, where long labels can wrap and content-width
+         tabs leave the last one hanging in the middle of the rule. Back to
+         natural widths once there is room for the whole set. */
+      className="grid border-b border-[var(--ink-line)] sm:flex sm:gap-6"
+      style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
       onKeyDown={(event) => {
         if (event.key === "ArrowRight") {
           event.preventDefault();
@@ -72,7 +72,7 @@ export function Tabs({
             aria-controls={`panel-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(tab.id)}
-            className="-mb-px flex min-h-11 items-baseline justify-center gap-2 border-b-2 pt-1 pb-3 font-display text-xs font-semibold tracking-[0.1em] uppercase transition-colors duration-150 ease-out sm:min-h-0 sm:justify-start sm:text-sm sm:tracking-[0.14em]"
+            className="-mb-px flex min-h-11 items-baseline justify-center gap-2 border-b-2 pt-1 pb-3 font-display text-xs font-semibold tracking-[0.1em] uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.98] sm:min-h-0 sm:justify-start sm:text-sm sm:tracking-[0.14em]"
             style={{
               borderColor: selected ? "var(--frank)" : "transparent",
               color: selected ? "var(--frank)" : "var(--paper-faint)",
