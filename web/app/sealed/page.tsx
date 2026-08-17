@@ -46,6 +46,10 @@ export default function SealedPage() {
   // Yours first. The other tab is the same contract seen from outside, which is
   // worth showing but is not what anyone opens this page to do.
   const [tab, setTab] = useState<"mine" | "chain">("mine");
+  // The two active jobs are mutually exclusive: either hand the claim link
+  // over, or take the envelope back. Tabs keep a backlog of returnable
+  // envelopes from pushing the links that still need sending out of sight.
+  const [actionTab, setActionTab] = useState<"out" | "return">("out");
 
   useEffect(() => {
     setOrigin(appOrigin());
@@ -164,37 +168,79 @@ export default function SealedPage() {
         </p>
       ) : null}
 
-      <Section title="Out there" count={live.length} hint="Send these. They can be claimed.">
-        {live.map((record) => (
-          <Row
-            key={record.claimPublicKey}
-            record={record}
-            state={states[record.claimPublicKey]}
-            origin={origin}
-            now={now}
-            network={network}
-            onCleared={refresh}
+      {records.length > 0 ? (
+        <div className="mt-10">
+          <Tabs
+            label="Envelope actions"
+            active={actionTab}
+            onSelect={(id) => setActionTab(id as "out" | "return")}
+            tabs={[
+              { id: "out", label: "Out there", count: live.length },
+              { id: "return", label: "Yours to take back", count: reclaimable.length },
+            ]}
           />
-        ))}
-      </Section>
 
-      <Section
-        title="Yours to take back"
-        count={reclaimable.length}
-        hint="The claim window shut with nobody opening them. The return link works now."
-      >
-        {reclaimable.map((record) => (
-          <Row
-            key={record.claimPublicKey}
-            record={record}
-            state={states[record.claimPublicKey]}
-            origin={origin}
-            now={now}
-            network={network}
-            onCleared={refresh}
-          />
-        ))}
-      </Section>
+          <div
+            role="tabpanel"
+            id="panel-out"
+            aria-labelledby="tab-out"
+            hidden={actionTab !== "out"}
+          >
+            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+              Send these. They can be claimed.
+            </p>
+            {live.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {live.map((record) => (
+                  <Row
+                    key={record.claimPublicKey}
+                    record={record}
+                    state={states[record.claimPublicKey]}
+                    origin={origin}
+                    now={now}
+                    network={network}
+                    onCleared={refresh}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+                No envelopes waiting to be claimed.
+              </p>
+            )}
+          </div>
+
+          <div
+            role="tabpanel"
+            id="panel-return"
+            aria-labelledby="tab-return"
+            hidden={actionTab !== "return"}
+          >
+            <p className="mt-3 text-xs text-[var(--paper-faint)]">
+              The claim window shut with nobody opening them. The return link works now.
+            </p>
+            {reclaimable.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {reclaimable.map((record) => (
+                  <Row
+                    key={record.claimPublicKey}
+                    record={record}
+                    state={states[record.claimPublicKey]}
+                    origin={origin}
+                    now={now}
+                    network={network}
+                    onCleared={refresh}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--paper-faint)]">
+                Nothing ready to take back.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <Section
         title="Not landed"
