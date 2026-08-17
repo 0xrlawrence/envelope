@@ -22,10 +22,10 @@ export function Field({
   hint?: string;
 }) {
   return (
-    <div className="grid gap-1.5 border-b border-dotted border-[var(--ink-line)] py-2 sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6 sm:py-[clamp(0.4rem,1.55vh,0.9rem)]">
+    <div className="grid gap-1 border-b border-dotted border-[var(--ink-line)] py-1.5 sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-6 sm:py-[clamp(0.4rem,1.55vh,0.9rem)]">
       <div>
         <Eyebrow>{label}</Eyebrow>
-        {hint ? <p className="mt-0.5 text-[0.7rem] text-[var(--paper-faint)] sm:mt-1 sm:text-xs">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-[0.62rem] leading-tight text-[var(--paper-faint)] sm:mt-1 sm:text-xs sm:leading-normal">{hint}</p> : null}
       </div>
       <div className="min-w-0">{children}</div>
     </div>
@@ -138,7 +138,7 @@ export function Callout({
   }[tone];
 
   return (
-    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-3 py-2 text-[0.8rem] sm:px-4 sm:py-[clamp(0.45rem,1.4vh,0.75rem)] sm:text-sm`}>
+    <div className={`border-l ${edge} bg-[var(--ink-raised)] px-2.5 py-1.5 text-[0.7rem] leading-snug sm:px-4 sm:py-[clamp(0.45rem,1.4vh,0.75rem)] sm:text-sm sm:leading-normal`}>
       {title ? (
         <p className="field-label mb-1 !text-[var(--paper-dim)]">{title}</p>
       ) : null}

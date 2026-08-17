@@ -189,8 +189,8 @@ body {
  */
 @media (max-width: 640px) {
   body {
-    font-size: 0.875rem;
-    line-height: 1.45;
+    font-size: 0.8rem;
+    line-height: 1.38;
   }
 
   .headline {
@@ -204,8 +204,8 @@ body {
   }
 
   .field-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.16em;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
   }
 
   p {

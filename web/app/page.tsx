@@ -800,7 +800,7 @@ export default function CreatePage() {
 
     <div
       ref={stageRef}
-      className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-6 sm:px-6 sm:py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-[clamp(1.5rem,5vh,4rem)]"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-2.5 py-2 sm:gap-6 sm:px-6 sm:py-[clamp(0.75rem,3.4vh,3rem)] lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-[clamp(1.5rem,5vh,4rem)]"
     >
       {/* `display: contents` below `lg`, so the three blocks inside become
           direct children of the flex column above and can be ordered against
@@ -810,8 +810,8 @@ export default function CreatePage() {
           send-off animation walks this tree by shape. */}
       <div className="contents lg:sticky lg:top-10 lg:block">
         <div className="order-1">
-          <h1 className="headline">Private money you can send as a link.</h1>
-          <p className="mt-1.5 max-w-[52ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-[clamp(0.5rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
+          <h1 className="headline !text-[1.3rem] !leading-[0.98] sm:!text-[clamp(1.75rem,min(6.2vw,4.6vh),3.25rem)] sm:!leading-[1.04]">Private money you can send as a link.</h1>
+          <p className="mt-1 max-w-[52ch] text-[0.68rem] leading-[1.3] text-[var(--paper-dim)] sm:mt-[clamp(0.5rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
             {source === "shielded"
               ? "Seal from a private note and the pool hides who paid. The link can only be claimed into a registered shielded balance."
               : "Pay someone by link even if they have never used STRK20. Funding and a public claim work with any Starknet wallet."}
@@ -827,7 +827,7 @@ export default function CreatePage() {
           />
         </div>
 
-        <dl className="order-4 text-[0.78rem] sm:text-sm lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
+        <dl className="order-4 text-[0.68rem] leading-tight sm:text-sm sm:leading-normal lg:mt-[clamp(0.75rem,2.6vh,1.6rem)]">
           <HiddenRow hidden>Who funded it</HiddenRow>
           <HiddenRow hidden>
             {source === "shielded" ? "Who claims it" : "Who claims it, if they claim privately"}
@@ -844,7 +844,7 @@ export default function CreatePage() {
       <div className="order-2">
         <div>
           <Field label="Pay with">
-            <p className="mb-1.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mb-2 sm:text-xs">
+            <p className="mb-1 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mb-2 sm:text-xs sm:leading-snug">
               {source === "shielded"
                 ? "Spends a note already in the pool. A relayer submits it, so nothing on-chain ties the envelope to you."
                 : "Funds the contract straight from your address, in the open. Works with any wallet."}
@@ -852,7 +852,7 @@ export default function CreatePage() {
             <div
               role="group"
               aria-label="Pay with"
-              className="flex w-full rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1 sm:inline-flex sm:w-auto"
+              className="flex w-full rounded-md border border-[var(--ink-line)] bg-[var(--ink-raised)] p-0.5 sm:inline-flex sm:w-auto sm:rounded-lg sm:p-1"
             >
               {[
                 {
@@ -882,7 +882,7 @@ export default function CreatePage() {
                       play("tap");
                       setChosen(choice.value);
                     }}
-                    className="min-h-11 flex-1 rounded-md px-2 font-display text-xs font-semibold tracking-[0.08em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:flex-none sm:px-4 sm:py-1.5 sm:text-sm"
+                    className="min-h-9 flex-1 rounded-[0.2rem] px-1 font-display text-[0.65rem] font-semibold tracking-[0.07em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:flex-none sm:rounded-md sm:px-4 sm:py-1.5 sm:text-sm sm:tracking-[0.08em]"
                     style={
                       active
                         ? {
@@ -906,7 +906,7 @@ export default function CreatePage() {
             {/* Sits over the control rather than beside it, so the sentence and
                 the thing it describes are read in that order. It states what
                 the current choice means, not what the other one would do. */}
-            <p className="mb-1.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mb-2 sm:text-xs">
+            <p className="mb-1 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mb-2 sm:text-xs sm:leading-snug">
               {locked
                 ? "Only someone with the password can open it"
                 : "Anyone with the link can open it"}
@@ -914,7 +914,7 @@ export default function CreatePage() {
             <div
               role="group"
               aria-label="Visibility"
-              className="flex w-full rounded-lg border border-[var(--ink-line)] bg-[var(--ink-raised)] p-1 sm:inline-flex sm:w-auto"
+              className="flex w-full rounded-md border border-[var(--ink-line)] bg-[var(--ink-raised)] p-0.5 sm:inline-flex sm:w-auto sm:rounded-lg sm:p-1"
             >
               {[
                 { value: false, label: "Public" },
@@ -930,7 +930,7 @@ export default function CreatePage() {
                       play("tap");
                       setLocked(choice.value);
                     }}
-                    className="min-h-11 flex-1 rounded-md px-5 font-display text-sm font-semibold tracking-[0.1em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] sm:min-h-0 sm:flex-none sm:py-1.5"
+                    className="min-h-9 flex-1 rounded-[0.2rem] px-3 font-display text-xs font-semibold tracking-[0.09em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] sm:min-h-0 sm:flex-none sm:rounded-md sm:px-5 sm:py-1.5 sm:text-sm sm:tracking-[0.1em]"
                     style={
                       active
                         ? {
@@ -978,7 +978,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Amount" hint="Round sizes share a crowd">
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="group" aria-label="Amount">
+            <div className="grid grid-cols-5 gap-1 sm:gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
                 <button
                   key={value.toString()}
@@ -988,7 +988,7 @@ export default function CreatePage() {
                     play("tap");
                     setDenomination(value);
                   }}
-                  className={`min-h-11 border px-2 text-center font-mono text-sm transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:py-2 ${
+                  className={`min-h-9 border px-1 text-center font-mono text-xs transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-2 sm:py-2 sm:text-sm ${
                     value === denomination
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -1001,7 +1001,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Claim window" hint="After it shuts, only you can reclaim">
-            <div className="flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Claim window">
+            <div className="flex flex-wrap gap-1 sm:gap-2" role="group" aria-label="Claim window">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
                   key={choice.label}
@@ -1011,7 +1011,7 @@ export default function CreatePage() {
                     play("tap");
                     setExpirySeconds(choice.seconds);
                   }}
-                  className={`min-h-11 border px-3 text-xs transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm ${
+                  className={`min-h-9 border px-2 text-[0.68rem] transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm ${
                     choice.seconds === expirySeconds
                       ? "border-[var(--frank)] text-[var(--frank)]"
                       : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
@@ -1030,12 +1030,12 @@ export default function CreatePage() {
               maxLength={31}
               onChange={(event) => setMemo(event.target.value)}
               placeholder="Payment for your bounty Ref# 1101"
-              className="w-full border border-[var(--ink-line)] bg-transparent px-2.5 py-2 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)] sm:px-3"
+              className="w-full border border-[var(--ink-line)] bg-transparent px-2 py-1.5 font-mono text-sm outline-none placeholder:text-[var(--paper-faint)] focus:border-[var(--frank)] sm:px-3 sm:py-2"
             />
           </Field>
         </div>
 
-        <div className="mt-3 space-y-2 sm:mt-[clamp(0.75rem,3vh,2rem)] sm:space-y-[clamp(0.4rem,1.8vh,1rem)]">
+        <div className="mt-2 space-y-1.5 sm:mt-[clamp(0.75rem,3vh,2rem)] sm:space-y-[clamp(0.4rem,1.8vh,1rem)]">
           {!address ? (
             <Callout title="Not connected">
               Connect a STRK20 wallet, such as Ready, to seal an envelope.
@@ -1090,10 +1090,10 @@ export default function CreatePage() {
               site. A balance that could not be read is not a figure at all, so
               it stays in the quiet colour rather than being dressed up as one. */}
           {address ? (
-            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-y border-[var(--ink-line)] py-2 text-[0.75rem] sm:gap-x-6 sm:py-2.5 sm:text-sm">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 border-y border-[var(--ink-line)] py-1.5 text-[0.68rem] leading-tight sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1 sm:py-2.5 sm:text-sm sm:leading-normal">
               <dt className="field-label">In your wallet</dt>
               <dd
-                className="text-right font-mono tabular-nums"
+                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
                 style={{
                   color: publicBalance === null ? "var(--paper-faint)" : "var(--credit)",
                 }}
@@ -1104,7 +1104,7 @@ export default function CreatePage() {
               </dd>
               <dt className="field-label">Shielded in the pool</dt>
               <dd
-                className="text-right font-mono tabular-nums"
+                className="min-w-0 text-right font-mono text-[0.6rem] tabular-nums sm:text-sm"
                 style={{
                   color: shieldedBalance === null ? "var(--paper-faint)" : "var(--credit)",
                 }}
@@ -1143,9 +1143,9 @@ export default function CreatePage() {
             </Callout>
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <Button
-              className="w-full sm:w-auto"
+              className="!min-h-10 w-full !py-1.5 !text-xs sm:!min-h-0 sm:w-auto sm:!py-[clamp(0.5rem,1.5vh,0.75rem)] sm:!text-sm"
               onClick={seal}
               disabled={
                 !address || notDeployed || busy !== "" || !funded || (locked && !password)
@@ -1195,11 +1195,11 @@ export default function CreatePage() {
 
 function HiddenRow({ children, hidden = false }: { children: string; hidden?: boolean }) {
   return (
-    <div className="flex items-baseline gap-2 border-b border-dotted border-[var(--ink-line)] py-1.5 sm:gap-3 sm:py-[clamp(0.3rem,1.1vh,0.55rem)]">
+    <div className="flex items-baseline gap-1.5 border-b border-dotted border-[var(--ink-line)] py-1 sm:gap-3 sm:py-[clamp(0.3rem,1.1vh,0.55rem)]">
       {/* Fixed width, so the four statements line up as a column of claims
           rather than stepping in and out with the length of the label. */}
       <span
-        className="w-14 shrink-0 font-display text-[0.65rem] font-semibold tracking-[0.18em] uppercase"
+        className="w-12 shrink-0 font-display text-[0.58rem] font-semibold tracking-[0.15em] uppercase sm:w-14 sm:text-[0.65rem] sm:tracking-[0.18em]"
         style={{ color: hidden ? "var(--frank)" : "var(--paper-faint)" }}
       >
         {hidden ? "Hidden" : "Public"}
