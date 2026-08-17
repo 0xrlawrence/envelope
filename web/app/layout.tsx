@@ -89,14 +89,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   <p className="text-xs sm:text-sm">
                     Unaudited. It moves real money on mainnet. Read it before you trust it.
                   </p>
-                  <a
-                    className="inline-flex min-h-11 items-center self-start font-mono text-xs tracking-widest uppercase underline decoration-dotted underline-offset-4 hover:text-[var(--frank)] sm:min-h-0"
-                    href="https://github.com/0xrlawrence/envelope"
-                    target="_blank"
-                    rel="noreferrer"
+                  <nav
+                    aria-label="Project links"
+                    className="flex self-start font-mono text-xs tracking-widest uppercase sm:self-auto"
                   >
-                    Source
-                  </a>
+                    <a
+                      className="inline-flex min-h-11 items-center pr-4 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0"
+                      href="https://x.com/0xrlawrence"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="0xrlawrence on X (opens in a new tab)"
+                    >
+                      @0xrlawrence
+                    </a>
+                    <a
+                      className="inline-flex min-h-11 items-center border-l border-[var(--ink-line)] pl-4 underline decoration-dotted underline-offset-4 transition-colors duration-150 hover:text-[var(--frank)] focus-visible:text-[var(--frank)] sm:min-h-0"
+                      href="https://github.com/0xrlawrence/envelope"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Source
+                    </a>
+                  </nav>
                 </div>
               </footer>
             </div>
