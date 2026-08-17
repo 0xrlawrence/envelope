@@ -95,6 +95,60 @@ function undoSendOff(stage: HTMLElement | null): void {
   });
 }
 
+/**
+ * Notice when a wallet approval window gives focus back without answering.
+ *
+ * Ready opens its STRK20 review in a separate browser window. Rejecting that
+ * review closes the window, but the current `wallet_strk20InvokeTransaction`
+ * request can remain pending instead of rejecting. The focus round trip is the
+ * one observable event the browser still receives, so use it to put the plane
+ * into its return flight.
+ *
+ * A genuine tab switch is excluded: it changes document visibility, while a
+ * wallet popup leaves this page visible. The short grace lets a normal promise
+ * resolution win before the fallback fires.
+ */
+function watchShieldedApprovalWindow(onClosedWithoutAnswer: () => void): () => void {
+  let leftForVisibleWindow = false;
+  let stopped = false;
+  let returnedTimer = 0;
+
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    window.clearTimeout(returnedTimer);
+    window.removeEventListener("blur", onBlur);
+    window.removeEventListener("focus", onFocus);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  };
+
+  const onBlur = () => {
+    if (document.visibilityState === "visible") leftForVisibleWindow = true;
+  };
+
+  const onVisibilityChange = () => {
+    // Leaving the tab is not a wallet decision. Clear any blur that happened
+    // just before the browser reported the tab as hidden.
+    if (document.visibilityState === "hidden") leftForVisibleWindow = false;
+  };
+
+  const onFocus = () => {
+    if (!leftForVisibleWindow || stopped || document.visibilityState !== "visible") return;
+    window.clearTimeout(returnedTimer);
+    returnedTimer = window.setTimeout(() => {
+      if (stopped) return;
+      stop();
+      onClosedWithoutAnswer();
+    }, 300);
+  };
+
+  window.addEventListener("blur", onBlur);
+  window.addEventListener("focus", onFocus);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  return stop;
+}
+
 export default function CreatePage() {
   const {
     account,
@@ -458,7 +512,16 @@ export default function CreatePage() {
       // shielded balance covers the amount, and a wallet that still cannot
       // prove fails on this call with the same error, one dialog earlier.
       setSealStep(1);
-      return account.strk20InvokeTransaction(actions);
+      const stopWatchingApproval = watchShieldedApprovalWindow(() => {
+        stopWaitingRef.current?.();
+      });
+      try {
+        return await account.strk20InvokeTransaction(actions);
+      } finally {
+        // An answered request already drives the ordinary success/rejection
+        // path, so the focus fallback must not race it.
+        stopWatchingApproval();
+      }
     };
 
     const sealPublicly = async () => {
