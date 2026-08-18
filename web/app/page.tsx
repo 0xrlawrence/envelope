@@ -96,6 +96,17 @@ function undoSendOff(stage: HTMLElement | null): void {
 }
 
 /**
+ * How long the chain gets to show the envelope after the wallet's approval
+ * window closes, before the page concludes the request was declined.
+ *
+ * Sized off the slow end of what an approval actually costs: a proof of about
+ * half a minute, then a relayer, then a block. Erring long is deliberate. Being
+ * early here means calling a live transaction declined, which is the mistake
+ * that loses someone the link to money that is already theirs.
+ */
+const DECLINE_GRACE_MS = 45_000;
+
+/**
  * Notice when the wallet's approval window hands focus back.
  *
  * Ready opens its STRK20 review in a separate browser window, and declining
@@ -473,6 +484,36 @@ export default function CreatePage() {
     const watching = watchForEnvelope(claim.publicKey, watch);
 
     /**
+     * If it lands after this page has given up on it, give the link back.
+     *
+     * Concluding a refusal from silence is a judgement, and it can be wrong: a
+     * proof that ran long, a relayer that took its time. When that happens the
+     * envelope is real and funded, and the only thing in this whole flow that
+     * cannot be recreated is the link to it. So the watcher is never cancelled
+     * by giving up, and whatever it finds is put back on screen, whether or not
+     * the form has already returned.
+     */
+    void watching.then((found) => {
+      if (!found) return;
+      setGaveUp(false);
+      setDeclined(false);
+      setError("");
+      setSending(false);
+      setSealed(
+        (previous) =>
+          previous ?? {
+            claim,
+            refund,
+            amount,
+            transactionHash: "",
+            private: source === "shielded",
+            lockSalt: salt,
+            state: "funded",
+          },
+      );
+    });
+
+    /**
      * The way out of a wallet that never answers.
      *
      * A refusal is supposed to reject the call. Not every wallet does it, and a
@@ -525,18 +566,37 @@ export default function CreatePage() {
       // shielded balance covers the amount, and a wallet that still cannot
       // prove fails on this call with the same error, one dialog earlier.
       setSealStep(1);
-      // Reveals the way out at once instead of taking it. The window closing
-      // is a hint that there may be nothing left to wait for, not a fact about
-      // what was pressed.
+      /**
+       * The approval window closing means one of two things, and the chain is
+       * what tells them apart.
+       *
+       * Approving starts a proof, and an envelope shows up on-chain at the end
+       * of it. Declining produces nothing, ever. So the window closing opens a
+       * grace period rather than deciding anything: the watcher is already
+       * polling the contract every couple of seconds, and if the seal was
+       * approved it will almost always have landed well inside it. If the grace
+       * runs out with nothing on-chain and the wallet still silent, that is as
+       * close to a refusal as this page can get, and the envelope comes home.
+       *
+       * Long enough to clear a slow proof and a slow block. Anyone who knows
+       * they declined does not have to sit through it: the way out is offered
+       * the moment the window closes.
+       */
+      let grace = 0;
       const stopWatchingApproval = watchShieldedApprovalWindow(() => {
         setPromptClosed(true);
+        grace = window.setTimeout(() => {
+          if (watch.found) return;
+          stopWaitingRef.current?.();
+        }, DECLINE_GRACE_MS);
       });
       try {
         return await account.strk20InvokeTransaction(actions);
       } finally {
-        // An answered request already drives the ordinary success/rejection
-        // path, so the focus fallback must not race it.
+        // An answered request drives the ordinary success or rejection path, so
+        // neither the focus watcher nor its grace may race it.
         stopWatchingApproval();
+        window.clearTimeout(grace);
       }
     };
 
@@ -799,7 +859,7 @@ export default function CreatePage() {
                  */
                 stopWaitingAfterMs: promptClosed ? 0 : 2_500,
                 stopWaitingHint: promptClosed
-                  ? "Your wallet window closed without answering. If you declined, stop waiting. If you approved, leave it: proving takes about half a minute and the envelope lands on its own."
+                  ? "Your wallet window closed without answering. Watching the chain for it: if nothing lands in a minute the envelope comes back on its own. If you know you declined, no need to wait."
                   : "Declined it? A shielded send does not report that back to this page, so it will keep waiting until you say so.",
               }
             : {})}
