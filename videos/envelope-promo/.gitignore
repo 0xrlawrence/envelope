@@ -1,0 +1,9 @@
+.venv-media/
+.media/
+.hyperframes/
+.thumbnails/
+capture/
+snapshots/
+snapshots-final/
+bgm_status.json
+assets/bgm/*.log

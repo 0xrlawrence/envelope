@@ -1,0 +1,12 @@
+{
+  "provider": "kokoro",
+  "lines": [],
+  "bgm": {
+    "mode": "generate",
+    "query": "crypto privacy product launch",
+    "prompt": "fast cinematic electronic pulse at 132 BPM, dark futuristic synth bass, crisp restrained percussion, tense-to-triumphant build, no vocals, polished modern technology commercial",
+    "blob": "crypto privacy shielded STRK bearer links",
+    "archetype": "Future Pacing",
+    "arc": "tension to clarity to triumph"
+  }
+}
