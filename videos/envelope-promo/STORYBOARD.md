@@ -87,7 +87,7 @@ keyMessage: Shielded funding hides the sender and enforces a shielded claim.
 
 ## Frame 5 — Normal in, either claim out
 
-- scene: A split system shows public wallet funding on the left and two claim routes on the right; the private route deposits the same ERC-20 STRK into the pool as Ready creates a new note, while a one-in/one-out balance meter stays level.
+- scene: Four equal-size cards sit on a strict three-column grid: public wallet flows into the parked Envelope, then a centered fork splits into aligned public and shielded claim routes while the one-in/one-out balance meter stays level.
 - voiceover: "Normal funding stays visible. The claimant can choose a public wallet or a shielded balance. Private claim moves the same STRK into the pool, one-for-one — no wrapper, no mint."
 - duration: 10.8s
 - poster: 8s
