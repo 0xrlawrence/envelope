@@ -96,19 +96,25 @@ function undoSendOff(stage: HTMLElement | null): void {
 }
 
 /**
- * Notice when a wallet approval window gives focus back without answering.
+ * Notice when the wallet's approval window hands focus back.
  *
- * Ready opens its STRK20 review in a separate browser window. Rejecting that
- * review closes the window, but the current `wallet_strk20InvokeTransaction`
- * request can remain pending instead of rejecting. The focus round trip is the
- * one observable event the browser still receives, so use it to put the plane
- * into its return flight.
+ * Ready opens its STRK20 review in a separate browser window, and declining
+ * there can leave `wallet_strk20InvokeTransaction` pending rather than
+ * rejecting it. This focus round trip is the one event the browser still
+ * delivers when that happens.
+ *
+ * What it cannot do is say which button was pressed. Approving closes that
+ * window exactly as declining does, and the proof that follows takes another
+ * half minute, so a page that treats the focus coming back as a refusal will
+ * call a live transaction declined and fly the envelope home while the money
+ * is still on its way. This reports that the window closed, and nothing more;
+ * deciding what that meant is left to the person who pressed the button.
  *
  * A genuine tab switch is excluded: it changes document visibility, while a
  * wallet popup leaves this page visible. The short grace lets a normal promise
- * resolution win before the fallback fires.
+ * resolution win first.
  */
-function watchShieldedApprovalWindow(onClosedWithoutAnswer: () => void): () => void {
+function watchShieldedApprovalWindow(onWindowClosed: () => void): () => void {
   let leftForVisibleWindow = false;
   let stopped = false;
   let returnedTimer = 0;
@@ -138,7 +144,7 @@ function watchShieldedApprovalWindow(onClosedWithoutAnswer: () => void): () => v
     returnedTimer = window.setTimeout(() => {
       if (stopped) return;
       stop();
-      onClosedWithoutAnswer();
+      onWindowClosed();
     }, 300);
   };
 
@@ -219,6 +225,12 @@ export default function CreatePage() {
    * the approvals panel, which is rendered outside it.
    */
   const stopWaitingRef = useRef<(() => void) | null>(null);
+  /**
+   * Whether the wallet's approval window has closed while the call is still
+   * outstanding. A hint that there may be nothing left to wait for, never a
+   * verdict: approving closes that window too.
+   */
+  const [promptClosed, setPromptClosed] = useState(false);
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
 
   useEffect(() => {
@@ -390,6 +402,7 @@ export default function CreatePage() {
     setErrorDetail("");
     setDeclined(false);
     setGaveUp(false);
+    setPromptClosed(false);
     setSealStep(0);
 
     // Fresh keys per envelope. Two envelopes from the same funder share no key
@@ -512,8 +525,11 @@ export default function CreatePage() {
       // shielded balance covers the amount, and a wallet that still cannot
       // prove fails on this call with the same error, one dialog earlier.
       setSealStep(1);
+      // Reveals the way out at once instead of taking it. The window closing
+      // is a hint that there may be nothing left to wait for, not a fact about
+      // what was pressed.
       const stopWatchingApproval = watchShieldedApprovalWindow(() => {
-        stopWaitingRef.current?.();
+        setPromptClosed(true);
       });
       try {
         return await account.strk20InvokeTransaction(actions);
@@ -781,9 +797,10 @@ export default function CreatePage() {
                  * is nothing to wait for. The way out is offered almost at
                  * once, and says why.
                  */
-                stopWaitingAfterMs: 2_500,
-                stopWaitingHint:
-                  "Declined it? A shielded send does not report that back to this page, so it will keep waiting until you say so.",
+                stopWaitingAfterMs: promptClosed ? 0 : 2_500,
+                stopWaitingHint: promptClosed
+                  ? "Your wallet window closed without answering. If you declined, stop waiting. If you approved, leave it: proving takes about half a minute and the envelope lands on its own."
+                  : "Declined it? A shielded send does not report that back to this page, so it will keep waiting until you say so.",
               }
             : {})}
           steps={[
