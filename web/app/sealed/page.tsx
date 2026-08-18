@@ -7,6 +7,7 @@ import {
   readEnvelope,
   type EnvelopeState,
 } from "strk20-envelope";
+import { Reel } from "@/components/Reel";
 import { Tabs } from "@/components/Tabs";
 import { Button, Callout, ExplorerLink } from "@/components/ui";
 import {
@@ -125,22 +126,44 @@ export default function SealedPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-6 sm:py-10">
-      <h1 className="headline">Envelopes.</h1>
+      {/* The reel is placed out of flow, anchored to the right of the heading
+          and the tabs together. In flow it would have to take its width from
+          somewhere, and the only thing next to it is the tab rule, which runs
+          the width of the page on purpose. Absolute keeps that rule intact and
+          lets the object sit in the empty half of the row beside it. Hidden on
+          a phone, where there is no empty half. */}
+      <div className="relative">
+        <div
+          aria-hidden
+          /* Centred with auto margins rather than a translate. `translate` is
+             its own CSS property and, like `transform`, it opens a stacking
+             context, which isolates the blend below to this box: the black in
+             the footage then has only its own transparent container to blend
+             against, and stays a black rectangle. Auto margins against a full
+             inset centre it just as well and leave the video blending against
+             the page. */
+          className="reel pointer-events-none absolute inset-y-0 right-0 my-auto hidden h-fit w-[clamp(7rem,17vw,10.5rem)] sm:block"
+        >
+          <Reel />
+        </div>
 
-      <div className="mt-3 sm:mt-6">
-        <Tabs
-          label="Envelopes"
-          active={tab}
-          onSelect={(id) => setTab(id as "mine" | "chain")}
-          tabs={[
-            { id: "mine", label: "From this browser", count: records.length },
-            {
-              id: "chain",
-              label: "On this anonymizer",
-              count: onChain?.length,
-            },
-          ]}
-        />
+        <h1 className="headline">Envelopes.</h1>
+
+        <div className="mt-3 sm:mt-6">
+          <Tabs
+            label="Envelopes"
+            active={tab}
+            onSelect={(id) => setTab(id as "mine" | "chain")}
+            tabs={[
+              { id: "mine", label: "From this browser", count: records.length },
+              {
+                id: "chain",
+                label: "On this anonymizer",
+                count: onChain?.length,
+              },
+            ]}
+          />
+        </div>
       </div>
 
       <div
