@@ -96,15 +96,22 @@ function undoSendOff(stage: HTMLElement | null): void {
 }
 
 /**
- * How long the chain gets to show the envelope after the wallet's approval
- * window closes, before the page concludes the request was declined.
+ * How long to wait after the wallet's approval window closes before bringing
+ * the envelope home.
  *
- * Sized off the slow end of what an approval actually costs: a proof of about
- * half a minute, then a relayer, then a block. Erring long is deliberate. Being
- * early here means calling a live transaction declined, which is the mistake
- * that loses someone the link to money that is already theirs.
+ * Just long enough for a wallet that does answer to get its answer in first,
+ * and no longer. Declining is the case this exists for, and a decline on the
+ * STRK20 route produces no event at all, so anything beyond that is time spent
+ * watching a plane fly for a transaction that was cancelled.
+ *
+ * The window also closes on approve, so the flight ends there too, a little
+ * before the proof does. Nothing is claimed about which happened: the page says
+ * it is still listening, the watcher keeps polling the contract, and if the
+ * seal does land the sealed screen comes back with its link. Ending the flight
+ * early costs a few seconds of certainty; leaving it flying cost the reader
+ * every rejected seal.
  */
-const DECLINE_GRACE_MS = 45_000;
+const DECLINE_GRACE_MS = 2_000;
 
 /**
  * Notice when the wallet's approval window hands focus back.
@@ -824,7 +831,7 @@ export default function CreatePage() {
               // money.
               setError(
                 gaveUp
-                  ? "Stopped waiting. If you declined in the wallet, nothing was sent and nothing moved. If you did approve it, the envelope is still on its way: it will appear on the sealed page, with its keys."
+                  ? "Your wallet closed without answering, so the envelope came back. If you declined, nothing was sent and nothing moved. If you approved it, it is still being proved: this page is still watching the chain and will show the link here the moment it lands."
                   : "You declined this in your wallet. Nothing was sent and nothing moved.",
               );
             }
@@ -1212,7 +1219,9 @@ export default function CreatePage() {
           {error ? (
             <Callout
               tone={declined ? "warn" : "bad"}
-              title={declined ? "Not sent" : "Failed"}
+              /* "Not sent" is a fact when the wallet said so. When it said
+                 nothing, the only fact is that the envelope came back. */
+              title={gaveUp ? "Came back" : declined ? "Not sent" : "Failed"}
             >
               <p>{error}</p>
               {errorDetail && errorDetail !== error ? (
