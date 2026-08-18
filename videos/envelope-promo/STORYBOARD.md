@@ -30,7 +30,7 @@ keyMessage: Private value can feel as direct as sending a message.
 
 ## Frame 2 — Seal it in the app
 
-- scene: The real Envelope interface flies in as a tilted window; the camera pushes from the headline to STRK shielded/normal, amount, claim window, then Seal envelope.
+- scene: The real Envelope interface flies in at a measured 16:9 scale; exact boxes lock to STRK shielded/normal, amount plus claim window, and Seal envelope, then Visibility switches to Private and reveals the password field.
 - voiceover: "This is Envelope. Choose shielded or normal STRK, set the amount, and seal it to a link."
 - duration: 6.8s
 - poster: 5.2s
@@ -41,11 +41,11 @@ keyMessage: Private value can feel as direct as sending a message.
 - persuasion: Friction reduction through a complete core-loop demo
 - beat: clarity + control
 - blueprint: device-surface-showcase — introduce the product by completing its sealing loop on the real surface
-- asset_candidates: assets/full-page.png — full Envelope landing and sealing interface; assets/scroll-000.png — 1920×1080 live interface viewport
+- asset_candidates: assets/scroll-public.png — measured 1920×1080 public state; assets/scroll-private.png — measured 1920×1080 private state with password field
 - sfx: click-soft, click, impact-bass-1
 
 narrativeRole: Prove that the sophisticated privacy system starts with a familiar, compact product action.
-keyMessage: Pick a funding mode, set the envelope, and seal.
+keyMessage: Pick a funding mode, set the envelope, and use Private visibility when the claim link must require a separately shared password.
 
 ## Frame 3 — The envelope becomes the link
 
