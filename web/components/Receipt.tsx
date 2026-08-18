@@ -50,7 +50,7 @@ export function Receipt({ claimPublicKey }: { claimPublicKey: string }) {
   };
 
   return (
-    <div className="mt-5 border-t border-[var(--ink-line)] pt-3 sm:mt-8 sm:pt-4">
+    <div className="mt-5 sm:mt-8">
       <p className="field-label">On-chain</p>
       <ul className="mt-2 space-y-2.5 sm:mt-3 sm:space-y-3.5">
         {events.map((event) => (
