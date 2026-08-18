@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { shortHex } from "@/lib/config";
 import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
@@ -10,6 +11,12 @@ export function ConnectButton() {
   const { wallets, address, network, connect, disconnect, connecting, error } = useWallet();
   const { play } = useSound();
   const [open, setOpen] = useState(false);
+  /**
+   * The portal needs a real `document`, and this app is prerendered to static
+   * files, so the target does not exist until the browser has it.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [injected, setInjected] = useState<string[]>([]);
 
   // Discovery only listens for `wallet-standard:register-wallet`. A wallet that
@@ -93,7 +100,21 @@ export function ConnectButton() {
         Connect
       </Button>
 
-      {open ? (
+      {/*
+        * Rendered into the body rather than where it sits in the markup.
+        *
+        * This button lives in the header, and the header is `sticky` with a
+        * `z-index`, which makes it a stacking context. A dialog inside one is
+        * sealed into it: its own `z-50` competes only with its siblings there,
+        * and the whole header stacks at 30 against the page, so on a phone the
+        * picker was being painted underneath the page it was supposed to cover.
+        * No z-index on the dialog can win that, because the contest is not
+        * between the dialog and the page. A portal takes it out of the header
+        * entirely, which is also what makes it immune to whatever position or
+        * transform the header grows next.
+        */}
+      {open && mounted
+        ? createPortal(
         <div
           /* Scrollable, and centred by an auto margin on the panel rather than
              by `items-center`, so that a phone in landscape with the keyboard
@@ -183,8 +204,10 @@ export function ConnectButton() {
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
