@@ -14,7 +14,7 @@
  * live in the web app. Everything the contract exposes to an ordinary account
  * is here, and the parts that are not are named rather than quietly missing.
  */
-import { Account, RpcProvider } from "starknet";
+import { Account, logger, RpcProvider } from "starknet";
 import {
   buildClaimToAddressCall,
   buildPublicFundCalls,
@@ -71,7 +71,8 @@ Output is JSON whenever stdout is not a terminal, so a program calling this
 never has to read prose. --json forces it, --human forces the other way.
 
 --dry-run builds and prints the transaction without signing or sending it, so a
-caller can rehearse a payment before it spends anything.`;
+caller can rehearse a payment before it spends anything. --verbose restores the
+underlying library's own logging, which is otherwise quietened to errors.`;
 
 interface Flags {
   readonly command: string;
@@ -423,6 +424,20 @@ async function whoami(flags: Flags) {
 
 async function main() {
   const flags = parseArgv(process.argv.slice(2));
+
+  /*
+   * starknet.js narrates its own heuristics at WARN. The one that turns up on
+   * every Sepolia transaction is the tip estimator saying it found seven V3
+   * transactions in the last three blocks where it wanted ten, which is a
+   * quiet network rather than a problem: it falls back to a default tip and
+   * the transaction goes through.
+   *
+   * It lands on stderr, so it never corrupted piped output, but it reads like
+   * a failure to anyone watching a log and it is the first thing printed by a
+   * command that is about to move money. Errors still come through; only the
+   * commentary is turned down, and --verbose puts it back for a bug report.
+   */
+  logger.setLogLevel(flags.options.verbose === true ? "DEBUG" : "ERROR");
 
   // Before anything reads a variable, so a key in a file is as good as a key
   // in the shell. Failing to find one is normal; failing to read a file that
