@@ -34,9 +34,33 @@ the payee is decided by whoever holds the link rather than by an address chosen
 in advance. There is nothing to look up, nothing to register, and no exchange of
 identifiers before value can move.
 
+### 1. Install
+
 ```bash
 npm install -g strk20-envelope-cli
 ```
+
+### 2. Add your `.env.local`
+
+**Nothing works until this exists.** Create a file called `.env.local` in your
+project and put three variables in it:
+
+```
+STARKNET_ACCOUNT=0x…        # the account that signs
+STARKNET_PRIVATE_KEY=0x…    # its key
+ENVELOPE_NETWORK=sepolia    # or mainnet
+```
+
+No `export`, no quotes needed, though both are tolerated if you paste them. The
+file is found on its own: the directory you run in, then its parents up to the
+repository root, then one level down, which is where a framework tends to leave
+one. Exported shell variables work too and always win over a file, which is how
+a container should inject a key.
+
+`envelope whoami` prints which file it read, so an agent is never signing with a
+key it cannot account for.
+
+### 3. Run
 
 ```bash
 envelope seal --amount 1 --expiry 1h     # returns a link
@@ -45,9 +69,9 @@ envelope status "<link>"                 # funded, claimed, expired
 envelope whoami                          # this account, and its limits
 ```
 
-An account key in `.env.local` is the whole setup. No browser, no wallet
-extension, no popup to click, and the output shape follows its destination:
-prose to a terminal, JSON to a pipe, so a caller never parses sentences.
+That is the whole setup: no browser, no wallet extension, no popup to click. The
+output shape follows its destination, prose to a terminal and JSON to a pipe, so
+a caller never parses sentences.
 
 ```bash
 LINK=$(envelope seal --amount 1 | jq -r .claimLink)
