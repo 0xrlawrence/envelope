@@ -2,6 +2,13 @@
 
 **Private money you can send as a link, to someone who has never heard of Starknet.**
 
+[![strk20-envelope on npm](https://img.shields.io/npm/v/strk20-envelope?label=strk20-envelope&color=d9873f)](https://www.npmjs.com/package/strk20-envelope)
+[![strk20-envelope-cli on npm](https://img.shields.io/npm/v/strk20-envelope-cli?label=strk20-envelope-cli&color=d9873f)](https://www.npmjs.com/package/strk20-envelope-cli)
+[![licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+
+[**Open the app**](https://0xrlawrence.github.io/envelope/) &middot;
+[**For agents**](https://0xrlawrence.github.io/envelope/agent/)
+
 Envelope is a [STRK20](https://strk20.starknet.io) anonymizer contract and app.
 You shield tokens, seal an amount into an envelope, and hand over a URL. A
 pool-funded envelope can only be opened into the recipient's shielded balance.
@@ -75,12 +82,52 @@ in the URL fragment, so it never reaches this app's server, its logs, or its
 analytics. But a link pasted into a group chat is money pasted into a group
 chat.
 
+## From a terminal, or an agent
+
+The same envelope, without a browser or a wallet extension. An agent holding an
+account key can pay a counterparty it knows nothing about, including another
+agent, because there is no address to ask for and nothing to register.
+
+```bash
+npm install -g strk20-envelope-cli
+```
+
+Put the account in a `.env.local`, which is found on its own from the directory
+you run in, its parents, or one level down:
+
+```
+STARKNET_ACCOUNT=0x…
+STARKNET_PRIVATE_KEY=0x…
+ENVELOPE_NETWORK=sepolia
+```
+
+```bash
+envelope seal --amount 1 --expiry 1h --memo "invoice 1101"
+envelope open "https://0xrlawrence.github.io/envelope/claim#e1.…"
+envelope status "https://…" && envelope whoami
+```
+
+One command, two shapes: read by a person it is prose, piped into anything else
+it is JSON, decided by whether stdout is a terminal rather than by remembering a
+flag. `--dry-run` builds and prints a transaction without signing it.
+
+Three things need a wallet that can prove a STRK20 action for its own account
+class, which a bare key cannot do, so the CLI does not pretend to: funding
+privately, claiming into a shielded balance, and returning an expired envelope.
+`envelope whoami` prints that list beside the account in use. Everything the
+contract exposes to an ordinary account is there, and what is not is named
+rather than quietly missing.
+
+Full walkthrough: [`packages/envelope-cli/`](packages/envelope-cli/) or the
+[agent page](https://0xrlawrence.github.io/envelope/agent/).
+
 ## Repository
 
 | Path | |
 |---|---|
 | [`cairo/`](cairo/) | The `EnvelopeAnonymizer` contract and its test suite |
-| [`packages/envelope-sdk/`](packages/envelope-sdk/) | `strk20-envelope`: keys, links, signing, STRK20 action builders |
+| [`packages/envelope-sdk/`](packages/envelope-sdk/) | [`strk20-envelope`](https://www.npmjs.com/package/strk20-envelope): keys, links, signing, STRK20 action builders |
+| [`packages/envelope-cli/`](packages/envelope-cli/) | [`strk20-envelope-cli`](https://www.npmjs.com/package/strk20-envelope-cli): the `envelope` command, for terminals and agents |
 | [`web/`](web/) | The app |
 | [`docs/`](docs/) | Protocol notes, mainnet addresses, open questions |
 
@@ -139,7 +186,15 @@ cd cairo && scarb build && snforge test
 ```
 
 ```bash
-cd packages/envelope-sdk && npm install && npm test
+npm install && npm test
+```
+
+That runs the SDK suite, the CLI suite and the Cairo tests. A single package on
+its own:
+
+```bash
+npm test --workspace strk20-envelope
+npm test --workspace strk20-envelope-cli
 ```
 
 ## Status
