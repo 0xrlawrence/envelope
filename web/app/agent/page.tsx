@@ -14,7 +14,9 @@ const SETUP = `STARKNET_ACCOUNT=0x…        # the account that signs
 STARKNET_PRIVATE_KEY=0x…    # its key
 ENVELOPE_NETWORK=sepolia    # or mainnet`;
 
-const ELSEWHERE = `envelope whoami --env ../web/.env.local`;
+const CHECK = `envelope whoami`;
+
+const ELSEWHERE = `envelope whoami --env path/to/.env.local`;
 
 const SEAL = `envelope seal --amount 1 --expiry 24h --memo "invoice 1101"`;
 
@@ -82,11 +84,24 @@ export default function AgentPage() {
       <section className="mt-6 sm:mt-10">
         <Eyebrow>Install</Eyebrow>
         <Snippet>{INSTALL}</Snippet>
+
+        <p className="mt-4 max-w-[62ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-5 sm:text-sm sm:leading-normal">
+          <strong className="text-[var(--paper)]">Nothing works until this exists.</strong>{" "}
+          Create a <code className="font-mono">.env.local</code> in your project with
+          three variables in it:
+        </p>
         <Snippet label=".env.local">{SETUP}</Snippet>
         <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
-          A <code className="font-mono">.env.local</code> or{" "}
-          <code className="font-mono">.env</code> in the directory you run from is read
-          automatically. To use one somewhere else, name it:
+          No <code className="font-mono">export</code>, no quotes needed, though both
+          are tolerated if you paste them. The file is found on its own: the directory
+          you run in, then its parents up to the repository root, then one level down,
+          which is where a framework tends to leave one.
+        </p>
+        <Snippet>{CHECK}</Snippet>
+        <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
+          Prints the account, the network, and which file it read, so an agent is never
+          signing with a key it cannot account for. If more than one candidate turns up
+          it refuses to choose and asks you to name one:
         </p>
         <Snippet>{ELSEWHERE}</Snippet>
         <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
