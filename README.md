@@ -91,6 +91,14 @@ flag to reach for before handing an agent an account that spends on its own.
 Details in [`packages/envelope-cli/`](packages/envelope-cli/) and on the
 [agent page](https://0xrlawrence.github.io/envelope/agent/).
 
+An agent signs with an account key, which reaches every part of this that an
+ordinary Starknet account can reach. Proving a STRK20 action needs a wallet, so
+funding through the pool, claiming into a shielded balance and reclaiming an
+expired envelope stay in the app. An agent-sealed envelope is still claimable
+into a shielded balance by a recipient who has a STRK20 wallet, so the reach and
+the privacy compose rather than exclude each other. `envelope whoami` prints
+that division beside the account in use.
+
 ## Why this doesn't already exist
 
 A STRK20 private transfer needs a registered recipient: someone who has set a
@@ -147,24 +155,6 @@ other 10 STRK envelopes; a 13.7204 STRK envelope does not.
 in the URL fragment, so it never reaches this app's server, its logs, or its
 analytics. But a link pasted into a group chat is money pasted into a group
 chat.
-
-## What an agent cannot do
-
-The CLI signs with an account key, and three things need a wallet that can prove
-a STRK20 action for its own account class, which a key on its own cannot:
-
-- **Fund privately.** `seal` funds from the agent's address, in the open. The
-  amount and the funder are on-chain. Everything else about the envelope is
-  unchanged, including that a recipient claiming into a shielded balance is
-  unobservable.
-- **Claim into a shielded balance.** `open` pays to an address, which puts the
-  recipient on-chain.
-- **Return an expired envelope.** The contract only accepts a refund from the
-  pool, so the return link has to be opened in the app.
-
-So an agent gets the reach, and a human at the app gets the privacy on both
-legs. `envelope whoami` prints this list beside the account in use, so a caller
-can check its own limits rather than assume them.
 
 ## Repository
 
