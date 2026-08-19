@@ -7,8 +7,8 @@
     "web"
   ],
   "scripts": {
-    "build": "npm run build --workspace strk20-envelope && npm run build --workspace web",
-    "test": "npm run test --workspace strk20-envelope && npm run test:cairo",
+    "build": "npm run build --workspace strk20-envelope && npm run build --workspace strk20-envelope-cli && npm run build --workspace web",
+    "test": "npm run test --workspace strk20-envelope && npm run test --workspace strk20-envelope-cli && npm run test:cairo",
     "test:cairo": "cd cairo && snforge test",
     "dev": "npm run dev --workspace web"
   }

@@ -43,12 +43,24 @@ export function SiteHeader() {
             </span>
           </Link>
 
+          {/* Both nav links carry the stamp colour rather than the quiet grey
+              they used to share with the small print. They are the only two
+              places to go from here, and a nav that reads as a caption gets
+              looked past. */}
           <Link
             href="/sealed"
             onClick={() => play("open")}
-            className="hidden py-3 font-display text-[0.7rem] font-semibold tracking-[0.16em] whitespace-nowrap text-[var(--paper-faint)] uppercase transition-colors duration-150 hover:text-[var(--frank)] sm:block sm:py-0 sm:text-xs sm:tracking-[0.2em]"
+            className="hidden py-3 font-display text-[0.7rem] font-semibold tracking-[0.16em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:text-xs sm:tracking-[0.2em]"
           >
             Sealed
+          </Link>
+
+          <Link
+            href="/agent"
+            onClick={() => play("open")}
+            className="hidden py-3 font-display text-[0.7rem] font-semibold tracking-[0.16em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:text-xs sm:tracking-[0.2em]"
+          >
+            Agent
           </Link>
         </div>
 

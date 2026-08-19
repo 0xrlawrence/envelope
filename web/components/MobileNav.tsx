@@ -25,6 +25,15 @@ const ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/agent",
+    label: "Agent",
+    icon: (
+      <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="m9 8.5-4 3.5 4 3.5M15 8.5l4 3.5-4 3.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ] as const;
 
 /** Primary navigation in the phone's natural thumb zone. */
@@ -39,7 +48,7 @@ export function MobileNav() {
       className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink-deep)_94%,transparent)] backdrop-blur-xl sm:hidden"
     >
       <div className="airmail-edge h-0.5" />
-      <div className="grid grid-cols-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-3 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
         {ITEMS.map((item) => {
           const active =
             item.href === "/"
@@ -52,13 +61,13 @@ export function MobileNav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               onClick={() => play("open")}
-              className="relative flex min-h-12 items-center justify-center gap-2 px-3 pt-1 font-display text-[0.68rem] font-semibold tracking-[0.16em] uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.97]"
+              className="relative flex min-h-12 items-center justify-center gap-1.5 px-1.5 pt-1 font-display text-[0.62rem] font-semibold tracking-[0.12em] whitespace-nowrap uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.97]"
               style={{ color: active ? "var(--frank)" : "var(--paper-faint)" }}
             >
               <span className="h-[1.15rem] w-[1.15rem]">{item.icon}</span>
               <span>{item.label}</span>
               {active ? (
-                <span className="absolute inset-x-5 top-0 h-px bg-[var(--frank)]" />
+                <span className="absolute inset-x-3 top-0 h-px bg-[var(--frank)]" />
               ) : null}
             </Link>
           );
