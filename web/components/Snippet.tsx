@@ -1,7 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { highlight, type Language, type TokenKind } from "@/lib/highlight";
 import { useSound } from "@/lib/sound";
+
+/** Each token role reads from the palette rather than from a stock theme. */
+const INK: Record<TokenKind, string> = {
+  plain: "var(--paper)",
+  comment: "var(--code-comment)",
+  string: "var(--code-string)",
+  number: "var(--code-number)",
+  keyword: "var(--code-keyword)",
+  flag: "var(--code-flag)",
+  command: "var(--code-command)",
+  property: "var(--code-property)",
+  punctuation: "var(--code-punct)",
+};
 
 /**
  * A block of shell or JSON, with the whole thing on the clipboard.
@@ -14,11 +28,11 @@ import { useSound } from "@/lib/sound";
 export function Snippet({
   children,
   label,
-  tone = "shell",
+  language = "shell",
 }: {
   children: string;
   label?: string;
-  tone?: "shell" | "output";
+  language?: Language;
 }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const { play } = useSound();
@@ -27,7 +41,7 @@ export function Snippet({
     <div className="mt-2 border border-[var(--ink-line)] bg-[var(--ink-raised)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--ink-line)] px-3 py-1.5">
         <span className="font-display text-[0.6rem] font-semibold tracking-[0.18em] text-[var(--paper-faint)] uppercase">
-          {label ?? (tone === "shell" ? "Terminal" : "Output")}
+          {label ?? (language === "shell" ? "Terminal" : "Output")}
         </span>
         <button
           type="button"
@@ -52,12 +66,14 @@ export function Snippet({
       {/* Scrolls inside itself. A long command has to be able to be long
           without the page it sits on sliding sideways under a thumb. */}
       <pre className="overflow-x-auto px-3 py-2.5 font-mono text-[0.72rem] leading-relaxed sm:text-xs">
-        <code
-          style={{
-            color: tone === "shell" ? "var(--paper)" : "var(--paper-dim)",
-          }}
-        >
-          {children}
+        <code>
+          {highlight(children, language).map((token, index) => (
+            // Index keys are safe here: the list is derived from a constant
+            // string and never reorders.
+            <span key={index} style={{ color: INK[token.kind] }}>
+              {token.text}
+            </span>
+          ))}
         </code>
       </pre>
     </div>

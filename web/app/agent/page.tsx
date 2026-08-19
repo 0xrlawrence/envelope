@@ -79,7 +79,9 @@ export default function AgentPage() {
       <section className="mt-7 sm:mt-12">
         <Eyebrow>Send</Eyebrow>
         <Snippet>{SEAL}</Snippet>
-        <Snippet tone="output" label="stdout">{SEAL_JSON}</Snippet>
+        <Snippet language="json" label="stdout">
+          {SEAL_JSON}
+        </Snippet>
         <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
           Output is JSON whenever stdout is not a terminal, so a program calling this
           never has to read prose. Anyone holding the claim link can take the contents,
@@ -114,7 +116,9 @@ export default function AgentPage() {
 
       <section className="mt-7 sm:mt-12">
         <Eyebrow>Or the library</Eyebrow>
-        <Snippet label="strk20-envelope">{SDK}</Snippet>
+        <Snippet language="ts" label="strk20-envelope">
+          {SDK}
+        </Snippet>
       </section>
 
       {/*

@@ -45,6 +45,26 @@
 
   --seal: #a8332f;
 
+  /*
+   * Code colouring.
+   *
+   * Pulled from the palette the rest of the site already uses rather than from
+   * a stock editor theme, so a terminal block on this paper looks like it was
+   * printed with the same inks: the stamp orange for the verb, airmail blue for
+   * flags and keys, the credit green for strings.
+   */
+  --code-command: var(--frank);
+  --code-flag: #7fa6e0;
+  --code-string: var(--credit);
+  --code-number: #c9a227;
+  --code-keyword: #b98ad4;
+  --code-property: #7fa6e0;
+  /* Lifted off `--paper-faint`, which lands at 3:1 on the raised surface these
+     blocks sit on. A comment in a shell block is not decoration here: it is the
+     line saying which of the two exported values is the private key. */
+  --code-comment: #8b96a6;
+  --code-punct: #8b96a6;
+
   /* Money you hold. The one green on the site, so it means exactly one thing.
      Pulled toward the muted end of the palette rather than a signal green: the
      rest of this page is kraft and airmail ink, and a saturated green next to
@@ -97,6 +117,21 @@
   --airmail-blue: #35619f;
 
   --seal: #a8332f;
+
+  /*
+   * On white every one of these has to be laid on much heavier. Measured
+   * against the raised surface the blocks sit on, which is the lighter of the
+   * two grounds they are ever read against.
+   */
+  --code-command: var(--frank);
+  --code-flag: #1f4f8f;
+  --code-string: var(--credit);
+  --code-number: #7a5a00;
+  --code-keyword: #6b2fa0;
+  --code-property: #1f4f8f;
+  /* Same reasoning on white, where the shared faint grey lands at 4.4:1. */
+  --code-comment: #5d5d66;
+  --code-punct: #5d5d66;
 
   /* The dark theme's green is a pastel and vanishes on white, so the same
      pigment is laid on much heavier. Measured against the raised surface as
