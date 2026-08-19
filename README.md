@@ -1,9 +1,9 @@
 # Envelope
 
-**Private money you can send as a link, to someone who has never heard of Starknet.**
+**Private money you can send as a link, to someone who has never heard of Starknet.
+An AI agent can pay another agent that has no wallet and no address.**
 
-[![strk20-envelope on npm](https://img.shields.io/npm/v/strk20-envelope?label=strk20-envelope&color=d9873f)](https://www.npmjs.com/package/strk20-envelope)
-[![strk20-envelope-cli on npm](https://img.shields.io/npm/v/strk20-envelope-cli?label=strk20-envelope-cli&color=d9873f)](https://www.npmjs.com/package/strk20-envelope-cli)
+[![strk20-envelope-cli on npm](https://img.shields.io/npm/v/strk20-envelope-cli?label=npm&color=d9873f)](https://www.npmjs.com/package/strk20-envelope-cli)
 [![licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
 
 [**Open the app**](https://0xrlawrence.github.io/envelope/) &middot;
@@ -24,6 +24,48 @@ shield  →  seal an envelope  →  send a link  →  claimed
           (pool hides you)     (never hits      (into a private note,
                                 a server)        never a public address)
 ```
+
+## For AI agents
+
+**An agent can pay another agent that has no wallet, no address, and no account
+with anyone.** That is not a framing of the product, it is the property the
+contract has: an envelope is sealed against a key that exists only in a link, so
+the payee is decided by whoever holds the link rather than by an address chosen
+in advance. There is nothing to look up, nothing to register, and no exchange of
+identifiers before value can move.
+
+```bash
+npm install -g strk20-envelope-cli
+```
+
+```bash
+envelope seal --amount 1 --expiry 1h     # returns a link
+envelope open  "<link>"                  # takes the contents
+envelope status "<link>"                 # funded, claimed, expired
+envelope whoami                          # this account, and its limits
+```
+
+An account key in `.env.local` is the whole setup. No browser, no wallet
+extension, no popup to click, and the output shape follows its destination:
+prose to a terminal, JSON to a pipe, so a caller never parses sentences.
+
+```bash
+LINK=$(envelope seal --amount 1 | jq -r .claimLink)
+```
+
+That variable is now a bearer payment. It travels through anything an agent
+already has: a webhook, a message, a tool result, a return value. The receiving
+agent needs no relationship with the sender, only the string.
+
+Round trip on Sepolia, end to end:
+[sealed](https://sepolia.voyager.online/tx/0x5c08f172fa73fc704748da2205249b6f564ab7762bad463eaf397bc0fdc2d8f) and
+[claimed](https://sepolia.voyager.online/tx/0x50cee6c397a1742ab37469abdcd9be252c0e0a307a8554bf247cafe31b113d5),
+after which the contract reports `claimed` and refuses a second claim.
+
+`--dry-run` builds and prints a transaction without signing it, which is the
+flag to reach for before handing an agent an account that spends on its own.
+Details in [`packages/envelope-cli/`](packages/envelope-cli/) and on the
+[agent page](https://0xrlawrence.github.io/envelope/agent/).
 
 ## Why this doesn't already exist
 
@@ -82,44 +124,23 @@ in the URL fragment, so it never reaches this app's server, its logs, or its
 analytics. But a link pasted into a group chat is money pasted into a group
 chat.
 
-## From a terminal, or an agent
+## What an agent cannot do
 
-The same envelope, without a browser or a wallet extension. An agent holding an
-account key can pay a counterparty it knows nothing about, including another
-agent, because there is no address to ask for and nothing to register.
+The CLI signs with an account key, and three things need a wallet that can prove
+a STRK20 action for its own account class, which a key on its own cannot:
 
-```bash
-npm install -g strk20-envelope-cli
-```
+- **Fund privately.** `seal` funds from the agent's address, in the open. The
+  amount and the funder are on-chain. Everything else about the envelope is
+  unchanged, including that a recipient claiming into a shielded balance is
+  unobservable.
+- **Claim into a shielded balance.** `open` pays to an address, which puts the
+  recipient on-chain.
+- **Return an expired envelope.** The contract only accepts a refund from the
+  pool, so the return link has to be opened in the app.
 
-Put the account in a `.env.local`, which is found on its own from the directory
-you run in, its parents, or one level down:
-
-```
-STARKNET_ACCOUNT=0x…
-STARKNET_PRIVATE_KEY=0x…
-ENVELOPE_NETWORK=sepolia
-```
-
-```bash
-envelope seal --amount 1 --expiry 1h --memo "invoice 1101"
-envelope open "https://0xrlawrence.github.io/envelope/claim#e1.…"
-envelope status "https://…" && envelope whoami
-```
-
-One command, two shapes: read by a person it is prose, piped into anything else
-it is JSON, decided by whether stdout is a terminal rather than by remembering a
-flag. `--dry-run` builds and prints a transaction without signing it.
-
-Three things need a wallet that can prove a STRK20 action for its own account
-class, which a bare key cannot do, so the CLI does not pretend to: funding
-privately, claiming into a shielded balance, and returning an expired envelope.
-`envelope whoami` prints that list beside the account in use. Everything the
-contract exposes to an ordinary account is there, and what is not is named
-rather than quietly missing.
-
-Full walkthrough: [`packages/envelope-cli/`](packages/envelope-cli/) or the
-[agent page](https://0xrlawrence.github.io/envelope/agent/).
+So an agent gets the reach, and a human at the app gets the privacy on both
+legs. `envelope whoami` prints this list beside the account in use, so a caller
+can check its own limits rather than assume them.
 
 ## Repository
 
