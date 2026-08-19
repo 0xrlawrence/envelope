@@ -14,7 +14,7 @@ npm install -g strk20-envelope-cli
 
 ## Setup
 
-Put a `.env.local` in the directory you run from:
+Put a `.env.local` where you run from, or anywhere in the project:
 
 ```
 STARKNET_ACCOUNT=0x…        # the account that signs
@@ -22,11 +22,13 @@ STARKNET_PRIVATE_KEY=0x…    # its key
 ENVELOPE_NETWORK=sepolia    # or mainnet
 ```
 
-`.env.local` and `.env` are picked up automatically, and `--env <path>` points at
-one anywhere:
+It is found on its own: the directory you are in, then its parents up to the
+repository root, then one level down, which is where a framework tends to leave
+one. `envelope whoami` prints which file it read. If more than one turns up it
+refuses to choose and asks you to name it:
 
 ```bash
-envelope whoami --env ../web/.env.local
+envelope whoami --env web/.env.local
 ```
 
 Exported shell variables work too, and always win over a file, so a container
@@ -58,11 +60,12 @@ an envelope id with `--id`, for reading an envelope you were not sent.
 
 ## Output
 
-JSON whenever stdout is not a terminal, so a program calling this never has to read
-prose. `--json` forces it and `--human` forces the other way.
+One command, two shapes. Read by a person it is prose; piped into anything else it
+is JSON, decided by whether stdout is a terminal rather than by remembering a flag.
+`--json` and `--human` force it either way.
 
 ```bash
-envelope seal --amount 1 --json | jq -r .claimLink
+envelope seal --amount 1 | jq -r .claimLink
 ```
 
 `--dry-run` builds and prints the transaction without signing or sending it, which

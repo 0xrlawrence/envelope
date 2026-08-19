@@ -53,6 +53,11 @@ export function noteEnvFiles(paths: string[]): void {
   searched = paths;
 }
 
+/** The files whose values are in play, for anything that wants to say so. */
+export function readEnvFiles(): string[] {
+  return searched;
+}
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {

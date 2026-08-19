@@ -26,7 +26,14 @@ import {
   toPublicKey,
 } from "strk20-envelope";
 import { fromWei, toWei } from "./amount.js";
-import { account, ConfigError, network, noteEnvFiles, type Network } from "./config.js";
+import {
+  account,
+  ConfigError,
+  network,
+  noteEnvFiles,
+  readEnvFiles,
+  type Network,
+} from "./config.js";
 import { loadEnvFiles } from "./envfile.js";
 import { describeDuration, parseDuration } from "./duration.js";
 
@@ -380,6 +387,10 @@ async function whoami(flags: Flags) {
   const out = reporter(flags.options);
   const net = network();
   const { address } = account();
+  // Which file the values came from. A tool that signs should never leave
+  // anyone guessing which key it picked up, least of all when it found the
+  // file on its own.
+  const from = readEnvFiles();
   out.ok(
     {
       ok: true,
@@ -387,6 +398,7 @@ async function whoami(flags: Flags) {
       network: net.id,
       rpcUrl: net.rpcUrl,
       anonymizer: net.anonymizer,
+      envFiles: from,
       can: ["seal", "open", "status"],
       cannot: {
         "seal privately":
@@ -400,6 +412,7 @@ async function whoami(flags: Flags) {
       `${address}`,
       `on ${net.label} via ${net.rpcUrl}`,
       `contract ${net.anonymizer}`,
+      from.length ? `read from ${from.join(" and ")}` : "read from the shell environment",
       "",
       "Can: seal, open, status.",
       "Cannot: seal privately, claim into a shielded balance, or return an expired",

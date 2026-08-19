@@ -18,6 +18,17 @@ const ELSEWHERE = `envelope whoami --env ../web/.env.local`;
 
 const SEAL = `envelope seal --amount 1 --expiry 24h --memo "invoice 1101"`;
 
+const SEAL_OUT = `Sealed 1 STRK on Sepolia, claimable for 24 hours.
+
+Claim link   https://0xrlawrence.github.io/envelope/claim#e1.BSc7nv0…
+Return link  https://0xrlawrence.github.io/envelope/refund#r1.B4jwdCU…~0x7e431…
+
+Anyone holding the claim link can take the contents, so send it the way you
+would send cash. Keep the return link: after the window shuts it is the only
+way to get the money back, and it needs the web app.
+
+Transaction  https://sepolia.voyager.online/tx/0x2a927023701c734c6a91…`;
+
 const SEAL_JSON = `{
   "ok": true,
   "network": "sepolia",
@@ -35,10 +46,10 @@ const OPEN = `envelope open "https://0xrlawrence.github.io/envelope/claim#e1.BSc
 
 const STATUS = `envelope status 0x7e43138dca13d7ab1cfd1e892bdcdcf8d49258ead6ea29aa395ef5559ef0797 --id`;
 
-const PIPE = `LINK=$(envelope seal --amount 1 --json | jq -r .claimLink)
+const PIPE = `LINK=$(envelope seal --amount 1 | jq -r .claimLink)
 curl -X POST "$WEBHOOK" -d "{\\"pay\\": \\"$LINK\\"}"`;
 
-const DRY = `envelope seal --amount 1 --dry-run --json`;
+const DRY = `envelope seal --amount 1 --dry-run`;
 
 const SDK = `import { buildPublicFundCalls, encodeClaimLink, generateEnvelopeKey } from "strk20-envelope";
 
@@ -88,15 +99,16 @@ export default function AgentPage() {
       <section className="mt-7 sm:mt-12">
         <Eyebrow>Send</Eyebrow>
         <Snippet>{SEAL}</Snippet>
-        <Snippet language="json" label="stdout">
+        <Snippet label="In a terminal">{SEAL_OUT}</Snippet>
+        <Snippet language="json" label="Piped anywhere else">
           {SEAL_JSON}
         </Snippet>
         <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
-          Output is JSON whenever stdout is not a terminal, so a program calling this
-          never has to read prose. Anyone holding the claim link can take the contents,
-          so pass it the way you would pass cash. Keep the return link: after the
-          window shuts it is the only way to get the money back, and it cannot be
-          regenerated.
+          One command, two shapes. Read by a person it is prose; read by anything else
+          it is JSON, decided by whether stdout is a terminal rather than by remembering
+          a flag. Anyone holding the claim link can take the contents, so pass it the
+          way you would pass cash. Keep the return link: after the window shuts it is
+          the only way to get the money back, and it cannot be regenerated.
         </p>
       </section>
 
