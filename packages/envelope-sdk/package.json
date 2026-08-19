@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Programmable private claim links for the STRK20 privacy pool on Starknet",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xrlawrence/envelope.git",
+    "directory": "packages/envelope-sdk"
+  },
+  "homepage": "https://0xrlawrence.github.io/envelope/",
+  "bugs": {
+    "url": "https://github.com/0xrlawrence/envelope/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
