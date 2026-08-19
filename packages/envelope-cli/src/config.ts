@@ -1,9 +1,10 @@
 /**
  * Where the CLI is pointed, and what it is allowed to spend.
  *
- * Everything here comes from the environment rather than from a config file on
- * disk. An agent runs in a container with secrets injected, and a key written
- * into a dotfile is one `cat` away from whatever else is on the machine.
+ * Read from the environment, which a `.env.local` or `.env` in the working
+ * directory is folded into on startup. Injected variables always win over a
+ * file, so a container that sets a key deliberately cannot have it replaced by
+ * a dotfile someone left lying in a checkout.
  */
 
 export interface Network {
@@ -41,13 +42,33 @@ const NETWORKS: Record<string, Network> = {
   },
 };
 
+import { DEFAULT_ENV_FILES } from "./envfile.js";
+
 export class ConfigError extends Error {}
+
+/** Set by the entry point, so a failure can say where it already looked. */
+let searched: string[] = [];
+
+export function noteEnvFiles(paths: string[]): void {
+  searched = paths;
+}
 
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
+    const where = searched.length
+      ? `Read ${searched.join(" and ")} and it was not there either.`
+      : `No ${DEFAULT_ENV_FILES.join(" or ")} in this directory to read it from.`;
     throw new ConfigError(
-      `${name} is not set. An envelope is real money, so this refuses to guess at it.`,
+      [
+        `${name} is not set. An envelope is real money, so this refuses to guess at it.`,
+        where,
+        "",
+        `Put it in a .env.local next to where you run this:`,
+        `  ${name}=0x…`,
+        "",
+        "Or point at one anywhere: envelope <command> --env path/to/.env.local",
+      ].join("\n"),
     );
   }
   return value;

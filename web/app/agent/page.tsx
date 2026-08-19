@@ -10,9 +10,11 @@ export const metadata: Metadata = {
 
 const INSTALL = `npm install -g strk20-envelope-cli`;
 
-const SETUP = `export STARKNET_ACCOUNT=0x…        # the account that signs
-export STARKNET_PRIVATE_KEY=0x…    # its key
-export ENVELOPE_NETWORK=sepolia    # or mainnet`;
+const SETUP = `STARKNET_ACCOUNT=0x…        # the account that signs
+STARKNET_PRIVATE_KEY=0x…    # its key
+ENVELOPE_NETWORK=sepolia    # or mainnet`;
+
+const ELSEWHERE = `envelope whoami --env ../web/.env.local`;
 
 const SEAL = `envelope seal --amount 1 --expiry 24h --memo "invoice 1101"`;
 
@@ -69,10 +71,17 @@ export default function AgentPage() {
       <section className="mt-6 sm:mt-10">
         <Eyebrow>Install</Eyebrow>
         <Snippet>{INSTALL}</Snippet>
-        <Snippet label="Environment">{SETUP}</Snippet>
-        <p className="mt-2 text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
-          The key is read from the environment and never written to disk. Whatever
-          process holds it holds the money.
+        <Snippet label=".env.local">{SETUP}</Snippet>
+        <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
+          A <code className="font-mono">.env.local</code> or{" "}
+          <code className="font-mono">.env</code> in the directory you run from is read
+          automatically. To use one somewhere else, name it:
+        </p>
+        <Snippet>{ELSEWHERE}</Snippet>
+        <p className="mt-2 max-w-[62ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
+          Exported shell variables work too and always win over a file, so a container
+          that injects a key cannot have it replaced by a dotfile in a checkout.
+          Whatever holds that key holds the money: keep the file out of git.
         </p>
       </section>
 

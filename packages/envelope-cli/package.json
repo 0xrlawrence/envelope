@@ -1,6 +1,6 @@
 {
   "name": "strk20-envelope-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Send and open Envelope claim links from a terminal or an agent, on Starknet",
   "license": "Apache-2.0",
   "repository": {

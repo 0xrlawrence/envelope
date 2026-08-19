@@ -14,14 +14,26 @@ npm install -g strk20-envelope-cli
 
 ## Setup
 
-```bash
-export STARKNET_ACCOUNT=0x...        # the account that signs
-export STARKNET_PRIVATE_KEY=0x...    # its key
-export ENVELOPE_NETWORK=sepolia      # or mainnet
+Put a `.env.local` in the directory you run from:
+
+```
+STARKNET_ACCOUNT=0x…        # the account that signs
+STARKNET_PRIVATE_KEY=0x…    # its key
+ENVELOPE_NETWORK=sepolia    # or mainnet
 ```
 
-The key is read from the environment and never written to disk. Treat the process
-holding it as holding the money.
+`.env.local` and `.env` are picked up automatically, and `--env <path>` points at
+one anywhere:
+
+```bash
+envelope whoami --env ../web/.env.local
+```
+
+Exported shell variables work too, and always win over a file, so a container
+that injects a key cannot have it replaced by a dotfile in a checkout.
+
+Whatever holds that key holds the money. Keep the file out of git: `.env*` is
+already ignored in most templates, and it is worth checking rather than assuming.
 
 ## Sending
 

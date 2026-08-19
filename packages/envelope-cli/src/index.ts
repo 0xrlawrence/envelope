@@ -26,7 +26,8 @@ import {
   toPublicKey,
 } from "strk20-envelope";
 import { fromWei, toWei } from "./amount.js";
-import { account, ConfigError, network, type Network } from "./config.js";
+import { account, ConfigError, network, noteEnvFiles, type Network } from "./config.js";
+import { loadEnvFiles } from "./envfile.js";
 import { describeDuration, parseDuration } from "./duration.js";
 
 const USAGE = `envelope: private claim links on Starknet
@@ -44,7 +45,14 @@ const USAGE = `envelope: private claim links on Starknet
   envelope whoami
       Print the account and network in use, and what they can do.
 
-Environment
+Configuration
+  Read from the environment. A .env.local or .env in the directory you run
+  from is loaded automatically, and --env <path> points at one anywhere.
+  Variables already exported in the shell always win over a file.
+
+  Not --env-file: node claims that one for itself before this program is
+  handed its arguments, so it would never reach here.
+
   STARKNET_ACCOUNT       account address to sign with
   STARKNET_PRIVATE_KEY   its private key
   ENVELOPE_NETWORK       sepolia (default) or mainnet
@@ -402,6 +410,22 @@ async function whoami(flags: Flags) {
 
 async function main() {
   const flags = parseArgv(process.argv.slice(2));
+
+  // Before anything reads a variable, so a key in a file is as good as a key
+  // in the shell. Failing to find one is normal; failing to read a file that
+  // was named explicitly is not.
+  try {
+    noteEnvFiles(
+      loadEnvFiles(
+        typeof flags.options.env === "string" ? flags.options.env : undefined,
+      ),
+    );
+  } catch (cause) {
+    reporter(flags.options).fail(
+      cause instanceof Error ? cause.message : String(cause),
+    );
+    return;
+  }
   const commands: Record<string, (f: Flags) => Promise<void>> = {
     seal,
     open,
