@@ -74,15 +74,16 @@ const BUTTON_BASE =
  * do. Painting both in the same red made every selected denomination look as
  * committal as the button that spends it.
  *
- * The disabled state is filled rather than hollow. A transparent button with a
- * hairline ring and faint text does say "not yet", but on a dark page it says
- * it so quietly that the one thing the page exists to do looks like it failed
- * to render. Filled with the stock it sits on, it reads as a real control that
- * is currently off.
+ * The disabled state is the same button drained of its ink, not a grey box
+ * standing where the button goes. Hollow, it said "not yet" so quietly that the
+ * one thing this page exists to do looked like it had failed to render. Filled
+ * with the page stock, it came out a shade darker than the sheet it sits on and
+ * read as a hole punched in the paper. Mixed from the action's own colour, it
+ * keeps the shape and loses the invitation.
  */
 const BUTTON_VARIANTS = {
   frank:
-    "bg-[var(--send)] text-[var(--ink-deep)] hover:bg-[var(--send-deep)] disabled:bg-[var(--ink)] disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
+    "bg-[var(--send)] text-[var(--ink-deep)] hover:bg-[var(--send-deep)] disabled:bg-[var(--send-off)] disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
   outline:
     "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
   quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",

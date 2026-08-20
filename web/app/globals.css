@@ -54,6 +54,9 @@
      like the same event. 8.8:1 with the stock as its label. */
   --send: #1b3f74;
   --send-deep: #122d55;
+  /* The action, off. Drained of the ink rather than emptied of it, so the
+     shape still says which button this is while it is unavailable. */
+  --send-off: color-mix(in srgb, var(--send) 18%, var(--ink-raised));
 
   /* A graver red than the accent, for the two lines that say a link cannot be
      taken back. Same pigment, laid on much heavier. */
@@ -118,8 +121,8 @@
   --ink-line: #2b323c;
 
   --paper: #f2ece0;
-  --paper-dim: #c2c7cf;
-  --paper-faint: #949aa4;
+  --paper-dim: #d3d7dd;
+  --paper-faint: #aab1bc;
 
   /* The red has to come up a long way to survive on this stock. 6.4:1 on the
      page, and the page itself is what labels it when it is used as a fill. */
@@ -131,6 +134,10 @@
 
   --send: #4b82d8;
   --send-deep: #679aec;
+  /* Lighter than the sheet, never darker. Filled with the page stock it came
+     out a shade below the sheet it sits on, which reads as a hole punched in
+     the paper rather than as a button waiting for a wallet. */
+  --send-off: color-mix(in srgb, var(--send) 24%, var(--ink-raised));
 
   /* 7:1 on the page. The light theme's seal measures 2.4:1 here, which is the
      kind of failure that only shows up on the one sentence you needed read. */
@@ -142,8 +149,8 @@
   --code-number: #d9b64a;
   --code-keyword: #c49ade;
   --code-property: #8fb4ea;
-  --code-comment: #9aa1ab;
-  --code-punct: #9aa1ab;
+  --code-comment: #aab1bc;
+  --code-punct: #aab1bc;
 
   --credit: #6bbf8a;
 
@@ -304,8 +311,8 @@ body {
   }
 
   .field-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
   }
 
   p {
@@ -409,9 +416,9 @@ body {
  */
 .field-label {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  letter-spacing: 0.26em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--paper-faint);
 }
