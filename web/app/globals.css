@@ -751,25 +751,33 @@ body {
 /*
  * The turning envelope beside the sealed list.
  *
- * The footage is a bright object on pure black. On dark stock the black is
- * blended away, so what is left is the object itself floating over the page
- * with its glow spilling onto the paper. Screen blending returns white against
- * white, so light mode cannot do that and keeps the footage on its own plate,
- * where a black panel reads as deliberate rather than as a hole.
+ * The footage is a bright object on pure black, and each theme has to get rid
+ * of that black a different way.
+ *
+ * On dark stock, screen blending drops it: what is left is the object floating
+ * over the page with its glow spilling onto the paper.
+ *
+ * Screen returns white against white, so cream cannot do the same thing. It
+ * inverts instead. Desaturated and inverted, a bright object on black becomes a
+ * dark object on white, and multiplying then drops the white and leaves the
+ * envelope printed on the paper as ink. The alternative was what shipped
+ * before: a hard black plate sitting in the middle of a cream sheet, which is
+ * the one rectangle on the page that looks like a missing asset.
  */
 .reel {
-  border: 1px solid var(--ink-line);
-  background: #000;
+  border: 0;
+  background: transparent;
   border-radius: 2px;
   overflow: hidden;
 }
 
-:root[data-theme="dark"] .reel {
-  border-color: transparent;
-  background: transparent;
+.reel-video {
+  filter: grayscale(1) invert(1) contrast(1.08);
+  mix-blend-mode: multiply;
 }
 
 :root[data-theme="dark"] .reel-video {
+  filter: none;
   mix-blend-mode: screen;
 }
 
