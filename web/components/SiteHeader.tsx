@@ -43,14 +43,16 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          {/* Both nav links carry the stamp colour rather than the quiet grey
-              they used to share with the small print. They are the only two
-              places to go from here, and a nav that reads as a caption gets
-              looked past. */}
+          {/* Both nav links are keys rather than words. They are the only two
+              places to go from here, and set as bare tracked caps they read as
+              a caption and get looked past, which is worse now that the header
+              sits on the crumpled stock rather than on a flat bar. Unfilled on
+              the paper, struck in the stamp colour when the pointer is on them,
+              which is the same vocabulary the choices on the form speak. */}
           <Link
             href="/sealed"
             onClick={() => play("open")}
-            className="hidden py-3 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:tracking-[0.24em]"
+            className="hidden border border-[var(--ink-line)] bg-[var(--ink-raised)] px-2.5 py-1.5 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-[background-color,border-color,color] duration-150 hover:border-[var(--frank)] hover:bg-[var(--frank)] hover:text-[var(--ink-deep)] sm:block sm:tracking-[0.24em]"
           >
             Sealed
           </Link>
@@ -58,7 +60,7 @@ export function SiteHeader() {
           <Link
             href="/agent"
             onClick={() => play("open")}
-            className="hidden py-3 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:tracking-[0.24em]"
+            className="hidden border border-[var(--ink-line)] bg-[var(--ink-raised)] px-2.5 py-1.5 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-[background-color,border-color,color] duration-150 hover:border-[var(--frank)] hover:bg-[var(--frank)] hover:text-[var(--ink-deep)] sm:block sm:tracking-[0.24em]"
           >
             Agent
           </Link>

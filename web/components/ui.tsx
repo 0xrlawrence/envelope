@@ -73,10 +73,16 @@ const BUTTON_BASE =
  * The accent marks what you have chosen; the fill marks what you are about to
  * do. Painting both in the same red made every selected denomination look as
  * committal as the button that spends it.
+ *
+ * The disabled state is filled rather than hollow. A transparent button with a
+ * hairline ring and faint text does say "not yet", but on a dark page it says
+ * it so quietly that the one thing the page exists to do looks like it failed
+ * to render. Filled with the stock it sits on, it reads as a real control that
+ * is currently off.
  */
 const BUTTON_VARIANTS = {
   frank:
-    "bg-[var(--send)] text-[var(--ink-deep)] hover:bg-[var(--send-deep)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
+    "bg-[var(--send)] text-[var(--ink-deep)] hover:bg-[var(--send-deep)] disabled:bg-[var(--ink)] disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
   outline:
     "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
   quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",

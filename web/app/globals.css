@@ -112,14 +112,14 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --ink: #0e1a2c;
-  --ink-deep: #0b1424;
-  --ink-raised: #142338;
-  --ink-line: #26374f;
+  --ink: #10151c;
+  --ink-deep: #0d1117;
+  --ink-raised: #171c24;
+  --ink-line: #2b323c;
 
   --paper: #f2ece0;
-  --paper-dim: #b4c0d4;
-  --paper-faint: #8b9ab2;
+  --paper-dim: #c2c7cf;
+  --paper-faint: #949aa4;
 
   /* The red has to come up a long way to survive on this stock. 6.4:1 on the
      page, and the page itself is what labels it when it is used as a fill. */
@@ -129,8 +129,8 @@
   --airmail-red: #d1483d;
   --airmail-blue: #4a7fc8;
 
-  --send: #35619f;
-  --send-deep: #4276bd;
+  --send: #4b82d8;
+  --send-deep: #679aec;
 
   /* 7:1 on the page. The light theme's seal measures 2.4:1 here, which is the
      kind of failure that only shows up on the one sentence you needed read. */
@@ -142,8 +142,8 @@
   --code-number: #d9b64a;
   --code-keyword: #c49ade;
   --code-property: #8fb4ea;
-  --code-comment: #93a2ba;
-  --code-punct: #93a2ba;
+  --code-comment: #9aa1ab;
+  --code-punct: #9aa1ab;
 
   --credit: #6bbf8a;
 
@@ -163,9 +163,8 @@
      a transfer that clips at black adds light on the crease peaks only, and
      leaves the flat stock exactly as dark as it was. */
   --crumple:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.009' numOctaves='5' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='8' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.55' intercept='-0.275'/%3E%3CfeFuncG type='linear' slope='0.55' intercept='-0.275'/%3E%3CfeFuncB type='linear' slope='0.55' intercept='-0.275'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23c)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='1.6' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.22' intercept='-0.11'/%3E%3CfeFuncG type='linear' slope='0.22' intercept='-0.11'/%3E%3CfeFuncB type='linear' slope='0.22' intercept='-0.11'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23c)'/%3E%3C/svg%3E");
-  --crumple-blend: screen, screen;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.055' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='1.4' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.16' intercept='-0.08'/%3E%3CfeFuncG type='linear' slope='0.16' intercept='-0.08'/%3E%3CfeFuncB type='linear' slope='0.16' intercept='-0.08'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23c)'/%3E%3C/svg%3E");
+  --crumple-blend: screen;
 }
 
 @theme inline {
