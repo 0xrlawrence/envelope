@@ -32,7 +32,7 @@ export function EnvelopeCard({
   children?: ReactNode;
 }) {
   return (
-    <div className="relative border border-[var(--ink-line)] bg-[var(--ink)]">
+    <div className="sheet relative border border-[var(--ink-line)] bg-[var(--ink)]">
       <div className="airmail-edge h-1 sm:h-2" />
 
       {/* Every size here is a `min()` of a width term and the height term the

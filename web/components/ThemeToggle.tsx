@@ -18,7 +18,9 @@ export function ThemeToggle() {
   const { theme, toggle } = useTheme();
   const { play } = useSound();
   const dark = theme === "dark";
-  const next = dark ? "light" : "dark";
+  // The two papers have names on this site, and the control should offer the
+  // paper rather than the setting.
+  const next = dark ? "cream" : "night";
 
   return (
     <button

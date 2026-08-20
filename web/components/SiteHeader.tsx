@@ -35,10 +35,10 @@ export function SiteHeader() {
                 what used to happen: the only link to your own envelopes
                 disappeared below the tablet breakpoint. Measured against a
                 320px screen, the narrowest still in use. */}
-            <span className="font-display text-sm font-bold tracking-[0.12em] uppercase sm:text-xl sm:tracking-[0.22em]">
+            <span className="font-display text-sm font-bold tracking-[0.16em] uppercase sm:text-lg sm:tracking-[0.36em]">
               Envelope
             </span>
-            <span className="hidden font-display text-xs font-semibold tracking-[0.2em] text-[var(--paper-faint)] uppercase transition-colors duration-150 group-hover:text-[var(--frank)] sm:inline">
+            <span className="hidden font-mono text-[0.65rem] tracking-[0.24em] text-[var(--paper-faint)] uppercase transition-colors duration-150 group-hover:text-[var(--frank)] sm:inline">
               STRK20
             </span>
           </Link>
@@ -50,7 +50,7 @@ export function SiteHeader() {
           <Link
             href="/sealed"
             onClick={() => play("open")}
-            className="hidden py-3 font-display text-[0.7rem] font-semibold tracking-[0.16em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:text-xs sm:tracking-[0.2em]"
+            className="hidden py-3 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:tracking-[0.24em]"
           >
             Sealed
           </Link>
@@ -58,7 +58,7 @@ export function SiteHeader() {
           <Link
             href="/agent"
             onClick={() => play("open")}
-            className="hidden py-3 font-display text-[0.7rem] font-semibold tracking-[0.16em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:text-xs sm:tracking-[0.2em]"
+            className="hidden py-3 font-mono text-[0.65rem] tracking-[0.2em] whitespace-nowrap text-[var(--frank)] uppercase transition-colors duration-150 hover:text-[var(--paper)] sm:block sm:py-0 sm:tracking-[0.24em]"
           >
             Agent
           </Link>

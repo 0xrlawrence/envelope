@@ -709,6 +709,28 @@ varying float vInk;`,
     };
   }, []);
 
+  /*
+   * Tell the page a dart is in the air.
+   *
+   * The flight is a full-viewport canvas and the sheet under it is drawn by the
+   * layout, which has no idea this is happening. Rather than thread the state
+   * up through both, the component that only exists mid-flight raises the flag
+   * itself, so the two can never disagree and the flag cannot outlive it.
+   *
+   * On the root element rather than on this div with a `:has()` rule: Chromium
+   * matches `body:has([data-flight])` in `querySelector` but does not always
+   * re-run style invalidation when the attribute appears after load, so the
+   * sheet stayed painted for the whole flight. An ancestor attribute has no
+   * such gap.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.flight = "true";
+    return () => {
+      delete root.dataset.flight;
+    };
+  }, []);
+
   return (
     <div
       ref={mountRef}

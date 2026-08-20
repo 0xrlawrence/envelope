@@ -95,7 +95,7 @@ export function ConnectButton() {
         variant="outline"
         sound="open"
         onClick={() => setOpen(true)}
-        className="!px-3 !py-2 !text-xs !tracking-[0.1em] sm:!px-4 sm:!text-sm sm:!tracking-[0.14em]"
+        className="!px-3 !py-2 !text-xs sm:!px-4 sm:!text-sm"
       >
         Connect
       </Button>

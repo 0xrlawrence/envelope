@@ -1,155 +1,171 @@
 @import "tailwindcss";
 
 /*
- * Security tint.
+ * Par avion.
  *
- * The pattern printed inside a paper envelope exists for exactly one reason:
- * to make the contents unreadable when held up to a light. It is privacy
- * technology from before there was any other kind, and it is the visual thesis
- * of this app, so it is a real, dense, repeating print, not a decorative wash.
+ * The site is the face of an airmail envelope. Cream stock, one navy ink, one
+ * struck red, and the chevron along the top and bottom edges. The security
+ * tint printed inside a paper envelope is the visual thesis of the product:
+ * privacy technology from before there was any other kind, so it is a real
+ * repeating print rather than a decorative wash.
  */
 /*
  * Two themes, one set of names.
  *
- * `--ink` is the surface and `--paper` is what is written on it. In the dark
- * theme those read literally; in the light one they invert, which is the only
- * way the names stay true to their job rather than to their colour. Every
- * component already speaks in these tokens, so a theme is a palette swap and
- * not a second stylesheet.
+ * `--ink` is the surface and `--paper` is what is written on it. Cream stock
+ * reads those literally; the night theme inverts them, which is the only way
+ * the names stay true to their job rather than to their colour. Every component
+ * speaks in these tokens, so a theme is a palette swap and not a second
+ * stylesheet.
  *
- * Dark is the default and stays the default. The site is an airmail envelope
- * held up to a light, and flipping that for everyone whose laptop happens to
- * be set to light would change what the product is. Light is a choice, kept in
- * `data-theme` and remembered.
+ * Cream is the default and stays the default: the product is a letter, and a
+ * letter is written on paper. Night is the same envelope read under a lamp,
+ * kept in `data-theme` and remembered.
  */
 :root,
-:root[data-theme="dark"] {
-  color-scheme: dark;
+:root[data-theme="light"] {
+  color-scheme: light;
 
-  --ink: #0e141c;
-  --ink-deep: #080c11;
-  --ink-raised: #151d29;
-  --ink-line: #24303f;
+  --ink: #f2ece0;
+  --ink-deep: #f2ece0;
+  --ink-raised: #fbf8f1;
+  --ink-line: #d8d0bf;
 
-  --paper: #e9e4d7;
-  --paper-dim: #9aa4b2;
-  --paper-faint: #5d6979;
+  --paper: #14213d;
+  --paper-dim: #46567a;
+  /* Field labels and the small print on a page about money, so this one is
+     measured rather than picked off a ramp, and measured against the crumpled
+     stock rather than the flat colour. Where the deepest crease and the darkest
+     grain land on the same pixel the paper drops to about #dcd7cc, and that is
+     the ground this has to clear: 4.9:1 there, 6:1 on open paper, 6.6:1 on the
+     raised surface. The ramp's natural next step fails the crease. */
+  --paper-faint: #4d5870;
 
-  /* Rubber-stamp ink on kraft. Warm, opaque, slightly uneven. */
-  --frank: #d9873f;
-  --frank-deep: #b56a29;
+  /* The struck red. Selection, the stamp, the live figure, the one accent. */
+  --frank: #a8322a;
+  --frank-deep: #8a271f;
 
   /* Airmail border, used as a structural edge and nowhere else. */
-  --airmail-red: #c8443c;
-  --airmail-blue: #35619f;
+  --airmail-red: #b3372c;
+  --airmail-blue: #1b3f74;
 
-  --seal: #a8332f;
+  /* The action, in the ink the address is written in. Kept apart from the
+     accent so that pressing something and choosing something do not look
+     like the same event. 8.8:1 with the stock as its label. */
+  --send: #1b3f74;
+  --send-deep: #122d55;
+
+  /* A graver red than the accent, for the two lines that say a link cannot be
+     taken back. Same pigment, laid on much heavier. */
+  --seal: #8a1f18;
 
   /*
    * Code colouring.
    *
    * Pulled from the palette the rest of the site already uses rather than from
    * a stock editor theme, so a terminal block on this paper looks like it was
-   * printed with the same inks: the stamp orange for the verb, airmail blue for
-   * flags and keys, the credit green for strings.
+   * printed with the same inks. Measured against the raised surface the blocks
+   * sit on, which is the lighter of the two grounds they are read against.
    */
   --code-command: var(--frank);
-  --code-flag: #7fa6e0;
-  --code-string: var(--credit);
-  --code-number: #c9a227;
-  --code-keyword: #b98ad4;
-  --code-property: #7fa6e0;
-  /* Lifted off `--paper-faint`, which lands at 3:1 on the raised surface these
-     blocks sit on. A comment in a shell block is not decoration here: it is the
-     line saying which of the two exported values is the private key. */
-  --code-comment: #8b96a6;
-  --code-punct: #8b96a6;
-
-  /* Money you hold. The one green on the site, so it means exactly one thing.
-     Pulled toward the muted end of the palette rather than a signal green: the
-     rest of this page is kraft and airmail ink, and a saturated green next to
-     it reads as an alert rather than as a figure. 8.4:1 on the page. */
-  --credit: #6bbf8a;
-
-  /* The security tint reads as ink on a dark stock, so it can be assertive. */
-  --tint-a: 22%;
-  --tint-b: 16%;
-
-  /* The flap catches the light on dark stock, so it sits above the interior. */
-  --flap-from: var(--ink-raised);
-  --flap-to: color-mix(in srgb, var(--ink) 88%, transparent);
-  --flap-edge: var(--ink-line);
-}
-
-/*
- * Light: white stock, hairline rules, near-black text.
- *
- * The greys are pulled off a neutral ramp rather than tinted toward the dark
- * theme's blue, because a warm or cool cast at these values reads as a printing
- * fault rather than as a decision.
- *
- * `--paper-faint` is the one that had to move furthest from the reference. The
- * ramp's natural next step lands near 2.3:1 on white, which is below AA even
- * for large text, and this token carries field labels and the small print on a
- * page about money. It sits at 4.9:1 instead.
- */
-:root[data-theme="light"] {
-  color-scheme: light;
-
-  --ink: #fafafa;
-  --ink-deep: #ffffff;
-  --ink-raised: #f4f4f5;
-  --ink-line: #e4e4e7;
-
-  --paper: #0a0a0a;
-  --paper-dim: #52525b;
-  --paper-faint: #71717a;
-
-  /* The kraft orange is unreadable on white at its dark-theme value, so the
-     stamp is struck in a deeper ink. Same pigment, more of it.
-     Measured against the raised surface rather than against the page, because
-     that is the darkest ground it is ever set on and the one that decides
-     whether it passes: 4.86:1 there, 5.34:1 on the page. */
-  --frank: #9e5a1a;
-  --frank-deep: #854a12;
-
-  --airmail-red: #c8443c;
-  --airmail-blue: #35619f;
-
-  --seal: #a8332f;
-
-  /*
-   * On white every one of these has to be laid on much heavier. Measured
-   * against the raised surface the blocks sit on, which is the lighter of the
-   * two grounds they are ever read against.
-   */
-  --code-command: var(--frank);
-  --code-flag: #1f4f8f;
+  --code-flag: #1b3f74;
   --code-string: var(--credit);
   --code-number: #7a5a00;
   --code-keyword: #6b2fa0;
-  --code-property: #1f4f8f;
-  /* Same reasoning on white, where the shared faint grey lands at 4.4:1. */
-  --code-comment: #5d5d66;
-  --code-punct: #5d5d66;
+  --code-property: #1b3f74;
+  --code-comment: #4d5870;
+  --code-punct: #4d5870;
 
-  /* The dark theme's green is a pastel and vanishes on white, so the same
-     pigment is laid on much heavier. Measured against the raised surface as
-     well as the page, because the balances sit on both: 4.9:1 and 5.1:1. */
+  /* Money you hold. The one green on the site, so it means exactly one thing.
+     Laid on heavy enough to read on cream: 4.9:1 on the raised surface. */
   --credit: #1f7a45;
 
-  /* On white the same alphas would be a wall of blue. */
+  /* On cream the tint is ink on stock and stays a whisper; any more and the
+     hatching starts competing with the type set over it. */
   --tint-a: 9%;
   --tint-b: 7%;
 
-  /* On white the fold reads the other way round: a sheet lying over another
-     sheet casts a shadow rather than catching a highlight, so the flap is very
-     slightly darker than the paper beneath it and fades out toward the point.
-     The crease itself is a step darker than the card's own border, because at
-     this end of the ramp a hairline is the only thing carrying the shape. */
+  /* A sheet lying over another sheet casts a shadow rather than catching a
+     highlight, so the flap is slightly darker than the paper beneath it and
+     fades toward the point. */
   --flap-from: color-mix(in srgb, var(--paper) 5%, transparent);
   --flap-to: color-mix(in srgb, var(--paper) 0%, transparent);
-  --flap-edge: #d4d4d8;
+  --flap-edge: #cfc6b2;
+
+  /* The crumple: broad creases, then the paper's own tooth over them.
+     Multiplied into the stock, so both darken it. */
+  --crumple:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.009' numOctaves='5' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='8' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='1.15' intercept='-0.19'/%3E%3CfeFuncG type='linear' slope='1.15' intercept='-0.19'/%3E%3CfeFuncB type='linear' slope='1.15' intercept='-0.19'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23c)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='1.6' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.45' intercept='0.23'/%3E%3CfeFuncG type='linear' slope='0.45' intercept='0.23'/%3E%3CfeFuncB type='linear' slope='0.45' intercept='0.23'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23c)'/%3E%3C/svg%3E");
+  --crumple-blend: soft-light, soft-light;
+}
+
+/*
+ * Night: the same envelope under a lamp.
+ *
+ * Not a grey dark theme. The stock goes to the deep end of the airmail blue
+ * and the cream becomes the ink, so the two themes are the same two pigments
+ * swapped rather than two different products. Every value here was measured on
+ * the ground it actually sits on: the red carries the sentence about a link
+ * that cannot be taken back, and the faint grey carries every field label.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ink: #0e1a2c;
+  --ink-deep: #0b1424;
+  --ink-raised: #142338;
+  --ink-line: #26374f;
+
+  --paper: #f2ece0;
+  --paper-dim: #b4c0d4;
+  --paper-faint: #8b9ab2;
+
+  /* The red has to come up a long way to survive on this stock. 6.4:1 on the
+     page, and the page itself is what labels it when it is used as a fill. */
+  --frank: #e8776a;
+  --frank-deep: #f0958a;
+
+  --airmail-red: #d1483d;
+  --airmail-blue: #4a7fc8;
+
+  --send: #35619f;
+  --send-deep: #4276bd;
+
+  /* 7:1 on the page. The light theme's seal measures 2.4:1 here, which is the
+     kind of failure that only shows up on the one sentence you needed read. */
+  --seal: #ef8078;
+
+  --code-command: var(--frank);
+  --code-flag: #8fb4ea;
+  --code-string: var(--credit);
+  --code-number: #d9b64a;
+  --code-keyword: #c49ade;
+  --code-property: #8fb4ea;
+  --code-comment: #93a2ba;
+  --code-punct: #93a2ba;
+
+  --credit: #6bbf8a;
+
+  /* The tint reads as light through stock here, so it can be assertive. */
+  --tint-a: 20%;
+  --tint-b: 15%;
+
+  /* The flap catches the lamp, so it sits above the interior. */
+  --flap-from: var(--ink-raised);
+  --flap-to: color-mix(in srgb, var(--ink) 88%, transparent);
+  --flap-edge: var(--ink-line);
+
+  /* Under a lamp the creases catch the light instead of casting shade, so the
+     same relief is screened on rather than soft-lit. Soft-light against a
+     near-black ground is wildly asymmetric: the lit half of the tile lifts the
+     whole page to a mid slate and the field labels wash out with it. Screening
+     a transfer that clips at black adds light on the crease peaks only, and
+     leaves the flat stock exactly as dark as it was. */
+  --crumple:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.009' numOctaves='5' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='8' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.55' intercept='-0.275'/%3E%3CfeFuncG type='linear' slope='0.55' intercept='-0.275'/%3E%3CfeFuncB type='linear' slope='0.55' intercept='-0.275'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23c)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='1.6' diffuseConstant='1' lighting-color='%23ffffff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer in='l'%3E%3CfeFuncR type='linear' slope='0.22' intercept='-0.11'/%3E%3CfeFuncG type='linear' slope='0.22' intercept='-0.11'/%3E%3CfeFuncB type='linear' slope='0.22' intercept='-0.11'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23c)'/%3E%3C/svg%3E");
+  --crumple-blend: screen, screen;
 }
 
 @theme inline {
@@ -162,9 +178,27 @@
   --color-paper-faint: var(--paper-faint);
   --color-frank: var(--frank);
   --color-seal: var(--seal);
-  --font-display: var(--font-plex-condensed), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --color-send: var(--send);
+  --font-display: var(--font-display-face), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-face), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, monospace;
+}
+
+/*
+ * The three faces, as real custom properties.
+ *
+ * `@theme inline` deliberately does not emit its variables: it inlines their
+ * values into the utilities it generates, which is what makes `font-display`
+ * the class work. Everything in this file that asks for `var(--font-display)`
+ * in ordinary CSS was therefore resolving to nothing and falling through to
+ * the browser's default stack, which is why the headline, the body copy and
+ * every field label were being set in the system font while the utilities
+ * beside them were correct. Declared here so both routes reach the same faces.
+ */
+body {
+  --font-display: var(--font-display-face), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-face), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, monospace;
 }
 
 html {
@@ -175,7 +209,24 @@ html {
 }
 
 body {
+  /*
+   * The stock, crumpled.
+   *
+   * A sheet of paper that has been folded into an envelope and carried
+   * somewhere is not flat, and a flat fill is the one thing that gives away
+   * that this is a screen pretending to be paper. The relief is generated
+   * rather than photographed: fractal noise run through a diffuse-lighting
+   * filter with a single distant light, which is what a crease actually is.
+   *
+   * Tiled at 460px with `stitchTiles`, so the noise field is continuous across
+   * tile edges and there is no visible grid on a long page. Blended into the
+   * colour as a background layer rather than composited as an element, so it
+   * creates no stacking context and cannot trap the header, the modal or the
+   * approvals panel the way a fixed overlay would.
+   */
   background-color: var(--ink-deep);
+  background-image: var(--crumple);
+  background-blend-mode: var(--crumple-blend);
   color: var(--paper);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -200,19 +251,34 @@ body {
 .headline {
   font-family: var(--font-display);
   font-size: clamp(1.75rem, min(6.2vw, 4.6vh), 3.25rem);
-  font-weight: 700;
-  line-height: 1.04;
-  letter-spacing: -0.03em;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.035em;
   text-wrap: balance;
+}
+
+/*
+ * The turn in the headline.
+ *
+ * Every page's h1 is one sentence with a hinge in it, and the half after the
+ * hinge is the half that says what this product is. It goes italic and takes
+ * the accent, which is the one place on the page where colour is doing the
+ * work of emphasis rather than weight.
+ */
+.headline em,
+.headline-sm em {
+  font-style: italic;
+  font-weight: 900;
+  color: var(--frank);
 }
 
 /* One step down, for the headline on a screen that is mostly receipt. */
 .headline-sm {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, min(5.2vw, 3.8vh), 2.5rem);
-  font-weight: 700;
-  line-height: 1.06;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
@@ -337,15 +403,16 @@ body {
 
 /* Form-field vernacular: a customs declaration, not a web form.
  *
- * Set in the condensed display face rather than mono. Mono here is reserved
- * for machine values (hex, keys, amounts), so that seeing it means "this is
- * the literal thing on-chain" rather than "this screen is technical".
+ * Set in mono small caps against a serif page. The serif is the writer's
+ * voice and carries the sentences; mono is the machine's, and it carries the
+ * captions, the literals and anything printed on the envelope by a machine
+ * rather than written on it by a person.
  */
 .field-label {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--paper-faint);
 }
@@ -357,6 +424,164 @@ body {
 
 .rule {
   border-color: var(--ink-line);
+}
+
+/*
+ * A key on the form.
+ *
+ * One vocabulary for every choice on the seal page: what you pick is struck in
+ * the accent with the stock as its label, and what you did not pick is an
+ * unfilled key on the paper under the sheet. A rule under the word was too
+ * quiet for a control that decides where the money comes from, and it left the
+ * four groups reading as text rather than as things to press.
+ *
+ * `aria-pressed` is the selector rather than a class, so the state the screen
+ * reader is told and the state the eye is shown cannot drift apart.
+ */
+.pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--ink-line);
+  background: var(--ink);
+  color: var(--paper-dim);
+  text-align: center;
+  transition:
+    background-color 150ms var(--ease-out),
+    border-color 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+
+.pick:hover:not(:disabled) {
+  border-color: var(--paper-faint);
+  color: var(--paper);
+}
+
+.pick[aria-pressed="true"] {
+  background: var(--frank);
+  border-color: var(--frank);
+  color: var(--ink-deep);
+}
+
+.pick:active:not(:disabled) {
+  scale: 0.97;
+}
+
+.pick:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* The denominations are figures rather than words, so they are set in the
+   display face at the size the figure deserves. */
+.pick-figure {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+@media (min-width: 640px) {
+  .pick {
+    min-height: 0;
+    padding: 0.4rem 0.85rem;
+  }
+
+  .pick-figure {
+    font-size: 1.15rem;
+  }
+}
+
+/*
+ * The double rule under "link".
+ *
+ * The link is the product: the whole thing is a value that travels as one, so
+ * the word gets marked the way a compositor marks the operative term. Two
+ * rules, not one, and struck in the two airmail inks rather than in a single
+ * colour, so the mark under the word is a miniature of the border around the
+ * page: the thick red first, the thin blue beneath it.
+ *
+ * Drawn as backgrounds rather than `text-decoration: double`, which gives two
+ * hairlines of identical weight in the text colour at a spacing the browser
+ * picks. Sized in `em` so it holds its proportions from the 21px headline on a
+ * phone to the 52px one on a laptop, and cloned across line breaks so a
+ * headline that wraps mid-phrase still marks the whole word.
+ */
+.double-rule {
+  padding-bottom: 0.24em;
+  background-image:
+    linear-gradient(0deg, var(--frank), var(--frank)),
+    linear-gradient(0deg, var(--airmail-blue), var(--airmail-blue));
+  background-repeat: no-repeat;
+  background-size:
+    100% 0.085em,
+    100% 0.05em;
+  background-position:
+    0 calc(100% - 0.115em),
+    0 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  animation: rule-draw 620ms var(--ease-out) 420ms both;
+}
+
+/* Struck left to right, after the headline has settled, so it reads as a mark
+   being made on the page rather than as part of the page arriving. */
+@keyframes rule-draw {
+  from {
+    background-size:
+      0 0.085em,
+      0 0.05em;
+  }
+  to {
+    background-size:
+      100% 0.085em,
+      100% 0.05em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .double-rule {
+    animation: none;
+  }
+}
+
+/*
+ * A sheet lying on the stock.
+ *
+ * Cream on cream is two shades of the same colour, so on this paper the only
+ * thing separating a card from the page it sits on is the shadow it casts.
+ * Cast long and soft and offset downward, which is what a sheet does under
+ * room light. Under a lamp the stock is dark, the card is lighter than the
+ * page, and the lift comes from the value difference instead: a shadow there
+ * would be a black smear on an already-black ground.
+ */
+.sheet {
+  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--paper) 55%, transparent);
+  transition:
+    background-color 320ms var(--ease-out),
+    border-color 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out);
+}
+
+/*
+ * The sheet is taken away while the dart is in the air.
+ *
+ * Everything readable has already left the page by then, so what is left is a
+ * white rectangle sitting behind the flight with nothing on it, cutting the
+ * crumpled stock in half right where the envelope is travelling. The paper the
+ * dart flies over should be the paper, not a blank page on top of it.
+ */
+:root[data-flight] .page-sheet {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .sheet {
+  box-shadow: none;
 }
 
 /* The stamp. Struck once, on the one event that matters. */
@@ -533,11 +758,44 @@ body {
   overflow: hidden;
 }
 
-:root:not([data-theme="light"]) .reel {
+:root[data-theme="dark"] .reel {
   border-color: transparent;
   background: transparent;
 }
 
-:root:not([data-theme="light"]) .reel-video {
+:root[data-theme="dark"] .reel-video {
   mix-blend-mode: screen;
+}
+
+/*
+ * A postage stamp.
+ *
+ * The perforation is a mask rather than a border image: circles punched out of
+ * the element at a regular pitch along each edge, so the notches are true
+ * transparency and the stamp sits on whatever is behind it. A border cannot do
+ * this, and an SVG frame would not follow the element as it resizes.
+ *
+ * The holes are drawn as opaque circles and subtracted from a solid mask.
+ * Composited the other way round, four layers of "opaque everywhere except a
+ * hole" simply fill in each other's holes, and the stamp renders as a plain
+ * rectangle with nothing to show for the work.
+ */
+.stamp {
+  --perf: 4px;
+  --pitch: 11px;
+  --holes:
+    radial-gradient(var(--perf) at 0 50%, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch)
+      repeat-y,
+    radial-gradient(var(--perf) at 100% 50%, #000 98%, #0000) 100% 0 / var(--pitch)
+      var(--pitch) repeat-y,
+    radial-gradient(var(--perf) at 50% 0, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch)
+      repeat-x,
+    radial-gradient(var(--perf) at 50% 100%, #000 98%, #0000) 0 100% / var(--pitch)
+      var(--pitch) repeat-x,
+    linear-gradient(#000 0 0);
+  -webkit-mask: var(--holes);
+  -webkit-mask-composite: xor, xor, xor, xor, source-over;
+  mask: var(--holes);
+  mask-composite: exclude, exclude, exclude, exclude, add;
+  padding: 5px;
 }

@@ -52,6 +52,12 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 /*
+ * Set in the display serif, in sentence case.
+ *
+ * The labels are already written as sentences ("Seal and send", "Open it"), and
+ * uppercasing them in CSS was turning the page's own voice into signage. On a
+ * serif page the button is the one place the writer speaks in full.
+ *
  * `min-h-11` is 44px, the smallest target a thumb hits reliably. The padding is
  * viewport-height based, so on a short phone it collapses to about eight pixels
  * and every button on the site came out at 37 or 38: fine under a cursor, a
@@ -59,11 +65,18 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
  * nothing on a laptop changes size.
  */
 const BUTTON_BASE =
-  "inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 font-display text-sm font-semibold uppercase tracking-[0.12em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 sm:min-h-0 sm:px-5 sm:py-[clamp(0.5rem,1.5vh,0.75rem)] sm:tracking-[0.14em]";
+  "inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 font-display text-[0.95rem] font-bold tracking-[0.005em] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 sm:min-h-0 sm:px-6 sm:py-[clamp(0.5rem,1.5vh,0.75rem)] sm:text-base";
 
+/*
+ * The action is struck in the ink the address is written in, not in the accent.
+ *
+ * The accent marks what you have chosen; the fill marks what you are about to
+ * do. Painting both in the same red made every selected denomination look as
+ * committal as the button that spends it.
+ */
 const BUTTON_VARIANTS = {
   frank:
-    "bg-[var(--frank)] text-[var(--ink-deep)] hover:bg-[var(--frank-deep)] hover:text-[var(--paper)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
+    "bg-[var(--send)] text-[var(--ink-deep)] hover:bg-[var(--send-deep)] disabled:bg-transparent disabled:text-[var(--paper-faint)] disabled:ring-1 disabled:ring-[var(--ink-line)] disabled:ring-inset",
   outline:
     "border border-[var(--ink-line)] text-[var(--paper)] hover:border-[var(--frank)] hover:text-[var(--frank)] disabled:text-[var(--paper-faint)] disabled:hover:border-[var(--ink-line)]",
   quiet: "text-[var(--paper-faint)] hover:text-[var(--paper)]",

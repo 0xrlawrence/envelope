@@ -1,0 +1,954 @@
+/*
+ * Five redesign worlds.
+ *
+ * Each `.w<n>` is a complete visual world: its own stock, its own inks, its own
+ * three typefaces. Nothing is inherited from the shipping palette, because the
+ * point of the exercise is to see what the product looks like when the paper
+ * itself changes.
+ *
+ * What every world keeps, because it is what makes this Envelope and not a
+ * form: the airmail chevron along the top edge and the bottom edge, the
+ * ENVELOPE wordmark, the security tint printed inside the surface that holds
+ * the money, a franked stamp mark, and the product's own words.
+ */
+
+/* The preview routes stand in for the whole site, so the shipping chrome is
+   suppressed while one is on screen rather than framing a different design. */
+body:has([data-preview]) > div > header,
+body:has([data-preview]) > div > footer,
+body:has([data-preview]) > div > nav,
+body:has([data-preview]) > canvas {
+  display: none !important;
+}
+body:has([data-preview]) > div {
+  padding-bottom: 0 !important;
+}
+
+/* The app puts every page on a sheet. A preview world is its own whole site,
+   so it is handed the bare page instead. */
+body:has([data-preview]) main {
+  padding: 0 !important;
+}
+body:has([data-preview]) main > div {
+  max-width: none !important;
+}
+body:has([data-preview]) .page-sheet {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* ── Shared skeleton ─────────────────────────────────────────────────
+   Structure only. Every value below reads from a world's own variables. */
+
+.dp {
+  --chev-a: #c8443c;
+  --chev-b: #35619f;
+  --chev-gap: #ffffff;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--dp-bg);
+  color: var(--dp-ink);
+  font-family: var(--dp-body);
+}
+
+/* The DNA. Top edge and bottom edge, on every world, struck in that world's
+   own two inks so it belongs to the paper it is printed on. */
+.dp-chev {
+  height: 10px;
+  flex: none;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--chev-a) 0 8px,
+    var(--chev-gap) 8px 16px,
+    var(--chev-b) 16px 24px,
+    var(--chev-gap) 24px 32px
+  );
+}
+
+.dp-wrap {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+@media (min-width: 640px) {
+  .dp-wrap { padding: 0 2rem; }
+}
+
+.dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.9rem;
+}
+
+.dp-mark {
+  font-family: var(--dp-display);
+  font-weight: var(--dp-mark-weight, 700);
+  font-size: var(--dp-mark-size, 1.05rem);
+  letter-spacing: var(--dp-mark-track, 0.34em);
+  text-transform: uppercase;
+  color: var(--dp-ink);
+  white-space: nowrap;
+}
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  font-family: var(--dp-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dp-dim);
+}
+.dp-nav b { color: var(--dp-accent); font-weight: 700; }
+
+.dp-body { flex: 1 1 auto; padding-block: 2rem 3rem; }
+
+.dp-foot {
+  font-family: var(--dp-mono);
+  font-size: 0.68rem;
+  color: var(--dp-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  justify-content: space-between;
+  padding-block: 1rem;
+}
+
+/* The security tint, printed inside whatever surface holds the money. */
+.dp-tint {
+  background-image:
+    repeating-linear-gradient(68deg, var(--dp-tint) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-68deg, var(--dp-tint) 0 1px, transparent 1px 9px);
+}
+
+/* Perforated stamp edge, reused by several of the ten.
+ *
+ * The holes are drawn as opaque circles and then taken out of a solid mask
+ * rather than added to it. Four layers of "opaque everywhere except a hole"
+ * would simply fill in each other's holes, which is the version of this that
+ * looks like a plain rectangle. */
+.dp-perf {
+  --perf: 4px;
+  --pitch: 11px;
+  --holes:
+    radial-gradient(var(--perf) at 0 50%, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch) repeat-y,
+    radial-gradient(var(--perf) at 100% 50%, #000 98%, #0000) 100% 0 / var(--pitch) var(--pitch) repeat-y,
+    radial-gradient(var(--perf) at 50% 0, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch) repeat-x,
+    radial-gradient(var(--perf) at 50% 100%, #000 98%, #0000) 0 100% / var(--pitch) var(--pitch) repeat-x,
+    linear-gradient(#000 0 0);
+  -webkit-mask: var(--holes);
+  -webkit-mask-composite: xor, xor, xor, xor, source-over;
+  mask: var(--holes);
+  mask-composite: exclude, exclude, exclude, exclude, add;
+  padding: 5px;
+}
+
+/* The franking circle. Every world stamps its own. */
+.dp-frank {
+  display: grid;
+  place-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--dp-accent);
+  color: var(--dp-accent);
+  font-family: var(--dp-mono);
+  font-size: 0.5rem;
+  line-height: 1.25;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  width: 5.25rem;
+  height: 5.25rem;
+  transform: rotate(-11deg);
+  opacity: 0.85;
+}
+
+/* ══ World 1: KRAFT DOCKET ═══════════════════════════════════════════
+   Manila stock, brown ink, one struck red. Anton is a poster face; on kraft
+   it reads as something printed by a machine that only prints labels. */
+.w1 {
+  --dp-display: var(--f-anton), sans-serif;
+  --dp-body: var(--f-archivo), sans-serif;
+  --dp-mono: var(--f-courier), monospace;
+  --dp-bg: #c0a67f;
+  --dp-panel: #d5c09a;
+  --dp-ink: #241a10;
+  --dp-dim: #5b4630;
+  --dp-faint: #766043;
+  --dp-accent: #a5301f;
+  --dp-accent2: #1d456f;
+  --dp-tint: rgba(29, 69, 111, 0.16);
+  --chev-a: #a5301f;
+  --chev-b: #1d456f;
+  --chev-gap: #d5c09a;
+  --dp-mark-weight: 400;
+  --dp-mark-size: 1.35rem;
+  --dp-mark-track: 0.3em;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(90, 60, 25, 0.05) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(90, 60, 25, 0.045) 0 1px, transparent 1px 4px),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 240, 210, 0.35), transparent 60%);
+}
+.w1 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid rgba(36, 26, 16, 0.35);
+  box-shadow: 0 2px 0 rgba(36, 26, 16, 0.18);
+}
+.w1 .dp-h1 {
+  font-family: var(--f-anton), sans-serif;
+  font-weight: 400;
+  font-size: clamp(2.6rem, 8vw, 5.2rem);
+  line-height: 0.9;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+.w1 .dp-label {
+  font-family: var(--f-anton), sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dp-dim);
+}
+.w1 .dp-pick {
+  font-family: var(--f-courier), monospace;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(36, 26, 16, 0.3);
+  background: transparent;
+  color: var(--dp-dim);
+}
+.w1 .dp-pick[data-on="true"] {
+  background: var(--dp-accent);
+  border-color: var(--dp-accent);
+  color: #f6e9d2;
+}
+.w1 .dp-cta {
+  font-family: var(--f-anton), sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--dp-accent);
+  color: #f6e9d2;
+  padding: 0.85rem 2rem;
+  border: 2px solid #6d1c10;
+}
+
+/* ══ World 2: TELEX ══════════════════════════════════════════════════
+   A wire terminal. One face, amber on soot, everything on a fixed grid.
+   Mono here is not a costume: every line on the page is a machine value. */
+.w2 {
+  --dp-display: var(--f-jetbrains), monospace;
+  --dp-body: var(--f-jetbrains), monospace;
+  --dp-mono: var(--f-jetbrains), monospace;
+  --dp-bg: #07090b;
+  --dp-panel: #0d1216;
+  --dp-ink: #cfe0d6;
+  --dp-dim: #8ea79a;
+  --dp-faint: #6d8377;
+  --dp-accent: #ffb020;
+  --dp-accent2: #4ad07f;
+  --dp-tint: rgba(255, 176, 32, 0.09);
+  --chev-a: #ff5a4d;
+  --chev-b: #4f8ce0;
+  --chev-gap: #07090b;
+  --dp-mark-weight: 700;
+  --dp-mark-track: 0.4em;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(120, 200, 160, 0.045) 0 1px,
+    transparent 1px 3px
+  );
+}
+.w2 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid #1e2a30;
+}
+.w2 .dp-h1 {
+  font-family: var(--f-jetbrains), monospace;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4.4vw, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--dp-accent);
+}
+.w2 .dp-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w2 .dp-pick {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #24333a;
+  background: transparent;
+  color: var(--dp-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.w2 .dp-pick[data-on="true"] {
+  background: var(--dp-accent);
+  border-color: var(--dp-accent);
+  color: #07090b;
+}
+.w2 .dp-cta {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  background: var(--dp-accent);
+  color: #07090b;
+  padding: 0.8rem 1.6rem;
+  border: 0;
+}
+.w2 .caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.25em;
+  translate: 0 0.16em;
+  background: var(--dp-accent);
+  animation: dp-blink 1.1s steps(1) infinite;
+}
+@keyframes dp-blink { 50% { opacity: 0; } }
+
+/* ══ World 3: PAR AVION ══════════════════════════════════════════════
+   Cream airmail stock, one blue ink, one red. The headline is set in a high
+   contrast serif because this world is a letter, not an interface. */
+.w3 {
+  --dp-display: var(--f-playfair), serif;
+  --dp-body: var(--f-karla), sans-serif;
+  --dp-mono: var(--f-space-mono), monospace;
+  --dp-bg: #f2ece0;
+  --dp-panel: #fbf8f1;
+  --dp-ink: #14213d;
+  --dp-dim: #46567a;
+  --dp-faint: #6a7691;
+  --dp-accent: #b3372c;
+  --dp-accent2: #1b3f74;
+  --dp-tint: rgba(27, 63, 116, 0.1);
+  --chev-a: #b3372c;
+  --chev-b: #1b3f74;
+  --chev-gap: #f2ece0;
+  --dp-mark-weight: 700;
+  --dp-mark-track: 0.42em;
+  --dp-mark-size: 0.95rem;
+}
+.w3 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid rgba(20, 33, 61, 0.14);
+  box-shadow: 0 18px 40px -28px rgba(20, 33, 61, 0.55);
+}
+.w3 .dp-h1 {
+  font-family: var(--f-playfair), serif;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 6.4vw, 4.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+}
+.w3 .dp-h1 em { font-style: italic; color: var(--dp-accent); }
+.w3 .dp-label {
+  font-family: var(--f-space-mono), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w3 .dp-pick {
+  font-family: var(--f-karla), sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.2rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dp-dim);
+}
+.w3 .dp-pick[data-on="true"] {
+  color: var(--dp-accent);
+  border-bottom-color: var(--dp-accent);
+}
+.w3 .dp-cta {
+  font-family: var(--f-playfair), serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  background: var(--dp-accent2);
+  color: #fbf8f1;
+  padding: 0.85rem 2.2rem;
+  border: 0;
+  border-radius: 2px;
+}
+
+/* ══ World 4: BANKNOTE ═══════════════════════════════════════════════
+   Engraved security printing. Guilloche ground, Bodoni for the figures,
+   hairlines everywhere, one green and one red the way a note is printed. */
+.w4 {
+  --dp-display: var(--f-bodoni), serif;
+  --dp-body: var(--f-inter-tight), sans-serif;
+  --dp-mono: var(--f-courier), monospace;
+  --dp-bg: #f4f5ee;
+  --dp-panel: #fdfdf8;
+  --dp-ink: #101410;
+  --dp-dim: #3f4a41;
+  --dp-faint: #5f6a60;
+  --dp-accent: #1d5c3a;
+  --dp-accent2: #8c1d18;
+  --dp-tint: rgba(29, 92, 58, 0.12);
+  --chev-a: #8c1d18;
+  --chev-b: #1d5c3a;
+  --chev-gap: #f4f5ee;
+  --dp-mark-weight: 700;
+  --dp-mark-track: 0.46em;
+  background-image:
+    repeating-radial-gradient(circle at 12% 22%, rgba(29, 92, 58, 0.09) 0 1px, transparent 1px 7px),
+    repeating-radial-gradient(circle at 88% 78%, rgba(140, 29, 24, 0.06) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-30deg, rgba(29, 92, 58, 0.05) 0 1px, transparent 1px 6px);
+}
+.w4 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid rgba(16, 20, 16, 0.5);
+  outline: 1px solid rgba(16, 20, 16, 0.5);
+  outline-offset: 3px;
+}
+.w4 .dp-h1 {
+  font-family: var(--f-bodoni), serif;
+  font-weight: 900;
+  font-size: clamp(2.3rem, 6vw, 4.2rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.w4 .dp-label {
+  font-family: var(--f-bodoni), serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w4 .dp-pick {
+  font-family: var(--f-bodoni), serif;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid rgba(16, 20, 16, 0.28);
+  background: transparent;
+  color: var(--dp-dim);
+}
+.w4 .dp-pick[data-on="true"] {
+  background: var(--dp-accent);
+  border-color: var(--dp-accent);
+  color: #fdfdf8;
+}
+.w4 .dp-cta {
+  font-family: var(--f-bodoni), serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  background: var(--dp-accent);
+  color: #fdfdf8;
+  padding: 0.8rem 2rem;
+  border: 1px solid #0d3623;
+}
+.w4 .num { font-variant-numeric: tabular-nums; }
+
+/* ══ World 5: STAMP SHEET ════════════════════════════════════════════
+   Saturated airmail blue, and every control is a stamp torn off a sheet.
+   Archivo Black because a stamp is printed at one weight: as heavy as it goes. */
+.w5 {
+  --dp-display: var(--f-archivo-black), sans-serif;
+  --dp-body: var(--f-archivo), sans-serif;
+  --dp-mono: var(--f-space-mono), monospace;
+  --dp-bg: #0a2a6b;
+  --dp-panel: #f5f1e6;
+  --dp-ink: #f5f1e6;
+  --dp-dim: #b9c8e6;
+  --dp-faint: #93a8d0;
+  --dp-accent: #ff4438;
+  --dp-accent2: #ffc93c;
+  --dp-tint: rgba(10, 42, 107, 0.14);
+  --chev-a: #ff4438;
+  --chev-b: #ffc93c;
+  --chev-gap: #0a2a6b;
+  --dp-mark-weight: 400;
+  --dp-mark-track: 0.24em;
+  --dp-mark-size: 1.15rem;
+  background-image: radial-gradient(140% 90% at 50% -10%, rgba(255, 255, 255, 0.14), transparent 55%);
+}
+.w5 .dp-tile {
+  background: var(--dp-panel);
+  color: #101318;
+}
+.w5 .dp-h1 {
+  font-family: var(--f-archivo-black), sans-serif;
+  font-size: clamp(2.4rem, 7.2vw, 4.6rem);
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.w5 .dp-label {
+  font-family: var(--f-space-mono), monospace;
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #5a6270;
+}
+.w5 .dp-pick {
+  font-family: var(--f-archivo-black), sans-serif;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.3rem;
+  border: 0;
+  background: #e6e0d2;
+  color: #101318;
+}
+.w5 .dp-pick[data-on="true"] { background: var(--dp-accent); color: #fff6ee; }
+.w5 .dp-cta {
+  font-family: var(--f-archivo-black), sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  background: var(--dp-accent);
+  color: #fff6ee;
+  padding: 1rem 2rem;
+  border: 0;
+  width: 100%;
+}
+
+/* ══ World 6: BOARDING PASS ══════════════════════════════════════════
+   Transit printing. Optic white, black, one safety orange, and a stub torn
+   off down the side. Space Grotesk because airport signage is a grotesque
+   with the corners left on. */
+.w6 {
+  --dp-display: var(--f-space-grotesk), sans-serif;
+  --dp-body: var(--f-space-grotesk), sans-serif;
+  --dp-mono: var(--f-roboto-mono), monospace;
+  --dp-bg: #eceae5;
+  --dp-panel: #ffffff;
+  --dp-ink: #0b0b0c;
+  --dp-dim: #3e4147;
+  --dp-faint: #6a6e75;
+  --dp-accent: #ff5c00;
+  --dp-accent2: #0b0b0c;
+  --dp-tint: rgba(11, 11, 12, 0.09);
+  --chev-a: #ff5c00;
+  --chev-b: #0b0b0c;
+  --chev-gap: #eceae5;
+  --dp-mark-weight: 700;
+  --dp-mark-track: 0.3em;
+  --dp-mark-size: 1.1rem;
+}
+.w6 .dp-panel { background: var(--dp-panel); border: 2px solid var(--dp-ink); }
+.w6 .dp-h1 {
+  font-family: var(--f-space-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+.w6 .dp-label {
+  font-family: var(--f-roboto-mono), monospace;
+  font-weight: 500;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w6 .dp-pick {
+  font-family: var(--f-space-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  border: 2px solid var(--dp-ink);
+  background: transparent;
+  color: var(--dp-ink);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.w6 .dp-pick[data-on="true"] { background: var(--dp-accent); border-color: var(--dp-accent); color: #ffffff; }
+.w6 .dp-cta {
+  font-family: var(--f-space-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  background: var(--dp-ink);
+  color: #ffffff;
+  padding: 0.9rem 2rem;
+  border: 0;
+}
+/* The machine-readable strip along the foot of a ticket. */
+.w6 .barcode {
+  height: 3rem;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--dp-ink) 0 2px, transparent 2px 4px,
+    var(--dp-ink) 4px 5px, transparent 5px 9px,
+    var(--dp-ink) 9px 12px, transparent 12px 14px
+  );
+}
+
+/* ══ World 7: WAX AND PARCHMENT ══════════════════════════════════════
+   The oldest version of this product. Laid parchment, oxblood wax, gilt
+   rules, and a garalde cut that predates the idea of an interface. */
+.w7 {
+  --dp-display: var(--f-cormorant), serif;
+  --dp-body: var(--f-garamond), serif;
+  --dp-mono: var(--f-courier), monospace;
+  --dp-bg: #e6d9ba;
+  --dp-panel: #f1e7cd;
+  --dp-ink: #2a1c14;
+  --dp-dim: #574031;
+  --dp-faint: #6f5643;
+  --dp-accent: #6d1526;
+  --dp-accent2: #9a7420;
+  --dp-tint: rgba(109, 21, 38, 0.1);
+  --chev-a: #6d1526;
+  --chev-b: #9a7420;
+  --chev-gap: #e6d9ba;
+  --dp-mark-weight: 600;
+  --dp-mark-track: 0.5em;
+  --dp-mark-size: 1rem;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(80, 55, 30, 0.05) 0 1px, transparent 1px 6px),
+    radial-gradient(90% 70% at 30% 10%, rgba(255, 248, 226, 0.5), transparent 65%),
+    radial-gradient(70% 60% at 85% 90%, rgba(120, 90, 45, 0.16), transparent 70%);
+}
+.w7 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid rgba(42, 28, 20, 0.35);
+  box-shadow: inset 0 0 0 6px rgba(154, 116, 32, 0.18), 0 20px 40px -30px rgba(42, 28, 20, 0.8);
+}
+.w7 .dp-h1 {
+  font-family: var(--f-cormorant), serif;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.005em;
+}
+.w7 .dp-h1 i { color: var(--dp-accent); }
+.w7 .dp-label {
+  font-family: var(--f-cormorant), serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w7 .dp-pick {
+  font-family: var(--f-garamond), serif;
+  font-size: 1.05rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--dp-dim);
+}
+.w7 .dp-pick[data-on="true"] {
+  border-color: var(--dp-accent2);
+  background: rgba(154, 116, 32, 0.16);
+  color: var(--dp-accent);
+}
+.w7 .dp-cta {
+  font-family: var(--f-cormorant), serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: var(--dp-accent);
+  color: #f1e7cd;
+  padding: 0.7rem 2.2rem;
+  border: 1px solid #431018;
+}
+/* A blob of wax, struck once. */
+.w7 .wax {
+  width: 6.5rem;
+  height: 6.5rem;
+  display: grid;
+  place-content: center;
+  border-radius: 48% 52% 46% 54% / 52% 46% 54% 48%;
+  background: radial-gradient(60% 60% at 38% 32%, #a3283c, #6d1526 60%, #4a0d1a);
+  box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.4), 0 8px 18px -10px rgba(42, 28, 20, 0.9);
+  color: #e9cfa8;
+  font-family: var(--f-cormorant), serif;
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.5;
+  rotate: -8deg;
+}
+
+/* ══ World 8: RISO OVERPRINT ═════════════════════════════════════════
+   Two ink drums on newsprint. Fluorescent pink and reflex blue, multiplied
+   where they cross, deliberately a hair out of registration. */
+.w8 {
+  --dp-display: var(--f-bebas), sans-serif;
+  --dp-body: var(--f-archivo), sans-serif;
+  --dp-mono: var(--f-space-mono), monospace;
+  --dp-bg: #f2eee1;
+  --dp-panel: #f8f5ea;
+  --dp-ink: #1b1a17;
+  --dp-dim: #4c4a44;
+  --dp-faint: #6d6a62;
+  --dp-accent: #ff3d7f;
+  --dp-accent2: #2f3fe0;
+  --dp-tint: rgba(47, 63, 224, 0.14);
+  --chev-a: #ff3d7f;
+  --chev-b: #2f3fe0;
+  --chev-gap: #f2eee1;
+  --dp-mark-weight: 400;
+  --dp-mark-track: 0.28em;
+  --dp-mark-size: 1.5rem;
+  background-image: radial-gradient(rgba(27, 26, 23, 0.14) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+}
+.w8 .dp-panel { background: var(--dp-panel); border: 3px solid var(--dp-ink); }
+.w8 .dp-h1 {
+  font-family: var(--f-bebas), sans-serif;
+  font-size: clamp(3rem, 10vw, 7rem);
+  line-height: 0.82;
+  letter-spacing: 0.01em;
+  color: var(--dp-accent2);
+  /* The second drum, printed a hair off the first. */
+  text-shadow: 3px 3px 0 var(--dp-accent);
+}
+.w8 .dp-label {
+  font-family: var(--f-bebas), sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  color: var(--dp-accent2);
+}
+.w8 .dp-pick {
+  font-family: var(--f-bebas), sans-serif;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid var(--dp-accent2);
+  background: transparent;
+  color: var(--dp-accent2);
+  letter-spacing: 0.06em;
+}
+.w8 .dp-pick[data-on="true"] {
+  background: var(--dp-accent);
+  border-color: var(--dp-ink);
+  color: #fff;
+  mix-blend-mode: multiply;
+}
+.w8 .dp-cta {
+  font-family: var(--f-bebas), sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.1em;
+  background: var(--dp-accent);
+  color: #fffdf6;
+  padding: 0.6rem 2.4rem;
+  border: 3px solid var(--dp-ink);
+  box-shadow: 6px 6px 0 var(--dp-accent2);
+}
+
+/* ══ World 9: BLUEPRINT ══════════════════════════════════════════════
+   The envelope as a drawing. Cyanotype ground, white hairlines on a real
+   drafting grid, dimension lines, and every value called out as an
+   annotation rather than as a field. */
+.w9 {
+  --dp-display: var(--f-oswald), sans-serif;
+  --dp-body: var(--f-oswald), sans-serif;
+  --dp-mono: var(--f-roboto-mono), monospace;
+  --dp-bg: #0b2b4a;
+  --dp-panel: rgba(255, 255, 255, 0.05);
+  --dp-ink: #e8f4ff;
+  --dp-dim: #a9c9e6;
+  --dp-faint: #7fa8cc;
+  --dp-accent: #6fd3ff;
+  --dp-accent2: #ffd166;
+  --dp-tint: rgba(232, 244, 255, 0.12);
+  --chev-a: #ff6b5e;
+  --chev-b: #6fd3ff;
+  --chev-gap: #0b2b4a;
+  --dp-mark-weight: 300;
+  --dp-mark-track: 0.46em;
+  --dp-mark-size: 1.15rem;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(232, 244, 255, 0.085) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(232, 244, 255, 0.085) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(0deg, rgba(232, 244, 255, 0.05) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(90deg, rgba(232, 244, 255, 0.05) 0 1px, transparent 1px 6px);
+}
+.w9 .dp-panel { background: var(--dp-panel); border: 1px solid rgba(232, 244, 255, 0.45); }
+.w9 .dp-h1 {
+  font-family: var(--f-oswald), sans-serif;
+  font-weight: 300;
+  font-size: clamp(2.2rem, 6vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.w9 .dp-h1 b { font-weight: 700; color: var(--dp-accent); }
+.w9 .dp-label {
+  font-family: var(--f-roboto-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w9 .dp-pick {
+  font-family: var(--f-oswald), sans-serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(232, 244, 255, 0.35);
+  background: transparent;
+  color: var(--dp-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.w9 .dp-pick[data-on="true"] { border-color: var(--dp-accent); color: #06263f; background: var(--dp-accent); }
+.w9 .dp-cta {
+  font-family: var(--f-oswald), sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  background: var(--dp-accent2);
+  color: #2c2000;
+  padding: 0.8rem 2rem;
+  border: 0;
+}
+/* A dimension line: arrows at both ends, rule between. */
+.w9 .dim {
+  position: relative;
+  height: 1px;
+  background: var(--dp-accent);
+  opacity: 0.7;
+}
+.w9 .dim::before,
+.w9 .dim::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  border: 3px solid transparent;
+}
+.w9 .dim::before { left: 0; border-right-color: var(--dp-accent); }
+.w9 .dim::after { right: 0; border-left-color: var(--dp-accent); }
+
+/* ══ World 10: PNEUMATIC ═════════════════════════════════════════════
+   The sorting hall downstairs. Enamelled teal plates, brass fittings, a
+   serif cut from the age when a message arrived in a brass carrier. */
+.w10 {
+  --dp-display: var(--f-dm-serif), serif;
+  --dp-body: var(--f-dm-sans), sans-serif;
+  --dp-mono: var(--f-space-mono), monospace;
+  --dp-bg: #0b302d;
+  --dp-panel: #10403c;
+  --dp-ink: #f0e9d8;
+  --dp-dim: #b9cdc6;
+  --dp-faint: #93aaa2;
+  --dp-accent: #d7a93c;
+  --dp-accent2: #e06a4e;
+  --dp-tint: rgba(215, 169, 60, 0.12);
+  --chev-a: #e06a4e;
+  --chev-b: #d7a93c;
+  --chev-gap: #0b302d;
+  --dp-mark-weight: 400;
+  --dp-mark-track: 0.36em;
+  --dp-mark-size: 1.3rem;
+  background-image:
+    radial-gradient(120% 90% at 50% -20%, rgba(215, 169, 60, 0.16), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 5px);
+}
+.w10 .dp-panel {
+  background: var(--dp-panel);
+  border: 1px solid rgba(215, 169, 60, 0.5);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 24px 50px -34px #000;
+}
+.w10 .dp-h1 {
+  font-family: var(--f-dm-serif), serif;
+  font-size: clamp(2.4rem, 6.6vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+.w10 .dp-h1 i { color: var(--dp-accent); }
+.w10 .dp-label {
+  font-family: var(--f-space-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--dp-faint);
+}
+.w10 .dp-pick {
+  font-family: var(--f-dm-sans), sans-serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(215, 169, 60, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dp-dim);
+}
+.w10 .dp-pick[data-on="true"] { background: var(--dp-accent); border-color: var(--dp-accent); color: #23180a; }
+.w10 .dp-cta {
+  font-family: var(--f-dm-serif), serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  background: var(--dp-accent);
+  color: #23180a;
+  padding: 0.8rem 2.4rem;
+  border-radius: 999px;
+  border: 0;
+  box-shadow: 0 10px 24px -14px var(--dp-accent);
+}
+/* The brass carrier the message travels in. */
+.w10 .carrier {
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e6c26a, #b98d2a 45%, #8a651a);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.45), inset 0 -6px 10px rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * Phones.
+ *
+ * The header is the only part of the skeleton that does not survive 375px on
+ * its own: the wordmark is tracked out and the nav carries four items, so they
+ * are given permission to wrap rather than push each other off the edge. The
+ * foot leaves room for the floating switcher, which is a viewing tool sitting
+ * on top of every one of these pages.
+ */
+.dp-foot { padding-bottom: 4.5rem; }
+
+@media (max-width: 640px) {
+  .dp {
+    --dp-mark-size: 0.95rem;
+    --dp-mark-track: 0.22em;
+  }
+  .dp-head {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    padding-block: 0.75rem;
+  }
+  .dp-nav {
+    flex-wrap: wrap;
+    gap: 0.55rem 0.9rem;
+    font-size: 0.6rem;
+  }
+  .dp-body { padding-block: 1.5rem 2rem; }
+  .dp-foot {
+    font-size: 0.62rem;
+    padding-bottom: 9rem;
+  }
+  .dp-frank {
+    width: 4.25rem;
+    height: 4.25rem;
+    font-size: 0.44rem;
+  }
+}

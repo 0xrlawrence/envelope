@@ -81,7 +81,7 @@ export function Tabs({
             aria-controls={`panel-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(tab.id)}
-            className={`-mb-px flex min-h-11 items-baseline gap-2 border-b-2 pt-1 pb-3 font-display text-xs font-semibold tracking-[0.1em] uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.98] sm:min-h-0 sm:justify-start sm:text-sm sm:tracking-[0.14em] ${
+            className={`-mb-px flex min-h-11 items-baseline gap-2 border-b-2 pt-1 pb-3 font-mono text-[0.68rem] tracking-[0.18em] uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.98] sm:min-h-0 sm:justify-start sm:text-xs sm:tracking-[0.2em] ${
               scrollable ? "shrink-0 justify-start" : "justify-center"
             }`}
             style={{

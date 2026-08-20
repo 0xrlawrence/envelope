@@ -385,7 +385,15 @@ export default function ClaimPage() {
     return (
       <Shell>
         <h1 className="headline">
-          {outcome.kind === "private" ? "It is in your shielded balance." : "It is yours."}
+          {outcome.kind === "private" ? (
+            <>
+              It is <em>in your shielded balance.</em>
+            </>
+          ) : (
+            <>
+              It is <em>yours.</em>
+            </>
+          )}
         </h1>
         <p className="mt-4 text-[var(--paper-dim)]">
           {outcome.kind === "private"
@@ -442,6 +450,17 @@ export default function ClaimPage() {
       ? "Too late."
       : "Someone sent you this.";
 
+  // The hinge in the headline, marked where the sentence turns. Only the two
+  // that are actually sentences get it; "Too late." has nothing to turn on.
+  const headlineNode =
+    headline === "Someone sent you this." ? (
+      <>
+        Someone <em>sent you this.</em>
+      </>
+    ) : (
+      headline
+    );
+
   const intro = expired ? (
     <>
       The claim window shut on {formatDeadline(envelope.expiry)} without anyone opening
@@ -476,7 +495,7 @@ export default function ClaimPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-6 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-8">
       <div className="order-1 lg:sticky lg:top-10">
         <h1 className="headline">
-          {headline}
+          {headlineNode}
         </h1>
         <p className="mt-1.5 max-w-[62ch] text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-3 sm:text-base sm:leading-normal">{intro}</p>
 

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 
-export type Theme = "dark" | "light";
+export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "envelope.theme";
 
@@ -12,7 +12,7 @@ const STORAGE_KEY = "envelope.theme";
  * Read the stored choice before the first paint.
  *
  * Injected into the document head and run synchronously, because the
- * alternative is that everyone who chose light gets a black screen for one
+ * alternative is that everyone who chose night gets a cream flash for one
  * frame on every navigation. Written as a string rather than a component so it
  * executes before React exists, and kept to one statement so there is nothing
  * in it that can throw and leave the page unstyled.
@@ -30,8 +30,8 @@ export const THEME_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
  * the browser rather than by the stylesheet and cannot resolve a variable.
  */
 const CHROME_COLOUR: Record<Theme, string> = {
-  dark: "#080c11",
-  light: "#ffffff",
+  light: "#f2ece0",
+  dark: "#0b1424",
 };
 
 function paintBrowserChrome(theme: Theme): void {
@@ -44,23 +44,23 @@ interface ThemeState {
   toggle: () => void;
 }
 
-const Context = createContext<ThemeState>({ theme: "dark", toggle: () => {} });
+const Context = createContext<ThemeState>({ theme: "light", toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Dark on the server and on the first client render, matching the CSS
+  // Cream on the server and on the first client render, matching the CSS
   // default, so hydration sees what the markup said. The script above has
   // already applied the real choice to the element itself, so there is nothing
   // to correct visually; only this state needs catching up.
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const stored = document.documentElement.dataset.theme;
     if (stored === "light" || stored === "dark") setTheme(stored);
-    paintBrowserChrome(stored === "light" ? "light" : "dark");
+    paintBrowserChrome(stored === "dark" ? "dark" : "light");
   }, []);
 
   const toggle = useCallback(() => {
-    const next: Theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    const next: Theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
 
     const apply = () => {
       document.documentElement.dataset.theme = next;
@@ -121,5 +121,5 @@ export function useTheme(): ThemeState {
 
 /** For canvases, which cannot read a CSS variable and have to be told. */
 export function currentTheme(): Theme {
-  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }

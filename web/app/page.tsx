@@ -894,8 +894,8 @@ export default function CreatePage() {
           send-off animation walks this tree by shape. */}
       <div className="contents lg:sticky lg:top-10 lg:block">
         <div className="order-1">
-          <h1 className="headline !text-[1.3rem] !leading-[0.98] sm:!text-[clamp(1.75rem,min(6.2vw,4.6vh),3.25rem)] sm:!leading-[1.04]">Private money you can send as a link.</h1>
-          <p className="mt-1 max-w-[52ch] text-[0.68rem] leading-[1.3] text-[var(--paper-dim)] sm:mt-[clamp(0.5rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
+          <h1 className="headline !text-[1.3rem] !leading-[0.98] sm:!text-[clamp(1.75rem,min(6.2vw,4.6vh),3.25rem)] sm:!leading-[1.04]">Private money <em>you can send as a <span className="double-rule">link</span>.</em></h1>
+          <p className="mt-2 max-w-[52ch] text-[0.68rem] leading-[1.3] text-[var(--paper-dim)] sm:mt-[clamp(0.5rem,2vh,1.25rem)] sm:text-base sm:leading-normal">
             {source === "shielded"
               ? "Seal from a private note and the pool hides who paid. The link can only be claimed into a registered shielded balance."
               : "Pay someone by link even if they have never used STRK20. Funding and a public claim work with any Starknet wallet."}
@@ -941,10 +941,15 @@ export default function CreatePage() {
                 style={{
                   color: publicBalance === null ? "var(--paper-faint)" : "var(--credit)",
                 }}
+                title={
+                  publicBalance === null
+                    ? undefined
+                    : `${formatAmount(publicBalance)} ${STRK.symbol}`
+                }
               >
                 {publicBalance === null
                   ? "unreadable"
-                  : `${formatAmount(publicBalance)} ${STRK.symbol}`}
+                  : `${formatAmount(publicBalance, STRK, 5)} ${STRK.symbol}`}
               </dd>
               <dt className="field-label">Shielded in the pool</dt>
               <dd
@@ -952,24 +957,24 @@ export default function CreatePage() {
                 style={{
                   color: shieldedBalance === null ? "var(--paper-faint)" : "var(--credit)",
                 }}
+                title={
+                  shieldedBalance === null
+                    ? undefined
+                    : `${formatAmount(shieldedBalance)} ${STRK.symbol}`
+                }
               >
                 {shieldedBalance === null
                   ? "unreadable"
-                  : `${formatAmount(shieldedBalance)} ${STRK.symbol}`}
+                  : `${formatAmount(shieldedBalance, STRK, 5)} ${STRK.symbol}`}
               </dd>
             </dl>
           ) : null}
 
           <Field label="Pay with">
-            <p className="mb-1 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mb-2 sm:text-xs sm:leading-snug">
-              {source === "shielded"
-                ? "Spends a note already in the pool. A relayer submits it, so nothing on-chain ties the envelope to you."
-                : "Funds the contract straight from your address, in the open. Works with any wallet."}
-            </p>
             <div
               role="group"
               aria-label="Pay with"
-              className="flex w-full rounded-md border border-[var(--ink-line)] bg-[var(--ink-raised)] p-0.5 sm:inline-flex sm:w-auto sm:rounded-lg sm:p-1"
+              className="flex w-full gap-1.5 sm:gap-2"
             >
               {[
                 {
@@ -999,39 +1004,29 @@ export default function CreatePage() {
                       play("tap");
                       setChosen(choice.value);
                     }}
-                    className="min-h-9 flex-1 rounded-[0.2rem] px-1 font-display text-[0.65rem] font-semibold tracking-[0.07em] whitespace-nowrap uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:flex-none sm:rounded-md sm:px-4 sm:py-1.5 sm:text-sm sm:tracking-[0.08em]"
-                    style={
-                      active
-                        ? {
-                            background:
-                              "linear-gradient(180deg, #f08a3e 0%, #e2711d 55%, #d2620f 100%)",
-                            color: "#fff",
-                            boxShadow:
-                              "inset 0 1px 0 rgba(255,255,255,0.38), 0 1px 2px rgba(0,0,0,0.28)",
-                          }
-                        : { color: "var(--paper-faint)" }
-                    }
+                    className="pick flex-1 px-1 text-[0.68rem] font-semibold whitespace-nowrap sm:px-2 sm:text-[0.78rem]"
                   >
                     {choice.label}
                   </button>
                 );
               })}
             </div>
+            <p className="mt-1.5 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mt-2.5 sm:text-xs sm:leading-snug">
+              {source === "shielded"
+                ? "Spends a note already in the pool. A relayer submits it, so nothing on-chain ties the envelope to you."
+                : "Funds the contract straight from your address, in the open. Works with any wallet."}
+            </p>
           </Field>
 
           <Field label="Visibility">
-            {/* Sits over the control rather than beside it, so the sentence and
-                the thing it describes are read in that order. It states what
-                the current choice means, not what the other one would do. */}
-            <p className="mb-1 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mb-2 sm:text-xs sm:leading-snug">
-              {locked
-                ? "Only someone with the password can open it"
-                : "Anyone with the link can open it"}
-            </p>
+            {/* The sentence sits under the control rather than over it. It
+                states what the current choice means, not what the other one
+                would do, so it is a read-back of the thing just chosen and
+                belongs after it. */}
             <div
               role="group"
               aria-label="Visibility"
-              className="flex w-full rounded-md border border-[var(--ink-line)] bg-[var(--ink-raised)] p-0.5 sm:inline-flex sm:w-auto sm:rounded-lg sm:p-1"
+              className="flex w-full flex-wrap gap-1.5 sm:inline-flex sm:w-auto sm:gap-2"
             >
               {[
                 { value: false, label: "Public" },
@@ -1047,27 +1042,18 @@ export default function CreatePage() {
                       play("tap");
                       setLocked(choice.value);
                     }}
-                    className="min-h-9 flex-1 rounded-[0.2rem] px-3 font-display text-xs font-semibold tracking-[0.09em] uppercase transition-[background,color,box-shadow] duration-200 ease-out active:scale-[0.97] sm:min-h-0 sm:flex-none sm:rounded-md sm:px-5 sm:py-1.5 sm:text-sm sm:tracking-[0.1em]"
-                    style={
-                      active
-                        ? {
-                            // The reference button: a warm orange that lifts,
-                            // lit from the top so it reads as a raised key
-                            // rather than a filled rectangle.
-                            background:
-                              "linear-gradient(180deg, #f08a3e 0%, #e2711d 55%, #d2620f 100%)",
-                            color: "#fff",
-                            boxShadow:
-                              "inset 0 1px 0 rgba(255,255,255,0.38), 0 1px 2px rgba(0,0,0,0.28)",
-                          }
-                        : { color: "var(--paper-faint)" }
-                    }
+                    className="pick text-[0.78rem] font-semibold whitespace-nowrap sm:text-sm"
                   >
                     {choice.label}
                   </button>
                 );
               })}
             </div>
+            <p className="mt-1.5 text-[0.64rem] leading-[1.25] text-[var(--paper-faint)] sm:mt-2.5 sm:text-xs sm:leading-snug">
+              {locked
+                ? "Only someone with the password can open it"
+                : "Anyone with the link can open it"}
+            </p>
 
             {locked ? (
               <div className="mt-2 sm:mt-3">
@@ -1095,7 +1081,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Amount" hint="Round sizes share a crowd">
-            <div className="grid grid-cols-5 gap-1 sm:gap-2" role="group" aria-label="Amount">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="group" aria-label="Amount">
               {DENOMINATIONS.map((value) => (
                 <button
                   key={value.toString()}
@@ -1105,11 +1091,7 @@ export default function CreatePage() {
                     play("tap");
                     setDenomination(value);
                   }}
-                  className={`min-h-9 border px-1 text-center font-mono text-xs transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-2 sm:py-2 sm:text-sm ${
-                    value === denomination
-                      ? "border-[var(--frank)] text-[var(--frank)]"
-                      : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
-                  }`}
+                  className="pick pick-figure"
                 >
                   {value.toString()}
                 </button>
@@ -1118,7 +1100,7 @@ export default function CreatePage() {
           </Field>
 
           <Field label="Claim window" hint="After it shuts, only you can reclaim">
-            <div className="flex flex-wrap gap-1 sm:gap-2" role="group" aria-label="Claim window">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Claim window">
               {EXPIRY_CHOICES.map((choice) => (
                 <button
                   key={choice.label}
@@ -1128,11 +1110,7 @@ export default function CreatePage() {
                     play("tap");
                     setExpirySeconds(choice.seconds);
                   }}
-                  className={`min-h-9 border px-2 text-[0.68rem] transition-[border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm ${
-                    choice.seconds === expirySeconds
-                      ? "border-[var(--frank)] text-[var(--frank)]"
-                      : "border-[var(--ink-line)] text-[var(--paper-dim)] hover:border-[var(--paper-faint)]"
-                  }`}
+                  className="pick text-[0.78rem] font-semibold whitespace-nowrap sm:text-sm"
                 >
                   {choice.label}
                 </button>
@@ -1206,7 +1184,7 @@ export default function CreatePage() {
           {address && supportsStrk20 && !funded ? (
             <Callout tone="warn" title="Not enough to seal">
               This account holds{" "}
-              {publicBalance === null ? "an unreadable balance" : `${formatAmount(publicBalance)} ${STRK.symbol}`}{" "}
+              {publicBalance === null ? "an unreadable balance" : `${formatAmount(publicBalance, STRK, 5)} ${STRK.symbol}`}{" "}
               and nothing shielded, so there is not enough for a{" "}
               {denomination.toString()} {STRK.symbol} envelope. Choose a smaller
               amount or fund the account.

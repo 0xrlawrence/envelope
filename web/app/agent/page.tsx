@@ -71,7 +71,9 @@ const link = encodeClaimLink(origin, claim.privateKey);`;
 export default function AgentPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-6 sm:py-10">
-      <h1 className="headline">Pay an agent that has no account.</h1>
+      <h1 className="headline">
+        Pay an agent <em>that has no account.</em>
+      </h1>
 
       <p className="mt-3 max-w-[62ch] text-[0.78rem] leading-snug text-[var(--paper-dim)] sm:mt-5 sm:text-base sm:leading-normal">
         A transfer needs somewhere to send it. An envelope does not: it seals value

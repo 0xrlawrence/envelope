@@ -103,13 +103,38 @@ export function toSmallestUnit(whole: bigint, token: Token = STRK): bigint {
   return whole * 10n ** BigInt(token.decimals);
 }
 
-export function formatAmount(amount: bigint, token: Token = STRK): string {
+export function formatAmount(
+  amount: bigint,
+  token: Token = STRK,
+  /**
+   * Cut the fraction to this many places.
+   *
+   * Only for figures that are being read rather than acted on: a wallet
+   * balance is eighteen decimals of noise after the fifth, and printing all of
+   * them turns the one number on the page you glance at into a hash. The exact
+   * value stays available in the element's title.
+   *
+   * Truncated, never rounded. Rounding a balance up shows money that is not
+   * there, and this is the number someone checks before deciding what they can
+   * afford to send.
+   */
+  maxDecimals?: number,
+): string {
   const unit = 10n ** BigInt(token.decimals);
   const whole = amount / unit;
   const fraction = amount % unit;
   if (fraction === 0n) return whole.toString();
   const digits = fraction.toString().padStart(token.decimals, "0").replace(/0+$/, "");
-  return `${whole}.${digits}`;
+  if (maxDecimals === undefined) return `${whole}.${digits}`;
+
+  const cut = digits.slice(0, maxDecimals).replace(/0+$/, "");
+  // A balance too small to survive the cut is not nothing, and printing it as
+  // "0 STRK" tells someone they are empty when they are not. Say which side of
+  // the smallest visible place it is on instead.
+  if (cut === "") {
+    return whole === 0n ? `<0.${"0".repeat(maxDecimals - 1)}1` : whole.toString();
+  }
+  return `${whole}.${cut}`;
 }
 
 /**
