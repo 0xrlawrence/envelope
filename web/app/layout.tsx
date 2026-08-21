@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Karla, Space_Mono } from "next/font/google";
 import type { ReactNode } from "react";
-import { SecurityField } from "@/components/SecurityField";
 import { MobileNav } from "@/components/MobileNav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SoundProvider } from "@/lib/sound";
@@ -74,7 +73,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider>
         <SoundProvider>
           <WalletProvider>
-            <SecurityField />
             <div className="flex min-h-dvh flex-col pb-[calc(3.65rem+env(safe-area-inset-bottom))] sm:pb-0">
               <SiteHeader />
               {/* The centring is done with an auto margin rather than

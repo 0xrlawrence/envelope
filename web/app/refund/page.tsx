@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildRefundActions,
@@ -12,7 +13,6 @@ import {
 import { Approvals } from "@/components/Approvals";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Receipt } from "@/components/Receipt";
-import { SendOff } from "@/components/SendOff";
 import { Button, Callout, ExplorerLink, LinkButton } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
 import { looksRejected } from "@/lib/errors";
@@ -20,8 +20,27 @@ import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
 
+/*
+ * The return flight, on demand.
+ *
+ * Same reason as the seal page: this is the only thing on the route that needs
+ * a 3D renderer, it runs for two seconds at the very end, and imported
+ * statically it put 576KB of three.js in the first load of a page whose whole
+ * job before that point is to read one envelope and show a button.
+ */
+const SendOff = dynamic(
+  () => import("@/components/SendOff").then((module) => module.SendOff),
+  { ssr: false },
+);
+
 export default function RefundPage() {
   const { account, address, network, provider, supportsStrk20 } = useWallet();
+
+  // Warmed as soon as there is a wallet, which is long before the return is
+  // approved, so the module is in cache by the time the dart is asked for.
+  useEffect(() => {
+    if (address) void import("@/components/SendOff");
+  }, [address]);
   const { play } = useSound();
 
   const [refundKey, setRefundKey] = useState<string | null>(null);

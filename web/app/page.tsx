@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildFundActions,
@@ -21,7 +22,20 @@ import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { Approvals } from "@/components/Approvals";
 import { SecretInput } from "@/components/SecretInput";
 import { ShieldModal } from "@/components/ShieldModal";
-import { SendOff } from "@/components/SendOff";
+/*
+ * The flight is the only thing on this site that needs a 3D renderer, and it
+ * runs for two seconds after a seal is approved. Imported statically it put
+ * three.js in the first load of the page, which is 576KB of parse before
+ * anyone has typed an amount. Loaded on demand instead, and warmed the moment
+ * a wallet is connected, so the module is in cache long before the dart is
+ * asked for.
+ */
+const SendOff = dynamic(
+  () => import("@/components/SendOff").then((module) => module.SendOff),
+  { ssr: false },
+);
+
+const warmSendOff = () => void import("@/components/SendOff");
 import { Button, Callout, Eyebrow, ExplorerLink, Field, Mono } from "@/components/ui";
 import {
   DENOMINATIONS,
@@ -301,6 +315,13 @@ export default function CreatePage() {
   useEffect(() => {
     void refreshBalance();
   }, [refreshBalance]);
+
+  // Fetch the renderer as soon as there is a wallet to seal with. That is
+  // minutes of form-filling before the dart is needed, and it keeps the module
+  // off the critical path for everyone who is only reading the page.
+  useEffect(() => {
+    if (address) warmSendOff();
+  }, [address]);
 
   // The send-off is otherwise only reachable by completing a real transaction,
   // which makes it impossible to look at while building. Stripped from
