@@ -252,11 +252,26 @@ export function SendOff({
     };
     frameCamera();
 
-    scene.add(new AmbientLight(0xffffff, 0.62));
-    const key = new DirectionalLight(0xffffff, 1.7);
+    const lightPaper = currentTheme() === "light";
+
+    /*
+     * Two lighting rigs, because the dart is flying over two different rooms.
+     *
+     * On dark stock it is a lit object in a void, so a low fill and a hard key
+     * are what make it read: the shaded faces going almost black is the effect.
+     *
+     * Over cream that rig turns the dart grey. Every face that is not facing
+     * the key falls to 0.62 of the paper white, which lands well below the
+     * value of the page behind it, and a sheet of paper darker than the desk it
+     * is flying over reads as a lump of card. Flat light instead: the fill
+     * carries almost all of it and the key does just enough to keep the folds
+     * apart, which is also what a real sheet looks like in ordinary room light.
+     */
+    scene.add(new AmbientLight(0xffffff, lightPaper ? 1.75 : 0.62));
+    const key = new DirectionalLight(0xffffff, lightPaper ? 0.55 : 1.7);
     key.position.set(3.5, 6, 4);
     scene.add(key);
-    const rim = new DirectionalLight(0x9fc0ff, 0.75);
+    const rim = new DirectionalLight(lightPaper ? 0xd8e2f2 : 0x9fc0ff, lightPaper ? 0.18 : 0.75);
     rim.position.set(-4, -1.5, 2);
     scene.add(rim);
 
@@ -391,7 +406,9 @@ export function SendOff({
     labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     const paper = new MeshStandardMaterial({
-      color: 0xf7f5f0,
+      // Brighter than the cream it flies over, so the dart is the lightest
+      // thing on screen rather than a grey shape crossing a pale page.
+      color: lightPaper ? 0xfffefb : 0xf7f5f0,
       roughness: 0.93,
       metalness: 0,
       flatShading: true,
@@ -517,7 +534,6 @@ varying float vInk;`,
     // something already at full brightness changes nothing. On light stock the
     // streaks are drawn as ink instead, normally blended and darker than what
     // is behind them.
-    const lightPaper = currentTheme() === "light";
     const streakMaterial = new MeshBasicMaterial({
       color: lightPaper ? 0x4a6fa5 : 0x7fa6e0,
       transparent: true,
