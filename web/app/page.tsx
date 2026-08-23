@@ -213,6 +213,8 @@ export default function CreatePage() {
   const [sending, setSending] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
+  /** Close the same pre-render double-click gap for the shield modal. */
+  const shieldInFlightRef = useRef(false);
   /**
    * React state disables the button on the next render. This ref closes the
    * smaller gap before that render, so a double click cannot create two key
@@ -329,7 +331,8 @@ export default function CreatePage() {
   }, [busy]);
 
   async function shield(shielding: bigint) {
-    if (!account) return;
+    if (!account || shieldInFlightRef.current) return;
+    shieldInFlightRef.current = true;
     setBusy("shielding");
     setShieldError("");
     const watch = { cancelled: false, found: false };
@@ -349,9 +352,16 @@ export default function CreatePage() {
           deposit.publicBalance ??
             (publicBefore === null ? null : publicBefore - shielding),
         );
-        setShieldedBalance((previous) => (previous ?? 0n) + shielding);
+        // The deposit amount is not the resulting private balance. The wallet
+        // adds its STRK20 fee action to this transaction, and that fee can be
+        // paid from the freshly shielded note (for example, deposit 5 and keep
+        // 3). Never publish the requested amount as though the wallet reported
+        // it. Mark it unread until the authoritative private-balance query
+        // below returns.
+        setShieldedBalance(null);
         setRegistered(true);
         setShieldOffer("dismissed");
+        void refreshBalance();
       };
       const watching = watchTokenDeposit(
         provider,
@@ -433,6 +443,7 @@ export default function CreatePage() {
       );
       console.error("[envelope] shield failed", cause);
     } finally {
+      shieldInFlightRef.current = false;
       setBusy("");
     }
   }
@@ -1107,7 +1118,9 @@ export default function CreatePage() {
                 }
               >
                 {shieldedBalance === null
-                  ? "unreadable"
+                  ? registered
+                    ? "refreshing"
+                    : "unreadable"
                   : `${formatAmount(shieldedBalance, STRK, 5)} ${STRK.symbol}`}
               </dd>
             </dl>
