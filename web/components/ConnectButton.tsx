@@ -8,7 +8,16 @@ import { useWallet } from "@/lib/wallet";
 import { Button } from "./ui";
 
 export function ConnectButton() {
-  const { wallets, address, network, connect, disconnect, connecting, error } = useWallet();
+  const {
+    wallets,
+    address,
+    network,
+    connect,
+    disconnect,
+    refreshWallets,
+    connecting,
+    error,
+  } = useWallet();
   const { play } = useSound();
   const [open, setOpen] = useState(false);
   /**
@@ -26,15 +35,30 @@ export function ConnectButton() {
   // something diagnosable.
   useEffect(() => {
     if (!open) return;
-    const scan = () =>
+    const scan = () => {
+      refreshWallets();
       setInjected(
-        Object.keys(window).filter((key) => key.toLowerCase().startsWith("starknet")),
+        Object.getOwnPropertyNames(window).filter((key) =>
+          key.toLowerCase().startsWith("starknet"),
+        ),
       );
+    };
     scan();
-    // Extensions commonly inject only after the user unlocks them.
-    const timer = setInterval(scan, 1000);
-    return () => clearInterval(timer);
-  }, [open]);
+    // Extensions commonly inject only after the user unlocks them. Keep the
+    // picker live while that happens, and refresh immediately when focus comes
+    // back from the extension rather than making the user reload the page.
+    const timer = window.setInterval(scan, 750);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") scan();
+    };
+    window.addEventListener("focus", scan);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", scan);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [open, refreshWallets]);
 
   useEffect(() => {
     if (!open) return;
@@ -94,7 +118,10 @@ export function ConnectButton() {
       <Button
         variant="outline"
         sound="open"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          refreshWallets();
+          setOpen(true);
+        }}
         className="!px-3 !py-2 !text-xs sm:!px-4 sm:!text-sm"
       >
         Connect
@@ -163,8 +190,8 @@ export function ConnectButton() {
                       Ready
                     </a>{" "}
                     is the wallet with STRK20 privacy live. If it is installed, unlock
-                    it and reopen this list, since extensions usually inject only once
-                    unlocked.
+                    it; this list will update automatically when the wallet becomes
+                    available.
                   </p>
                 ) : null}
 

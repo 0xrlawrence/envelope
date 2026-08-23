@@ -1,7 +1,10 @@
 "use client";
 
 import { createStore, type Store } from "@starknet-io/get-starknet-discovery";
-import type { WalletWithStarknetFeatures } from "@starknet-io/get-starknet-wallet-standard/features";
+import {
+  isStarknetWallet,
+  type WalletWithStarknetFeatures,
+} from "@starknet-io/get-starknet-wallet-standard/features";
 import { WALLET_API } from "@starknet-io/types-js";
 import {
   createContext,
@@ -40,6 +43,8 @@ interface WalletState {
 interface WalletContextValue extends WalletState {
   connect(wallet: WalletWithStarknetFeatures): Promise<void>;
   disconnect(): void;
+  /** Re-scan for extensions that injected after the page first loaded. */
+  refreshWallets(): void;
   /** Called when a real STRK20 call reports the method is not served. */
   reportStrk20Unsupported(reason: string): void;
   /** A read provider for the currently selected network. */
@@ -101,6 +106,8 @@ function rememberedWallet(): string {
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>(INITIAL);
+  const discoveryStore = useRef<Store | null>(null);
+  const lateStandardWallets = useRef(new Map<string, WalletWithStarknetFeatures>());
   // One attempt per load. Discovery fills in over several ticks, so without
   // this the effect below would fire again for every wallet that registers.
   const tried = useRef(false);
@@ -111,11 +118,68 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // popup at people who never asked for it.
   useEffect(() => {
     const store: Store = createStore({ eip1193Adapters: [] });
-    setState((previous) => ({ ...previous, wallets: store.getWallets().slice() }));
-    const unsubscribe = store.subscribe((next) =>
-      setState((previous) => ({ ...previous, wallets: next.slice() })),
+    discoveryStore.current = store;
+
+    const publish = (discovered: readonly WalletWithStarknetFeatures[]) => {
+      const merged = new Map(discovered.map((wallet) => [wallet.name, wallet]));
+      // A wallet answering our late app-ready request is the modern standard
+      // implementation, so prefer it over a legacy wrapper with the same name.
+      for (const wallet of lateStandardWallets.current.values()) {
+        merged.set(wallet.name, wallet);
+      }
+      setState((previous) => ({ ...previous, wallets: [...merged.values()] }));
+    };
+
+    publish(store.getWallets());
+    const unsubscribe = store.subscribe(publish);
+    return () => {
+      unsubscribe();
+      if (discoveryStore.current === store) discoveryStore.current = null;
+      lateStandardWallets.current.clear();
+    };
+  }, []);
+
+  // Browser extensions do not all inject at the same point in page startup.
+  // Ready can appear after this provider has already performed its initial
+  // scan, especially on a first visit while the extension is still unlocking.
+  // The discovery package deliberately exposes a legacy-injection refresh for
+  // that case. Re-dispatching the standard app-ready event covers wallets that
+  // implement only the modern protocol but missed the event sent on mount.
+  const refreshWallets = useCallback(() => {
+    const store = discoveryStore.current;
+    if (!store) return;
+
+    store._refreshInjectedWallets();
+
+    const register = (candidate: Parameters<typeof isStarknetWallet>[0]) => {
+      if (!isStarknetWallet(candidate)) return () => undefined;
+      if (lateStandardWallets.current.has(candidate.name)) return () => undefined;
+
+      lateStandardWallets.current.set(candidate.name, candidate);
+      const merged = new Map(store.getWallets().map((wallet) => [wallet.name, wallet]));
+      for (const wallet of lateStandardWallets.current.values()) {
+        merged.set(wallet.name, wallet);
+      }
+      setState((previous) => ({ ...previous, wallets: [...merged.values()] }));
+
+      return () => {
+        if (lateStandardWallets.current.get(candidate.name) !== candidate) return;
+        lateStandardWallets.current.delete(candidate.name);
+        const remaining = new Map(
+          store.getWallets().map((wallet) => [wallet.name, wallet]),
+        );
+        for (const wallet of lateStandardWallets.current.values()) {
+          remaining.set(wallet.name, wallet);
+        }
+        setState((previous) => ({ ...previous, wallets: [...remaining.values()] }));
+      };
+    };
+
+    window.dispatchEvent(
+      new CustomEvent("wallet-standard:app-ready", {
+        detail: Object.freeze({ register }),
+      }),
     );
-    return () => unsubscribe();
   }, []);
 
   const connect = useCallback(async (wallet: WalletWithStarknetFeatures) => {
@@ -266,6 +330,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ...state,
       connect,
       disconnect,
+      refreshWallets,
       reportStrk20Unsupported,
       provider: new RpcProvider({ nodeUrl: state.network.rpcUrl }),
       // A wallet without STRK20 can still sign an ordinary call, which is all
@@ -273,7 +338,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // privately.
       supportsStrk20: state.strk20,
     }),
-    [state, connect, disconnect, reportStrk20Unsupported],
+    [state, connect, disconnect, refreshWallets, reportStrk20Unsupported],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
