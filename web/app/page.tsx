@@ -1391,7 +1391,7 @@ function SealedView({ sealed, onReset }: { sealed: SealedEnvelope; onReset: () =
         </div>
 
         <div className="mt-4 border-t border-[var(--ink-line)] pt-3 sm:mt-6 sm:pt-4">
-          <Eyebrow>Funding transaction</Eyebrow>
+          <p className="field-label !text-[var(--frank)]">Funding transaction</p>
           <div className="mt-2">
             {sealed.transactionHash ? (
               <ExplorerLink
@@ -1438,8 +1438,9 @@ function LinkBlock({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <Eyebrow>{label}</Eyebrow>
+        <p className="field-label !text-[var(--frank)]">{label}</p>
         <button
+          type="button"
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(value);
@@ -1452,17 +1453,58 @@ function LinkBlock({
             setTimeout(() => setCopyState("idle"), 1600);
           }}
           /* Copying the link is the entire point of this screen, and on a
-             phone it was a 10px word with no hit area around it. */
-          className="-mr-2 inline-flex min-h-11 items-center px-2 font-mono text-[0.65rem] tracking-[0.2em] text-[var(--frank)] uppercase active:scale-95 sm:mr-0 sm:min-h-0 sm:px-0"
+             phone it was a 10px word with no hit area around it. The square
+             fill gives the primary hand-off action a stable silhouette. */
+          className="inline-flex min-h-11 items-center justify-center bg-[var(--frank)] px-3 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--ink-deep)] uppercase transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--frank-deep)] active:scale-95 sm:min-h-9"
           aria-live="polite"
+          aria-label={`${copyState === "idle" ? "Copy" : copyState === "copied" ? "Copied" : "Copy failed"} ${label.toLowerCase()}`}
         >
           {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy"}
         </button>
       </div>
       <p className="mt-0.5 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mt-1 sm:text-xs">{hint}</p>
-      <p className="security-tint-dense mt-1.5 border border-[var(--ink-line)] px-2.5 py-2 font-mono text-[0.7rem] break-all sm:mt-2 sm:px-3 sm:py-3 sm:text-xs">
-        {value}
-      </p>
+      <a
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+        title={value}
+        className="security-tint-dense mt-1.5 block border border-[var(--ink-line)] px-2.5 py-2 font-mono text-[0.72rem] leading-[1.55] text-[var(--paper)] [overflow-wrap:anywhere] transition-[border-color,color] duration-150 hover:border-[var(--frank)] hover:text-[var(--frank)] sm:mt-2 sm:px-3 sm:py-3 sm:text-[0.8rem]"
+      >
+        <ReadableLink value={value} />
+      </a>
     </div>
+  );
+}
+
+/**
+ * Keep the complete secret visible while separating the URL's public location
+ * from the fragment key and the refund reference. The added opportunities are
+ * presentation-only: the href and clipboard still receive the untouched link.
+ */
+function ReadableLink({ value }: { value: string }) {
+  const hashAt = value.indexOf("#");
+  if (hashAt === -1) return value;
+
+  const location = value.slice(0, hashAt);
+  const fragment = value.slice(hashAt + 1);
+  const referenceAt = fragment.indexOf("~");
+  const key = referenceAt === -1 ? fragment : fragment.slice(0, referenceAt);
+  const reference = referenceAt === -1 ? "" : fragment.slice(referenceAt + 1);
+
+  return (
+    <>
+      <span className="text-[var(--paper-dim)]">{location}</span>
+      <span className="text-[var(--frank)]">#</span>
+      <wbr />
+      <span>{key}</span>
+      {reference ? (
+        <>
+          <wbr />
+          <span className="text-[var(--frank)]">~</span>
+          <wbr />
+          <span>{reference}</span>
+        </>
+      ) : null}
+    </>
   );
 }
