@@ -51,6 +51,7 @@ import { appOrigin } from "@/lib/origin";
 import { useSound } from "@/lib/sound";
 import { forget, markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
+import { readTokenBalance, watchTokenDeposit } from "@/lib/watch";
 
 interface SealedEnvelope {
   claim: EnvelopeKeyPair;
@@ -110,24 +111,6 @@ function undoSendOff(stage: HTMLElement | null): void {
 }
 
 /**
- * How long to wait after the wallet's approval window closes before bringing
- * the envelope home.
- *
- * Just long enough for a wallet that does answer to get its answer in first,
- * and no longer. Declining is the case this exists for, and a decline on the
- * STRK20 route produces no event at all, so anything beyond that is time spent
- * watching a plane fly for a transaction that was cancelled.
- *
- * The window also closes on approve, so the flight ends there too, a little
- * before the proof does. Nothing is claimed about which happened: the page says
- * it is still listening, the watcher keeps polling the contract, and if the
- * seal does land the sealed screen comes back with its link. Ending the flight
- * early costs a few seconds of certainty; leaving it flying cost the reader
- * every rejected seal.
- */
-const DECLINE_GRACE_MS = 2_000;
-
-/**
  * Notice when the wallet's approval window hands focus back.
  *
  * Ready opens its STRK20 review in a separate browser window, and declining
@@ -143,8 +126,8 @@ const DECLINE_GRACE_MS = 2_000;
  * deciding what that meant is left to the person who pressed the button.
  *
  * A genuine tab switch is excluded: it changes document visibility, while a
- * wallet popup leaves this page visible. The short grace lets a normal promise
- * resolution win first.
+ * wallet popup leaves this page visible. A brief debounce filters the focus
+ * chatter produced while the popup itself is closing.
  */
 function watchShieldedApprovalWindow(onWindowClosed: () => void): () => void {
   let leftForVisibleWindow = false;
@@ -278,14 +261,7 @@ export default function CreatePage() {
     if (!address) return;
 
     try {
-      const raw = await provider.callContract({
-        contractAddress: felt(STRK.address),
-        entrypoint: "balanceOf",
-        calldata: [felt(address)],
-      });
-      const low = BigInt(raw[0] ?? "0x0");
-      const high = BigInt(raw[1] ?? "0x0");
-      setPublicBalance(low + (high << 128n));
+      setPublicBalance(await readTokenBalance(provider, STRK.address, address));
     } catch {
       setPublicBalance(null);
     }
@@ -350,13 +326,98 @@ export default function CreatePage() {
     if (!account) return;
     setBusy("shielding");
     setShieldError("");
+    const watch = { cancelled: false, found: false };
     try {
-      await account.strk20InvokeTransaction(
-        buildShieldActions({ token: STRK.address, amount: shielding }),
+      // Take the chain baseline before opening the wallet. The wallet can
+      // successfully relay a shield transaction and then leave its Wallet API
+      // promise pending forever, so waiting for that promise is not how this
+      // flow learns the transaction finished.
+      const [fromBlock, freshPublicBalance] = await Promise.all([
+        provider.getBlockNumber().catch(() => 0),
+        readTokenBalance(provider, STRK.address, address).catch(() => publicBalance),
+      ]);
+      const publicBefore = freshPublicBalance ?? publicBalance;
+      const acceptDeposit = (deposit: { publicBalance: bigint | null }) => {
+        watch.cancelled = true;
+        setPublicBalance(
+          deposit.publicBalance ??
+            (publicBefore === null ? null : publicBefore - shielding),
+        );
+        setShieldedBalance((previous) => (previous ?? 0n) + shielding);
+        setRegistered(true);
+        setShieldOffer("dismissed");
+      };
+      const watching = watchTokenDeposit(
+        provider,
+        STRK.address,
+        address,
+        network.pool,
+        shielding,
+        fromBlock,
+        publicBefore,
+        watch,
       );
-      await refreshBalance();
-      setShieldOffer("dismissed");
+
+      // Convert rejection into a value so a chain-first result cannot leave an
+      // ignored wallet promise producing an unhandled rejection later.
+      const wallet = account
+        .strk20InvokeTransaction(
+          buildShieldActions({ token: STRK.address, amount: shielding }),
+        )
+        .then(
+          () => ({ kind: "wallet" as const }),
+          (cause: unknown) => ({ kind: "error" as const, cause }),
+        );
+      const outcome = await Promise.race([
+        wallet,
+        watching.then((deposit) =>
+          deposit
+            ? { kind: "chain" as const, deposit }
+            : { kind: "timeout" as const },
+        ),
+      ]);
+
+      if (outcome.kind === "chain") {
+        acceptDeposit(outcome.deposit);
+        return;
+      }
+
+      if (outcome.kind === "wallet") {
+        // A wallet response proves only that the request was accepted. Keep
+        // the modal honest until the public chain shows the pool deposit.
+        const landed = await watching;
+        if (landed) {
+          acceptDeposit(landed);
+          return;
+        }
+        watch.cancelled = true;
+        setShieldError(
+          "The wallet accepted the request, but the matching shield deposit did not appear on-chain within two minutes. Check the wallet transaction before trying again.",
+        );
+        return;
+      }
+
+      if (outcome.kind === "error") {
+        // Wallet errors can arrive after a transaction has already landed.
+        // Give the chain watcher a short final say before showing a failure.
+        const landed = await Promise.race([
+          watching,
+          new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12_000)),
+        ]);
+        if (landed || watch.found) {
+          acceptDeposit(landed ?? { publicBalance: null });
+          return;
+        }
+        watch.cancelled = true;
+        throw outcome.cause;
+      }
+
+      watch.cancelled = true;
+      setShieldError(
+        "The wallet stopped answering and no matching shield deposit appeared on-chain within two minutes. Close the wallet panel and try again. If the wallet shows success, refresh this page to read the new private balance.",
+      );
     } catch (cause) {
+      watch.cancelled = true;
       // Reported inside the modal rather than on the page behind it, which is
       // where this used to write and where nobody could see it.
       setShieldError(
@@ -526,7 +587,9 @@ export default function CreatePage() {
       setGaveUp(false);
       setDeclined(false);
       setError("");
-      setSending(false);
+      // Keep SendOff mounted. Moving the seal to `funded` changes its phase to
+      // `sent`; the animation owns the successful exit and calls onDone when
+      // the plane has actually left the page.
       setSealed(
         (previous) =>
           previous ?? {
@@ -599,32 +662,22 @@ export default function CreatePage() {
        * what tells them apart.
        *
        * Approving starts a proof, and an envelope shows up on-chain at the end
-       * of it. Declining produces nothing, ever. So the window closing opens a
-       * grace period rather than deciding anything: the watcher is already
-       * polling the contract every couple of seconds, and if the seal was
-       * approved it will almost always have landed well inside it. If the grace
-       * runs out with nothing on-chain and the wallet still silent, that is as
-       * close to a refusal as this page can get, and the envelope comes home.
-       *
-       * Long enough to clear a slow proof and a slow block. Anyone who knows
-       * they declined does not have to sit through it: the way out is offered
-       * the moment the window closes.
+       * of it. Declining produces nothing, ever. Closing the window therefore
+       * cannot decide the animation's direction: proofs routinely outlive the
+       * wallet popup, and a timer would send a successfully funded envelope
+       * backwards. It only reveals the explicit "Stop waiting" escape hatch.
+       * Chain confirmation owns the successful flight; a wallet rejection or
+       * the person's own stop action owns the return flight.
        */
-      let grace = 0;
       const stopWatchingApproval = watchShieldedApprovalWindow(() => {
         setPromptClosed(true);
-        grace = window.setTimeout(() => {
-          if (watch.found) return;
-          stopWaitingRef.current?.();
-        }, DECLINE_GRACE_MS);
       });
       try {
         return await account.strk20InvokeTransaction(actions);
       } finally {
-        // An answered request drives the ordinary success or rejection path, so
-        // neither the focus watcher nor its grace may race it.
+        // An answered request drives the ordinary success or rejection path,
+        // so the focus watcher has no more work to do.
         stopWatchingApproval();
-        window.clearTimeout(grace);
       }
     };
 
@@ -819,6 +872,7 @@ export default function CreatePage() {
         accountClass={accountClass}
         accountMaker={maker}
         busy={busy === "shielding"}
+        elapsed={busy === "shielding" ? elapsed : 0}
         error={shieldError}
         onShield={(shielding) => void shield(shielding)}
         onDismiss={() => setShieldOffer("dismissed")}

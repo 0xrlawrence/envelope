@@ -25,6 +25,7 @@ export function ShieldModal({
   accountClass,
   accountMaker,
   busy,
+  elapsed,
   error,
   onShield,
   onDismiss,
@@ -38,6 +39,8 @@ export function ShieldModal({
   /** Which wallet's class it is, when recognised. */
   accountMaker: string;
   busy: boolean;
+  /** Seconds since the wallet request began. */
+  elapsed: number;
   error: string;
   onShield: (amount: bigint) => void;
   onDismiss: () => void;
@@ -187,6 +190,16 @@ export function ShieldModal({
               Not now
             </Button>
           </div>
+          {busy ? (
+            <p
+              className="mt-2 text-[0.7rem] leading-snug text-[var(--paper-faint)] sm:mt-3 sm:text-xs"
+              aria-live="polite"
+            >
+              {elapsed < 8
+                ? "Approve it in your wallet."
+                : `Watching the chain for the completed deposit — ${Math.floor(elapsed / 60)}m ${String(elapsed % 60).padStart(2, "0")}s.`}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
