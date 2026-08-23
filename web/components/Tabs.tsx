@@ -7,6 +7,8 @@ export interface TabDefinition {
   label: string;
   /** Shown beside the label when there is something to count. */
   count?: number;
+  /** Semantic stamp colour. The active tab uses the full pigment. */
+  tone?: "frank" | "send" | "seal" | "credit";
 }
 
 /**
@@ -50,8 +52,8 @@ export function Tabs({
          quarter-width columns. */
       className={
         scrollable
-          ? "flex gap-5 overflow-x-auto border-b border-[var(--ink-line)] sm:gap-6"
-          : "grid border-b border-[var(--ink-line)] sm:flex sm:gap-6"
+          ? "flex gap-1.5 overflow-x-auto pb-1 sm:gap-2"
+          : "grid gap-1.5 sm:flex sm:gap-2"
       }
       style={
         scrollable
@@ -71,6 +73,14 @@ export function Tabs({
     >
       {tabs.map((tab) => {
         const selected = tab.id === active;
+        const pigment =
+          tab.tone === "send"
+            ? "var(--send)"
+            : tab.tone === "seal"
+              ? "var(--seal)"
+              : tab.tone === "credit"
+                ? "var(--credit)"
+                : "var(--frank)";
         return (
           <button
             key={tab.id}
@@ -81,12 +91,17 @@ export function Tabs({
             aria-controls={`panel-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(tab.id)}
-            className={`-mb-px flex min-h-11 items-baseline gap-2 border-b-2 pt-1 pb-3 font-mono text-[0.68rem] tracking-[0.18em] uppercase transition-[color,transform] duration-150 ease-out active:scale-[0.98] sm:min-h-0 sm:justify-start sm:text-xs sm:tracking-[0.2em] ${
+            className={`flex min-h-11 items-center gap-2 border px-2.5 py-2 font-mono text-[0.68rem] tracking-[0.18em] uppercase transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.98] sm:min-h-9 sm:justify-start sm:px-3 sm:text-xs sm:tracking-[0.2em] ${
               scrollable ? "shrink-0 justify-start" : "justify-center"
             }`}
             style={{
-              borderColor: selected ? "var(--frank)" : "transparent",
-              color: selected ? "var(--frank)" : "var(--paper-faint)",
+              borderColor: selected
+                ? pigment
+                : `color-mix(in srgb, ${pigment} 32%, var(--ink-line))`,
+              backgroundColor: selected
+                ? pigment
+                : `color-mix(in srgb, ${pigment} 8%, var(--ink-raised))`,
+              color: selected ? "var(--ink-deep)" : pigment,
             }}
           >
             {tab.label}

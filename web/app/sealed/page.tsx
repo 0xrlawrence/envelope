@@ -202,10 +202,25 @@ export default function SealedPage() {
               setActionTab(id as "out" | "return" | "failed" | "finished")
             }
             tabs={[
-              { id: "out", label: "Out there", count: live.length },
-              { id: "return", label: "Yours to take back", count: reclaimable.length },
-              { id: "failed", label: "Not landed (Failed TXNS)", count: unknown.length },
-              { id: "finished", label: "Finished", count: settled.length },
+              { id: "out", label: "Out there", count: live.length, tone: "send" },
+              {
+                id: "return",
+                label: "Yours to take back",
+                count: reclaimable.length,
+                tone: "frank",
+              },
+              {
+                id: "failed",
+                label: "Not landed (Failed TXNS)",
+                count: unknown.length,
+                tone: "seal",
+              },
+              {
+                id: "finished",
+                label: "Finished",
+                count: settled.length,
+                tone: "credit",
+              },
             ]}
           />
 
@@ -605,7 +620,7 @@ function LinkRow({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <span className="font-display text-[0.65rem] font-semibold tracking-[0.2em] text-[var(--paper-faint)] uppercase">
+        <span className="font-display text-[0.65rem] font-semibold tracking-[0.2em] text-[var(--frank)] uppercase">
           {label}
         </span>
         <button
@@ -622,8 +637,22 @@ function LinkRow({
           }}
           /* Handing the link over is what this page is for, and on a phone the
              control for it was a 10px word with no hit area of its own. */
-          className="-mr-2 -my-2 inline-flex min-h-11 items-center px-2 font-display text-[0.65rem] font-semibold tracking-[0.2em] uppercase transition-[color,transform] duration-150 ease-out active:scale-95 sm:m-0 sm:min-h-0 sm:px-0"
-          style={{ color: copyState === "idle" ? "var(--paper-dim)" : "var(--frank)" }}
+          className="inline-flex min-h-11 items-center border px-2.5 font-display text-[0.65rem] font-semibold tracking-[0.18em] uppercase transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-95 sm:min-h-9 sm:px-3"
+          style={{
+            backgroundColor:
+              copyState === "copied"
+                ? "var(--credit)"
+                : copyState === "failed"
+                  ? "var(--seal)"
+                  : "var(--frank)",
+            borderColor:
+              copyState === "copied"
+                ? "var(--credit)"
+                : copyState === "failed"
+                  ? "var(--seal)"
+                  : "var(--frank)",
+            color: "var(--ink-deep)",
+          }}
           aria-live="polite"
         >
           {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : action}

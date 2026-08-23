@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CopyAgentPrompt } from "@/components/CopyAgentPrompt";
 import { Snippet } from "@/components/Snippet";
 import { Eyebrow } from "@/components/ui";
 
@@ -71,6 +72,10 @@ const link = encodeClaimLink(origin, claim.privateKey);`;
 export default function AgentPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-6 sm:py-10">
+      <div className="mb-4 flex justify-center sm:mb-6">
+        <CopyAgentPrompt />
+      </div>
+
       <h1 className="headline">
         Pay an agent <em>that has no account.</em>
       </h1>
