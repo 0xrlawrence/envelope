@@ -214,6 +214,12 @@ export default function CreatePage() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState<"" | "shielding" | "sealing">("");
   /**
+   * React state disables the button on the next render. This ref closes the
+   * smaller gap before that render, so a double click cannot create two key
+   * pairs and send two STRK20 approval requests to the wallet.
+   */
+  const sealInFlightRef = useRef(false);
+  /**
    * Whether the offer to shield has been made yet.
    *
    * "unasked" until the balances have actually been read, so the modal cannot
@@ -496,7 +502,8 @@ export default function CreatePage() {
   }
 
   async function seal() {
-    if (!account) return;
+    if (!account || sealInFlightRef.current) return;
+    sealInFlightRef.current = true;
     setBusy("sealing");
     setError("");
     setErrorDetail("");
@@ -523,6 +530,7 @@ export default function CreatePage() {
         claim = generateEnvelopeKey();
       }
     } catch (cause) {
+      sealInFlightRef.current = false;
       setBusy("");
       setError(cause instanceof Error ? cause.message : "Could not lock the envelope.");
       return;
@@ -591,6 +599,7 @@ export default function CreatePage() {
       setProgress("");
       setPromptClosed(false);
       stopWaitingRef.current = null;
+      sealInFlightRef.current = false;
       // Keep SendOff mounted. Moving the seal to `funded` changes its phase to
       // `sent`; the animation owns the successful exit and calls onDone when
       // the plane has actually left the page. The operation itself is no
@@ -625,6 +634,7 @@ export default function CreatePage() {
      * sealed page with everything needed to claim or reclaim it.
      */
     stopWaitingRef.current = () => {
+      sealInFlightRef.current = false;
       setGaveUp(true);
       setBusy("");
       setProgress("");
@@ -856,6 +866,7 @@ export default function CreatePage() {
         }),
       });
     } finally {
+      sealInFlightRef.current = false;
       stopWaitingRef.current = null;
       setBusy("");
       setProgress("");
@@ -877,6 +888,7 @@ export default function CreatePage() {
           setProgress("");
           setPromptClosed(false);
           setSealStep(0);
+          sealInFlightRef.current = false;
           stopWaitingRef.current = null;
         }}
       />
@@ -997,7 +1009,7 @@ export default function CreatePage() {
                  */
                 stopWaitingAfterMs: promptClosed ? 0 : 2_500,
                 stopWaitingHint: promptClosed
-                  ? "Your wallet window closed without answering. Watching the chain for it: if nothing lands in a minute the envelope comes back on its own. If you know you declined, no need to wait."
+                  ? "Your wallet window closed without answering. This page is still watching the chain. If you know you declined, choose Stop waiting."
                   : "Declined it? A shielded send does not report that back to this page, so it will keep waiting until you say so.",
               }
             : {})}
