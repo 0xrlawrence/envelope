@@ -587,9 +587,15 @@ export default function CreatePage() {
       setGaveUp(false);
       setDeclined(false);
       setError("");
+      setBusy("");
+      setProgress("");
+      setPromptClosed(false);
+      stopWaitingRef.current = null;
       // Keep SendOff mounted. Moving the seal to `funded` changes its phase to
       // `sent`; the animation owns the successful exit and calls onDone when
-      // the plane has actually left the page.
+      // the plane has actually left the page. The operation itself is no
+      // longer busy either: on-chain confirmation is the completion boundary,
+      // even when the wallet keeps its own request promise open.
       setSealed(
         (previous) =>
           previous ?? {
@@ -673,7 +679,36 @@ export default function CreatePage() {
         setPromptClosed(true);
       });
       try {
-        return await account.strk20InvokeTransaction(actions);
+        // Ready can relay a successful proof and then leave this Wallet API
+        // promise pending. Race it against the chain watcher so the completed
+        // seal releases the form locally instead of carrying a stale
+        // "Sealing…" operation into the next envelope. Converting rejection
+        // to a value also prevents a late wallet error from becoming an
+        // unhandled rejection after the chain wins.
+        const outcome = await Promise.race([
+          account.strk20InvokeTransaction(actions).then(
+            (result) => ({ kind: "wallet" as const, result }),
+            (cause: unknown) => ({ kind: "error" as const, cause }),
+          ),
+          watching.then((found) =>
+            found
+              ? ({ kind: "chain" } as const)
+              : ({ kind: "timeout" } as const),
+          ),
+        ]);
+
+        if (outcome.kind === "wallet") return outcome.result;
+        if (outcome.kind === "error") throw outcome.cause;
+        if (outcome.kind === "timeout") {
+          throw new Error(
+            "The wallet stopped answering and the envelope was not confirmed on-chain.",
+          );
+        }
+
+        // The event-history lookup started by watchForEnvelope will fill the
+        // transaction hash independently. An empty hash here means only that
+        // the chain answered before the wallet did.
+        return { transaction_hash: "" };
       } finally {
         // An answered request drives the ordinary success or rejection path,
         // so the focus watcher has no more work to do.
@@ -722,9 +757,15 @@ export default function CreatePage() {
       // Past the last prompt on either route, so the panel stops naming a
       // signature and says what it is actually waiting on.
       setSealStep(2);
-      markSubmitted(claim.publicKey, transactionHash);
+      if (transactionHash) markSubmitted(claim.publicKey, transactionHash);
       setSealed((previous) =>
-        previous ? { ...previous, transactionHash, private: viaPool } : previous,
+        previous
+          ? {
+              ...previous,
+              transactionHash: transactionHash || previous.transactionHash,
+              private: viaPool,
+            }
+          : previous,
       );
 
       // The watcher has been running since before the signature, so by the time
@@ -824,7 +865,22 @@ export default function CreatePage() {
   // A declined seal never becomes an envelope, so it never gets the sealed
   // view. It is cleared once the return flight lands.
   if (sealed && sealed.state !== "declined" && !sending) {
-    return <SealedView sealed={sealed} onReset={() => setSealed(null)} />;
+    return (
+      <SealedView
+        sealed={sealed}
+        onReset={() => {
+          // "Seal another" is a fresh operation, even if a wallet retained an
+          // already-confirmed request internally. Never carry operational UI
+          // state from the finished envelope back onto the form.
+          setSealed(null);
+          setBusy("");
+          setProgress("");
+          setPromptClosed(false);
+          setSealStep(0);
+          stopWaitingRef.current = null;
+        }}
+      />
+    );
   }
 
   const notDeployed = network.anonymizer === "";
