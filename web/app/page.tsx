@@ -49,6 +49,7 @@ import {
 import { explainWalletError, looksRejected } from "@/lib/errors";
 import { appOrigin } from "@/lib/origin";
 import { useSound } from "@/lib/sound";
+import { submitStrk20Once } from "@/lib/strk20-request";
 import { forget, markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 import { readTokenBalance, watchTokenDeposit } from "@/lib/watch";
@@ -706,11 +707,15 @@ export default function CreatePage() {
         // "Sealing…" operation into the next envelope. Converting rejection
         // to a value also prevents a late wallet error from becoming an
         // unhandled rejection after the chain wins.
+        const walletRequest = submitStrk20Once(
+          `seal:${network.id}:${address}:${claim.publicKey}`,
+          () => account.strk20InvokeTransaction(actions),
+        ).then(
+          (result) => ({ kind: "wallet" as const, result }),
+          (cause: unknown) => ({ kind: "error" as const, cause }),
+        );
         const outcome = await Promise.race([
-          account.strk20InvokeTransaction(actions).then(
-            (result) => ({ kind: "wallet" as const, result }),
-            (cause: unknown) => ({ kind: "error" as const, cause }),
-          ),
+          walletRequest,
           watching.then((found) =>
             found
               ? ({ kind: "chain" } as const)
@@ -729,6 +734,17 @@ export default function CreatePage() {
         // The event-history lookup started by watchForEnvelope will fill the
         // transaction hash independently. An empty hash here means only that
         // the chain answered before the wallet did.
+        //
+        // Crucially, do not query the private balance while this wallet request
+        // is still pending. Ready can leave a successful STRK20 request open
+        // after its relayer has funded the envelope. Starting
+        // `wallet_strk20Balances` in that interval makes the extension surface
+        // the still-open transaction approval again over the success screen.
+        // Do not auto-refresh it after the request answers either: the success
+        // screen does not display a balance, and asking the extension another
+        // private question here has no user-facing benefit. The next page load
+        // reads the authoritative balance; until then the wallet remains the
+        // authority if the person chooses to seal another envelope.
         return { transaction_hash: "" };
       } finally {
         // An answered request drives the ordinary success or rejection path,
@@ -803,14 +819,19 @@ export default function CreatePage() {
             : previous,
         );
       }
-      void refreshBalance();
+      // Never open a second Wallet API request after a private seal. Ready can
+      // still be completing the first request after the chain has accepted its
+      // relayed transaction, and an immediate balance query can surface the
+      // completed approval a second time. Public funding has no private wallet
+      // request to collide with, so its balances can refresh normally.
+      if (!viaPool) void refreshBalance();
     } catch (cause) {
       // The wallet can fail on a transaction it has already landed: a proving
       // service that stops waiting, a relayer that answers late. The chain is
       // the authority, so if the watcher has already found the envelope this is
       // not a failure at all and must not be reported as one.
       if (watch.found) {
-        void refreshBalance();
+        if (source !== "shielded") void refreshBalance();
         return;
       }
 
@@ -844,7 +865,7 @@ export default function CreatePage() {
         new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 12_000)),
       ]);
       if (landedLate || watch.found) {
-        void refreshBalance();
+        if (source !== "shielded") void refreshBalance();
         return;
       }
 
