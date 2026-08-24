@@ -132,6 +132,22 @@ function rememberedNetwork(): Network {
   }
 }
 
+/** Stable identity for the account data carried by wallet-standard events. */
+function walletAccountSignature(
+  accounts: readonly {
+    readonly address: string;
+    readonly chains: readonly string[];
+  }[],
+): string {
+  return accounts
+    .map(
+      (account) =>
+        `${account.address.toLowerCase()}@${[...account.chains].sort().join(",")}`,
+    )
+    .sort()
+    .join("|");
+}
+
 async function connectedAccount(
   wallet: WalletWithStarknetFeatures,
   network: Network,
@@ -141,7 +157,18 @@ async function connectedAccount(
   accountClass: string;
 }> {
   const provider = new RpcProvider({ nodeUrl: network.rpcUrl });
-  const account = await WalletAccountV6.connect(provider, wallet);
+  // The account address has already been authorised and read immediately
+  // before this helper runs. `WalletAccountV6.connect` performs another
+  // standard-connect request, and its default is deliberately non-silent.
+  // Ready emits wallet-standard change events while a STRK20 request is being
+  // confirmed; rebuilding through that method could therefore reopen the
+  // wallet UI over an envelope the chain had already funded. Constructing the
+  // adapter from the known address performs no wallet request at all.
+  const account = new WalletAccountV6({
+    provider,
+    walletProvider: wallet,
+    address,
+  });
   let accountClass = "";
   try {
     accountClass = await provider.getClassHashAt(address);
@@ -170,6 +197,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connectedWallet = useRef<WalletWithStarknetFeatures | null>(null);
   const walletEventCleanup = useRef<(() => void) | null>(null);
   const networkSwitchInFlight = useRef(false);
+  const walletSyncInFlight = useRef(false);
+  const walletAccountsSignature = useRef("");
   // One attempt per load. Discovery fills in over several ticks, so without
   // this the effect below would fire again for every wallet that registers.
   const tried = useRef(false);
@@ -264,7 +293,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const synchronizeConnectedWallet = useCallback(
     async (wallet: WalletWithStarknetFeatures) => {
-      if (networkSwitchInFlight.current) return;
+      if (networkSwitchInFlight.current || walletSyncInFlight.current) return;
+      walletSyncInFlight.current = true;
       try {
         const chainId = (await walletV6.requestChainId(wallet)) as string;
         const network = requireKnownNetwork(chainId);
@@ -272,6 +302,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!Array.isArray(accounts) || accounts.length === 0) {
           forgetWallet();
           connectedWallet.current = null;
+          walletAccountsSignature.current = "";
           walletEventCleanup.current?.();
           walletEventCleanup.current = null;
           setState((previous) => ({
@@ -285,6 +316,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const address = validateAndParseAddress(accounts[0]);
         const details = await connectedAccount(wallet, network, address);
         selectedNetwork.current = network;
+        walletAccountsSignature.current = walletAccountSignature(wallet.accounts);
         rememberNetwork(network.id);
         setState((previous) => ({
           ...previous,
@@ -302,6 +334,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           ...previous,
           networkError: describeNetworkFailure(error),
         }));
+      } finally {
+        walletSyncInFlight.current = false;
       }
     },
     [],
@@ -378,9 +412,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       walletEventCleanup.current?.();
-      walletEventCleanup.current = walletV6.subscribeWalletEvent(wallet, () => {
-        void synchronizeConnectedWallet(wallet);
-      });
+      walletAccountsSignature.current = walletAccountSignature(wallet.accounts);
+      walletEventCleanup.current = walletV6.subscribeWalletEvent(
+        wallet,
+        (properties) => {
+          // `change` also reports feature and supported-chain metadata. Those
+          // events do not mean the authorised account changed, and querying
+          // the wallet again while it is presenting a transaction can reopen
+          // or duplicate that approval surface. Only an accounts payload can
+          // require rebuilding the connected adapter, and an identical payload
+          // is a no-op.
+          if (!properties.accounts) return;
+          const signature = walletAccountSignature(properties.accounts);
+          if (signature === walletAccountsSignature.current) return;
+          walletAccountsSignature.current = signature;
+          void synchronizeConnectedWallet(wallet);
+        },
+      );
       connectedWallet.current = wallet;
 
       // No probe here any more. Asking `strk20Balances` whether the method
@@ -472,6 +520,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const details = await connectedAccount(wallet, wanted, address);
 
       selectedNetwork.current = wanted;
+      walletAccountsSignature.current = walletAccountSignature(wallet.accounts);
       rememberNetwork(wanted.id);
       setState((previous) => ({
         ...previous,
@@ -500,6 +549,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletEventCleanup.current?.();
     walletEventCleanup.current = null;
     connectedWallet.current = null;
+    walletAccountsSignature.current = "";
     setState((previous) => ({
       ...INITIAL,
       wallets: previous.wallets,
