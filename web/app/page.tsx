@@ -186,6 +186,7 @@ export default function CreatePage() {
     walletName,
     accountClass,
     accountDeployed,
+    disconnect,
     reportStrk20Unsupported,
   } = useWallet();
   const { play } = useSound();
@@ -261,6 +262,25 @@ export default function CreatePage() {
    */
   const [promptClosed, setPromptClosed] = useState(false);
   const [sealed, setSealed] = useState<SealedEnvelope | null>(null);
+
+  // A genuine Ready rejection tears down the wallet-standard session after the
+  // return animation because some extension builds reject the API promise but
+  // leave their transaction review mounted. Preserve the useful explanation
+  // across that one reload even though the form's React state is necessarily
+  // recreated.
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem("envelope.rejected-wallet-reset") !== "1") {
+        return;
+      }
+      window.sessionStorage.removeItem("envelope.rejected-wallet-reset");
+      setDeclined(true);
+      setError("You declined this in your wallet. Nothing was sent and nothing moved.");
+    } catch {
+      // The reset still closes the stale wallet channel when storage is blocked;
+      // only the explanatory callout is lost.
+    }
+  }, []);
 
   useEffect(() => {
     if (error && !sending) play("error");
@@ -1049,6 +1069,24 @@ export default function CreatePage() {
                   ? "Your wallet closed without answering, so the envelope came back. If you declined, nothing was sent and nothing moved. If you approved it, it is still being proved: this page is still watching the chain and will show the link here the moment it lands."
                   : "You declined this in your wallet. Nothing was sent and nothing moved.",
               );
+
+              if (!gaveUp) {
+                // Ready can reject `wallet_strk20InvokeTransaction` correctly
+                // while leaving the rejected transaction review in its side
+                // panel. A dapp cannot reach into extension UI to close it.
+                // Ending this wallet-standard session and reloading destroys
+                // the request channel, so the stale review cannot follow the
+                // returned plane back onto a live form. The wallet permission
+                // itself is not revoked; the next Connect is an ordinary
+                // reconnect initiated by the user.
+                try {
+                  window.sessionStorage.setItem("envelope.rejected-wallet-reset", "1");
+                } catch {
+                  // Reloading is the functional fix; storage only keeps copy.
+                }
+                disconnect();
+                window.setTimeout(() => window.location.reload(), 0);
+              }
             }
           }}
         />

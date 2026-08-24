@@ -545,6 +545,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(() => {
+    const wallet = connectedWallet.current;
+    // Wallet Standard defines disconnect as cleanup without revoking account
+    // permission. Tell the adapter before dropping our references so any
+    // outstanding request UI is detached from this page as well.
+    void wallet?.features["standard:disconnect"].disconnect().catch(() => undefined);
     forgetWallet();
     walletEventCleanup.current?.();
     walletEventCleanup.current = null;
