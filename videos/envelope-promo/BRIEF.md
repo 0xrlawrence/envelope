@@ -39,6 +39,7 @@ compact rather than playful or hype-heavy.
 - Landscape 16:9 at 1920x1080, targeted at 45 seconds.
 - Storyboard review is required before final production.
 - Automatic production means the agent makes creative and technical choices after each required approval gate.
-- Preserve the app's dark postal-security visual language: cream paper, navy security lines, Starknet blue, and orange accents.
+- Use the app's current light postal-security language throughout: warm cream paper, navy ink, postal red, muted blue security lines, and sharp square geometry.
+- The homepage UI shown in the video must come from current live light-mode captures on Mainnet.
 - Do not imply that public STRK becomes a different wrapped token. The same ERC-20 STRK moves one-to-one into the privacy pool when claimed privately; no minting or value creation occurs.
 - End card should include the Envelope name, product URL, and @0xrlawrence.

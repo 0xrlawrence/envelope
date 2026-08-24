@@ -1,27 +1,27 @@
 ---
 version: alpha
-name: Broadside — Frame (video / frame layer)
+name: Envelope Light Paper — Frame
 description: >
-  Video-first companion to Broadside's design.md. The unit is the frame (1920×1080). Atoms are
-  identical and sacred — the two-register surface system (dark ink-black / fire-orange), massive
-  IBM Plex Sans Condensed in lowercase weight 900 treated as graphic primitive, IBM Plex Mono chrome (uppercase,
-  0.14em), the single fire-orange accent, the flat plane, and 1px hairline dividers. Composition +
-  frame scale rewritten for the frame. Motion out of scope.
+  Current Envelope light-mode identity at video scale: warm paper, navy ink, postal red,
+  muted security blue, airmail edging, diamond security patterns, square geometry, and
+  restrained hairline rules.
 unit: the frame — 1920×1080 primary; 9:16 and 1:1 documented
-principle: atoms are sacred · composition is free · numbers come from the script
+principle: current light UI is the source of truth · postal paper stays light · composition is free
 
 colors:
-  ink-black: "#E9E4D7"
-  ink-black-alt: "#E7E6E5"
-  fire-orange: "#D9873F"
-  cream: "#080C11"
-  cream-muted: "#E2711D"
-  cream-hint: "#B7B3AF"
-  border-dark: "#D9D8D7"
-  ink-on-orange-muted: "rgba(17,17,17,0.75)"
-  ink-on-orange-hint: "rgba(17,17,17,0.55)"
-  ink-on-orange-faint: "rgba(17,17,17,0.40)"
-  ink-on-orange-border: "rgba(17,17,17,0.20)"
+  ink-black: "#F4EFE5"
+  ink-black-alt: "#ECE6DA"
+  fire-orange: "#B43B32"
+  cream: "#10203C"
+  cream-muted: "#516079"
+  cream-hint: "#7A8495"
+  border-dark: "#D0C6B7"
+  security-blue: "#285685"
+  paper-highlight: "#FBF8F0"
+  ink-on-orange-muted: "rgba(16,32,60,0.78)"
+  ink-on-orange-hint: "rgba(16,32,60,0.58)"
+  ink-on-orange-faint: "rgba(16,32,60,0.40)"
+  ink-on-orange-border: "rgba(16,32,60,0.22)"
 
 typography:
   # — reading ramp —
@@ -50,8 +50,8 @@ spacing:
 components:
   registers:
     dark: "ground {colors.ink-black}, text {colors.cream}, accent {colors.fire-orange}"
-    orange: "ground {colors.fire-orange}, text {colors.ink-black}"
-    description: "Two surfaces only — no cream/paper register. One register per frame."
+    orange: "ground {colors.fire-orange}, text {colors.paper-highlight}"
+    description: "Primary register is light paper with navy ink; postal red is reserved for focus and stamps."
   slide-chrome:
     rule: "1px solid {colors.border-dark} (dark) / 20% ink (orange)"
     placement: "top + bottom bars (label left, number right)"

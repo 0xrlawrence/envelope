@@ -21,7 +21,7 @@ captions: true
 - type: hook
 - persuasion: Future pacing through negative contrast
 - beat: tension → curiosity
-- blueprint: ticker-takeover — the old public-trail phrase is physically replaced by the private-link promise
+- blueprint: ticker-takeover
 - asset_candidates:
 - sfx: impact-bass-1, pop
 
@@ -40,8 +40,8 @@ keyMessage: Private value can feel as direct as sending a message.
 - type: product_intro
 - persuasion: Friction reduction through a complete core-loop demo
 - beat: clarity + control
-- blueprint: device-surface-showcase — introduce the product by completing its sealing loop on the real surface
-- asset_candidates: assets/scroll-public.png — measured 1920×1080 public state; assets/scroll-private.png — measured 1920×1080 private state with password field
+- blueprint: device-surface-showcase
+- asset_candidates: assets/scroll-public-light.png — current live 1920×1080 light-mode public state; assets/scroll-private-light.png — current live 1920×1080 light-mode private state with password field
 - sfx: click-soft, click, impact-bass-1
 
 narrativeRole: Prove that the sophisticated privacy system starts with a familiar, compact product action.
@@ -59,7 +59,7 @@ keyMessage: Pick a funding mode, set the envelope, and use Private visibility wh
 - type: feature_showcase
 - persuasion: Show-don't-tell proof of bearer-link custody
 - beat: intrigue + momentum
-- blueprint: camera-journey — a cursorless flight follows the plane from sealed object into claim-link transport
+- blueprint: camera-journey
 - asset_candidates: assets/svg-00db1153.svg — the captured envelope flap geometry; assets/scroll-000.png — live interface texture behind the transformation
 - sfx: whoosh-short, whoosh-cinematic, ping
 
@@ -78,7 +78,7 @@ keyMessage: The ordinary link carries the private claim key in its browser-only 
 - type: feature_showcase
 - persuasion: Mechanism proof with privacy-boundary clarity
 - beat: trust + understanding
-- blueprint: spatial-pan-stations — traverse note, pool proof, relayer, contract parking, and private claim as connected stations
+- blueprint: spatial-pan-stations
 - asset_candidates: assets/favicon.png — captured Envelope favicon for the contract station; assets/svg-00db1153.svg — envelope geometry for the parking station
 - sfx: click-soft, glitch-1, whoosh, impact-bass-2
 
@@ -97,7 +97,7 @@ keyMessage: Shielded funding hides the sender and enforces a shielded claim.
 - type: benefit_highlight
 - persuasion: Risk reversal through accounting invariants
 - beat: confidence + control
-- blueprint: comparison-split — public and shielded claim outcomes stay visible together while the one-to-one invariant bridges them
+- blueprint: comparison-split
 - asset_candidates: assets/favicon.png — captured Envelope favicon for the parking contract; assets/svg-00db1153.svg — envelope geometry for the claim junction
 - sfx: whoosh-short, click, impact-bass-1, chime
 
@@ -116,7 +116,7 @@ keyMessage: Claim privacy changes where the same STRK is held, not what token it
 - type: cta
 - persuasion: Rule of three plus accounting reassurance
 - beat: triumph + motivation
-- blueprint: logo-assemble-lockup — the plane resolves into the brand and pushes through to the product URL
+- blueprint: logo-assemble-lockup
 - asset_candidates: assets/favicon.png — captured Envelope favicon for the final lockup; assets/svg-00db1153.svg — envelope flap geometry for the landing transformation
 - sfx: whoosh-cinematic, chime, impact-bass-2
 
