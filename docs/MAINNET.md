@@ -17,12 +17,12 @@ memory.
 | Network | | |
 |---|---|---|
 | Sepolia | Class hash | `0x3e66d5a37c26b61535da41b6a5878f327ce0a2f148570e2b263095e6ee9f4d5` |
-| Sepolia | Contract | [`0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211`](https://sepolia.voyager.online/contract/0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211) |
+| Sepolia | Contract | [`0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211`](https://sepolia.starkscan.co/contract/0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211) |
 | Sepolia | Previous, pool route only | `0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604` |
 | Mainnet | Class hash | `0x01afb391c035b53ccd60df3aa3fa705a89900cf7950a19f5bb0dbd8815eb6ddf` |
-| Mainnet | Contract | [`0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e`](https://voyager.online/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e) |
-| Mainnet | Declaration | [`0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc`](https://voyager.online/tx/0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc), block `13771963` |
-| Mainnet | Deployment | [`0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e`](https://voyager.online/tx/0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e), block `13772008` |
+| Mainnet | Contract | [`0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e`](https://starkscan.co/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e) |
+| Mainnet | Declaration | [`0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc`](https://starkscan.co/tx/0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc), block `13771963` |
+| Mainnet | Deployment | [`0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e`](https://starkscan.co/tx/0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e), block `13772008` |
 
 Verified after deployment:
 

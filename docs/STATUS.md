@@ -7,11 +7,11 @@ the honest version with the caveats attached.
 |---|---|
 | `EnvelopeAnonymizer` contract | Written, 28 tests passing. The private-claim-only release is deployed on Mainnet. |
 | `strk20-envelope` SDK | Written, 39 tests passing, pinned to the contract by a shared vector |
-| Sepolia declare + deploy | **Done**. [`0x05c5cd…`](https://sepolia.voyager.online/contract/0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604) |
+| Sepolia declare + deploy | **Done**. [`0x05c5cd…`](https://sepolia.starkscan.co/contract/0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604) |
 | Signature scheme, on a live chain | **Done**. See below |
 | Web app | **Built**. Seal / claim / return, on the Wallet API route via `WalletAccountV6` |
 | Fund and claim driven by the real pool | **Done on Sepolia**, see below |
-| Mainnet deploy | **Done**. [`0x07d2bc…`](https://voyager.online/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e), block `13772008` |
+| Mainnet deploy | **Done**. [`0x07d2bc…`](https://starkscan.co/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e), block `13772008` |
 | Three mainnet pool transactions | Not yet |
 | Demo video | Not yet |
 
@@ -23,14 +23,14 @@ been exercised end to end on Sepolia rather than only against the test suite.
 A second instance of the same class was deployed with its `pool` constructor
 argument set to an ordinary account, so that `privacy_invoke` could be driven
 directly. That harness is at
-[`0x054ef6…`](https://sepolia.voyager.online/contract/0x054ef67e47cfac54fb0b9fd49e8456ab771eca24479f1532becb3fb04dc6daef).
+[`0x054ef6…`](https://sepolia.starkscan.co/contract/0x054ef67e47cfac54fb0b9fd49e8456ab771eca24479f1532becb3fb04dc6daef).
 It is **not** the real deployment and is not wired to any pool; it exists so the
 cryptography could be tested without a privacy wallet in the loop.
 
 | Step | Result |
 |---|---|
-| `Fund` a 3 STRK envelope | [`0x049add…`](https://sepolia.voyager.online/tx/0x049add08e68c59ab05819b50104f0aae7142ec72961f483a4bfc5f8a414a70a1) |
-| `claim_to_address`, signed by the TypeScript SDK | [`0x000534…`](https://sepolia.voyager.online/tx/0x000534ae3849567500125cddde47925d21c401565480db76344e48bfe6942243) |
+| `Fund` a 3 STRK envelope | [`0x049add…`](https://sepolia.starkscan.co/tx/0x049add08e68c59ab05819b50104f0aae7142ec72961f483a4bfc5f8a414a70a1) |
+| `claim_to_address`, signed by the TypeScript SDK | [`0x000534…`](https://sepolia.starkscan.co/tx/0x000534ae3849567500125cddde47925d21c401565480db76344e48bfe6942243) |
 | Recipient balance | exactly 3 STRK |
 | Envelope status | flipped to `CLAIMED` |
 | Reserved balance | released to 0 |

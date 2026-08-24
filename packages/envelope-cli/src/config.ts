@@ -28,7 +28,7 @@ const NETWORKS: Record<string, Network> = {
     rpcUrl: "https://api.cartridge.gg/x/starknet/sepolia",
     anonymizer: "0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211",
     token: STRK,
-    explorer: "https://sepolia.voyager.online",
+    explorer: "https://sepolia.starkscan.co",
     appOrigin: "https://0xrlawrence.github.io/envelope",
   },
   mainnet: {
@@ -37,7 +37,7 @@ const NETWORKS: Record<string, Network> = {
     rpcUrl: "https://api.cartridge.gg/x/starknet/mainnet",
     anonymizer: "0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e",
     token: STRK,
-    explorer: "https://voyager.online",
+    explorer: "https://starkscan.co",
     appOrigin: "https://0xrlawrence.github.io/envelope",
   },
 };

@@ -93,7 +93,7 @@ Anyone holding the claim link can take the contents, so send it the way you
 would send cash. Keep the return link: after the window shuts it is the only
 way to get the money back, and it needs the web app.
 
-Transaction  https://sepolia.voyager.online/tx/0x5c08f172fa73fc70…
+Transaction  https://sepolia.starkscan.co/tx/0x5c08f172fa73fc70…
 ```
 
 Two links, and they are not interchangeable. The **claim link** is a bearer

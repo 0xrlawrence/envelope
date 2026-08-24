@@ -82,8 +82,8 @@ already has: a webhook, a message, a tool result, a return value. The receiving
 agent needs no relationship with the sender, only the string.
 
 Round trip on Sepolia, end to end:
-[sealed](https://sepolia.voyager.online/tx/0x5c08f172fa73fc704748da2205249b6f564ab7762bad463eaf397bc0fdc2d8f) and
-[claimed](https://sepolia.voyager.online/tx/0x50cee6c397a1742ab37469abdcd9be252c0e0a307a8554bf247cafe31b113d5),
+[sealed](https://sepolia.starkscan.co/tx/0x5c08f172fa73fc704748da2205249b6f564ab7762bad463eaf397bc0fdc2d8f) and
+[claimed](https://sepolia.starkscan.co/tx/0x50cee6c397a1742ab37469abdcd9be252c0e0a307a8554bf247cafe31b113d5),
 after which the contract reports `claimed` and refuses a second claim.
 
 `--dry-run` builds and prints a transaction without signing it, which is the
