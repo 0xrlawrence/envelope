@@ -49,7 +49,12 @@ import {
 import { explainWalletError, looksRejected } from "@/lib/errors";
 import { appOrigin } from "@/lib/origin";
 import { useSound } from "@/lib/sound";
-import { submitStrk20Once } from "@/lib/strk20-request";
+import {
+  invalidateStrk20BalanceRead,
+  readStrk20BalancesOnce,
+  releaseStrk20Request,
+  submitStrk20Once,
+} from "@/lib/strk20-request";
 import { forget, markSubmitted, recall, remember, type SealRecord } from "@/lib/vault";
 import { accountClassName, looksUnimplemented, useWallet } from "@/lib/wallet";
 import { readTokenBalance, watchTokenDeposit } from "@/lib/watch";
@@ -266,7 +271,9 @@ export default function CreatePage() {
   // Both balances, because they answer different questions: the public one is
   // whether there is anything to shield, the shielded one is whether there is
   // anything to seal. Without them on screen a failed seal is unattributable.
-  const refreshBalance = useCallback(async () => {
+  const privateBalanceKey = `${network.id}:${address}:${felt(STRK.address)}`;
+
+  const refreshBalance = useCallback(async (freshPrivate = false) => {
     if (!address) return;
 
     try {
@@ -277,7 +284,10 @@ export default function CreatePage() {
 
     if (!account || !supportsStrk20) return;
     try {
-      const balances = await account.strk20Balances(feltTokens([STRK.address]));
+      if (freshPrivate) invalidateStrk20BalanceRead(privateBalanceKey);
+      const balances = await readStrk20BalancesOnce(privateBalanceKey, () =>
+        account.strk20Balances(feltTokens([STRK.address])),
+      );
       const entry = balances.find(
         (candidate: { token: string }) =>
           BigInt(candidate.token) === BigInt(STRK.address),
@@ -295,7 +305,14 @@ export default function CreatePage() {
       // and spending a second consent prompt on the answer.
       if (looksUnimplemented(cause)) reportStrk20Unsupported(raw);
     }
-  }, [account, address, provider, supportsStrk20, reportStrk20Unsupported]);
+  }, [
+    account,
+    address,
+    privateBalanceKey,
+    provider,
+    supportsStrk20,
+    reportStrk20Unsupported,
+  ]);
 
   useEffect(() => {
     void refreshBalance();
@@ -337,6 +354,8 @@ export default function CreatePage() {
     setBusy("shielding");
     setShieldError("");
     const watch = { cancelled: false, found: false };
+    const privateAccountKey = `${network.id}:${address}`;
+    const shieldOperationKey = `shield:${privateAccountKey}:${Date.now()}:${shielding}`;
     try {
       // Take the chain baseline before opening the wallet. The wallet can
       // successfully relay a shield transaction and then leave its Wallet API
@@ -347,8 +366,12 @@ export default function CreatePage() {
         readTokenBalance(provider, STRK.address, address).catch(() => publicBalance),
       ]);
       const publicBefore = freshPublicBalance ?? publicBalance;
-      const acceptDeposit = (deposit: { publicBalance: bigint | null }) => {
+      const acceptDeposit = (
+        deposit: { publicBalance: bigint | null },
+        walletRequestAnswered: boolean,
+      ) => {
         watch.cancelled = true;
+        releaseStrk20Request(privateAccountKey, shieldOperationKey);
         setPublicBalance(
           deposit.publicBalance ??
             (publicBefore === null ? null : publicBefore - shielding),
@@ -362,7 +385,11 @@ export default function CreatePage() {
         setShieldedBalance(null);
         setRegistered(true);
         setShieldOffer("dismissed");
-        void refreshBalance();
+        // A fresh private read is safe only after the wallet request itself has
+        // answered. If the chain wins the race, Ready may still have the
+        // original approval open internally; another Wallet API call can
+        // surface that completed transaction a second time.
+        if (walletRequestAnswered) void refreshBalance(true);
       };
       const watching = watchTokenDeposit(
         provider,
@@ -377,10 +404,13 @@ export default function CreatePage() {
 
       // Convert rejection into a value so a chain-first result cannot leave an
       // ignored wallet promise producing an unhandled rejection later.
-      const wallet = account
-        .strk20InvokeTransaction(
+      const wallet = submitStrk20Once(
+        shieldOperationKey,
+        () => account.strk20InvokeTransaction(
           buildShieldActions({ token: STRK.address, amount: shielding }),
-        )
+        ),
+        privateAccountKey,
+      )
         .then(
           () => ({ kind: "wallet" as const }),
           (cause: unknown) => ({ kind: "error" as const, cause }),
@@ -395,7 +425,12 @@ export default function CreatePage() {
       ]);
 
       if (outcome.kind === "chain") {
-        acceptDeposit(outcome.deposit);
+        acceptDeposit(outcome.deposit, false);
+        // Some Ready versions answer shortly after the chain. Refresh then,
+        // never merely because React received a wallet/account event.
+        void wallet.then((late) => {
+          if (late.kind === "wallet") void refreshBalance(true);
+        });
         return;
       }
 
@@ -404,7 +439,7 @@ export default function CreatePage() {
         // the modal honest until the public chain shows the pool deposit.
         const landed = await watching;
         if (landed) {
-          acceptDeposit(landed);
+          acceptDeposit(landed, true);
           return;
         }
         watch.cancelled = true;
@@ -422,7 +457,7 @@ export default function CreatePage() {
           new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12_000)),
         ]);
         if (landed || watch.found) {
-          acceptDeposit(landed ?? { publicBalance: null });
+          acceptDeposit(landed ?? { publicBalance: null }, false);
           return;
         }
         watch.cancelled = true;
@@ -587,6 +622,9 @@ export default function CreatePage() {
       state: "funding",
     });
 
+    const privateAccountKey = `${network.id}:${address}`;
+    const sealOperationKey = `seal:${privateAccountKey}:${claim.publicKey}`;
+
     // Started here, before a signature is even asked for, so the app learns the
     // envelope exists from the chain rather than from the wallet finishing.
     const watch = { cancelled: false, found: false };
@@ -604,6 +642,7 @@ export default function CreatePage() {
      */
     void watching.then((found) => {
       if (!found) return;
+      releaseStrk20Request(privateAccountKey, sealOperationKey);
       setGaveUp(false);
       setDeclined(false);
       setError("");
@@ -708,8 +747,9 @@ export default function CreatePage() {
         // to a value also prevents a late wallet error from becoming an
         // unhandled rejection after the chain wins.
         const walletRequest = submitStrk20Once(
-          `seal:${network.id}:${address}:${claim.publicKey}`,
+          sealOperationKey,
           () => account.strk20InvokeTransaction(actions),
+          privateAccountKey,
         ).then(
           (result) => ({ kind: "wallet" as const, result }),
           (cause: unknown) => ({ kind: "error" as const, cause }),

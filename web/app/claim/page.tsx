@@ -27,6 +27,11 @@ import {
 } from "@/lib/config";
 import { explainWalletError } from "@/lib/errors";
 import { useSound } from "@/lib/sound";
+import {
+  readStrk20BalancesOnce,
+  releaseStrk20Request,
+  submitStrk20Once,
+} from "@/lib/strk20-request";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
 
@@ -76,8 +81,9 @@ export default function ClaimPage() {
       return;
     }
     let cancelled = false;
-    account
-      .strk20Balances([])
+    readStrk20BalancesOnce(`${network.id}:${address}:registration`, () =>
+      account.strk20Balances([]),
+    )
       .then(() => !cancelled && setClaimantRegistered(true))
       .catch((cause: unknown) => {
         const raw = cause instanceof Error ? cause.message : String(cause ?? "");
@@ -86,7 +92,7 @@ export default function ClaimPage() {
     return () => {
       cancelled = true;
     };
-  }, [account, supportsStrk20]);
+  }, [account, address, network.id, supportsStrk20]);
 
   // The key never leaves this tab: it arrives in the fragment, which the browser
   // strips before the request, and it is read here in the client only.
@@ -192,6 +198,12 @@ export default function ClaimPage() {
     );
     void watching.then(async (state) => {
       if (!state) return;
+      if (kind === "private") {
+        releaseStrk20Request(
+          `${network.id}:${address}`,
+          `claim:${network.id}:${address}:${claimPublicKey}`,
+        );
+      }
       const events = await readEnvelopeHistory(
         provider,
         network.anonymizer,
@@ -268,7 +280,13 @@ export default function ClaimPage() {
         noteId,
       });
 
-      const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+      const privateAccountKey = `${network.id}:${address}`;
+      const claimOperationKey = `claim:${privateAccountKey}:${claimPublicKey}`;
+      const { transaction_hash } = await submitStrk20Once(
+        claimOperationKey,
+        () => account.strk20InvokeTransaction(actions),
+        privateAccountKey,
+      );
       setOutcome({ kind: "private", transactionHash: transaction_hash });
       void watching.then(() => load());
     } catch (cause) {

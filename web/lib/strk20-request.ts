@@ -10,16 +10,99 @@
  */
 const strk20Requests = new Map<string, Promise<unknown>>();
 
+interface ActiveStrk20Request {
+  operationKey: string;
+  request: Promise<unknown>;
+}
+
+/** One transaction prompt at a time for each connected account. */
+const activeStrk20Requests = new Map<string, ActiveStrk20Request>();
+
+/**
+ * Private balance reads already opened for an account in this tab.
+ *
+ * Ready can emit an account-change event while a relayed STRK20 transaction is
+ * finishing. React then re-runs the page's balance effect. Sending a second
+ * `wallet_strk20Balances` request at that point can make Ready surface the
+ * completed transaction review again, even though the app did not submit a
+ * second transaction. Reusing the first read makes those lifecycle re-runs
+ * side-effect free.
+ */
+const strk20BalanceReads = new Map<string, Promise<unknown>>();
+
 export function submitStrk20Once<T>(
   operationKey: string,
   submit: () => Promise<T>,
+  accountKey?: string,
 ): Promise<T> {
   const existing = strk20Requests.get(operationKey);
   if (existing) return existing as Promise<T>;
+
+  if (accountKey) {
+    const active = activeStrk20Requests.get(accountKey);
+    if (active) {
+      if (active.operationKey === operationKey) return active.request as Promise<T>;
+      return Promise.reject(
+        new Error(
+          "A private wallet transaction is already open for this account. Close or finish it before starting another.",
+        ),
+      );
+    }
+  }
 
   // Put the promise in the map before calling the wallet on the next microtask.
   // That closes even a same-tick re-entry gap without invoking `submit` twice.
   const request = Promise.resolve().then(submit);
   strk20Requests.set(operationKey, request);
+  if (accountKey) {
+    activeStrk20Requests.set(accountKey, { operationKey, request });
+    // Wallets normally settle the API promise on approval or rejection. Clear
+    // the account lock then, but only if it still belongs to this operation: a
+    // late answer from an old Ready request must not unlock a newer one.
+    void request.then(
+      () => releaseStrk20Request(accountKey, operationKey),
+      () => releaseStrk20Request(accountKey, operationKey),
+    );
+  }
   return request;
+}
+
+/**
+ * Release an account lock when the chain proves the operation finished.
+ *
+ * Ready sometimes leaves its Wallet API promise pending after its relayer has
+ * landed the transaction. The chain watcher is authoritative in that case and
+ * must release the lock so "Seal another" remains usable.
+ */
+export function releaseStrk20Request(
+  accountKey: string,
+  operationKey: string,
+): void {
+  const active = activeStrk20Requests.get(accountKey);
+  if (active?.operationKey === operationKey) activeStrk20Requests.delete(accountKey);
+}
+
+/** Read a private balance at most once for a particular account and token set. */
+export function readStrk20BalancesOnce<T>(
+  balanceKey: string,
+  read: () => Promise<T>,
+): Promise<T> {
+  const existing = strk20BalanceReads.get(balanceKey);
+  if (existing) return existing as Promise<T>;
+
+  // Cache before the wallet is called, closing the same-tick effect/remount
+  // gap as the transaction guard above. Rejections are deliberately retained:
+  // an automatic React retry must not spend a second wallet prompt either.
+  const request = Promise.resolve().then(read);
+  strk20BalanceReads.set(balanceKey, request);
+  return request;
+}
+
+/**
+ * Allow the next balance read to reach the wallet after an explicit balance-
+ * changing action. Callers must only use this once the transaction request has
+ * answered; invalidating while it is still pending recreates the approval bug.
+ */
+export function invalidateStrk20BalanceRead(balanceKey: string): void {
+  strk20BalanceReads.delete(balanceKey);
 }

@@ -17,6 +17,10 @@ import { Button, Callout, ExplorerLink, LinkButton } from "@/components/ui";
 import { STRK, formatAmount } from "@/lib/config";
 import { looksRejected } from "@/lib/errors";
 import { useSound } from "@/lib/sound";
+import {
+  releaseStrk20Request,
+  submitStrk20Once,
+} from "@/lib/strk20-request";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
 
@@ -143,6 +147,8 @@ export default function RefundPage() {
       (state) => state.status === "refunded",
       watch,
     );
+    const privateAccountKey = `${network.id}:${address}`;
+    const refundOperationKey = `refund:${privateAccountKey}:${claimPublicKey}`;
 
     /**
      * The way out of a wallet that never answers.
@@ -167,6 +173,7 @@ export default function RefundPage() {
 
     void watching.then(async (state) => {
       if (!state) return;
+      releaseStrk20Request(privateAccountKey, refundOperationKey);
       setPhase("sent");
       void load();
       const events = await readEnvelopeHistory(
@@ -198,15 +205,19 @@ export default function RefundPage() {
       }
 
       setStep(2);
-      const { transaction_hash } = await account.strk20InvokeTransaction(
-        buildRefundActions({
-          anonymizer: network.anonymizer,
-          refundPrivateKey: refundKey,
-          claimPublicKey,
-          token: envelope.token,
-          recipient: address,
-          noteId,
-        }),
+      const { transaction_hash } = await submitStrk20Once(
+        refundOperationKey,
+        () => account.strk20InvokeTransaction(
+          buildRefundActions({
+            anonymizer: network.anonymizer,
+            refundPrivateKey: refundKey,
+            claimPublicKey,
+            token: envelope.token,
+            recipient: address,
+            noteId,
+          }),
+        ),
+        privateAccountKey,
       );
       setTransactionHash(transaction_hash);
       setStep(3);
