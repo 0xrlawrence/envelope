@@ -903,6 +903,18 @@ export default function CreatePage() {
         // The keys were written down before signing, in case the tab died
         // holding the only copy. Nothing was signed, so they are now litter.
         forget(claim.publicKey);
+        // Ready has already answered this request, but some extension builds
+        // leave the rejected transaction review mounted in their side panel.
+        // Detach the Wallet Standard session now, while the return flight is
+        // running, instead of letting that stale review sit over the restored
+        // form until the animation finishes. The permission is not revoked;
+        // Connect remains an ordinary user-initiated reconnect.
+        try {
+          window.sessionStorage.setItem("envelope.rejected-wallet-reset", "1");
+        } catch {
+          // Storage only preserves the explanation across the reload below.
+        }
+        disconnect();
         setSealed((previous) =>
           previous ? { ...previous, state: "declined" } : previous,
         );
@@ -1071,20 +1083,9 @@ export default function CreatePage() {
               );
 
               if (!gaveUp) {
-                // Ready can reject `wallet_strk20InvokeTransaction` correctly
-                // while leaving the rejected transaction review in its side
-                // panel. A dapp cannot reach into extension UI to close it.
-                // Ending this wallet-standard session and reloading destroys
-                // the request channel, so the stale review cannot follow the
-                // returned plane back onto a live form. The wallet permission
-                // itself is not revoked; the next Connect is an ordinary
-                // reconnect initiated by the user.
-                try {
-                  window.sessionStorage.setItem("envelope.rejected-wallet-reset", "1");
-                } catch {
-                  // Reloading is the functional fix; storage only keeps copy.
-                }
-                disconnect();
+                // The rejected Wallet Standard session was detached as soon
+                // as Ready answered. Reload only after the return flight so
+                // no rejected request channel survives onto the live form.
                 window.setTimeout(() => window.location.reload(), 0);
               }
             }
