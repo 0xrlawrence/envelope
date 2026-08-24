@@ -19,13 +19,16 @@ memory.
 | Sepolia | Class hash | `0x3e66d5a37c26b61535da41b6a5878f327ce0a2f148570e2b263095e6ee9f4d5` |
 | Sepolia | Contract | [`0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211`](https://sepolia.voyager.online/contract/0x04ff4f083a4667930efe14963645f9bda00bb10d44e4c13a9ee808e66c076211) |
 | Sepolia | Previous, pool route only | `0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604` |
-| Mainnet | | Not yet deployed |
+| Mainnet | Class hash | `0x01afb391c035b53ccd60df3aa3fa705a89900cf7950a19f5bb0dbd8815eb6ddf` |
+| Mainnet | Contract | [`0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e`](https://voyager.online/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e) |
+| Mainnet | Declaration | [`0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc`](https://voyager.online/tx/0x0764cded7783c5103e5893328c2522a2398a00571303693e87a8d9ffd6b2cafc), block `13771963` |
+| Mainnet | Deployment | [`0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e`](https://voyager.online/tx/0x0117538d0b37ba348dd10507883abcaca899f778eb1dcb3bfa571850bef41f8e), block `13772008` |
 
 Verified after deployment:
 
 ```console
-$ sncast call --contract-address 0x05c5cd… --function pool
-ContractAddress(0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91)
+$ sncast call --contract-address 0x07d2bc… --function pool --network mainnet
+ContractAddress(0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a)
 ```
 
 ## Tokens
@@ -36,10 +39,9 @@ ContractAddress(0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d9
 
 ## Toolchain
 
-The Sepolia class was declared with **Scarb 2.15.1** (Cairo 2.15.0, Sierra
-1.7.0) and accepted without complaint, so the newer Scarb the STRK20 starter kit
-pins is not a requirement. Recorded because discovering otherwise at mainnet
-declare time would be an expensive surprise.
+The Mainnet class was declared from the checked-in release artifacts built with
+**Scarb 2.15.1** (Cairo 2.15.0, Sierra 1.7.0). Its live class hash and constructor
+pool were read back from Mainnet after deployment.
 
 ## RPC
 

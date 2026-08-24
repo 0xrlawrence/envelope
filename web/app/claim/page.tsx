@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildClaimToAddressCall,
   buildClaimToNoteActions,
@@ -60,6 +60,7 @@ export default function ClaimPage() {
    * and the copy stays neutral until then rather than guessing either way.
    */
   const [fundedPrivately, setFundedPrivately] = useState<boolean | undefined>();
+  const loadVersion = useRef(0);
 
   useEffect(() => {
     if (outcome) play("success");
@@ -114,14 +115,23 @@ export default function ClaimPage() {
   const claimPublicKey = claimKey ? toPublicKey(claimKey) : "";
 
   const load = useCallback(async () => {
-    if (!claimPublicKey || !network.anonymizer) return;
-    setLoading(true);
-    try {
-      setEnvelope(await readEnvelope(provider, network.anonymizer, claimPublicKey));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not read the envelope.");
-    } finally {
+    const version = ++loadVersion.current;
+    if (!claimPublicKey || !network.anonymizer) {
+      setEnvelope(null);
       setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const found = await readEnvelope(provider, network.anonymizer, claimPublicKey);
+      if (loadVersion.current === version) setEnvelope(found);
+    } catch (cause) {
+      if (loadVersion.current === version) {
+        setError(cause instanceof Error ? cause.message : "Could not read the envelope.");
+      }
+    } finally {
+      if (loadVersion.current === version) setLoading(false);
     }
   }, [claimPublicKey, network.anonymizer, provider]);
 
@@ -368,6 +378,18 @@ export default function ClaimPage() {
         <p className="mt-4 text-[var(--paper-dim)]">
           A claim link carries its key after the <Mono>#</Mono>. If you pasted this from
           somewhere that truncates URLs, the key is what got cut.
+        </p>
+      </Shell>
+    );
+  }
+
+  if (!network.anonymizer) {
+    return (
+      <Shell>
+        <h1 className="headline">Not deployed here.</h1>
+        <p className="mt-4 text-[var(--paper-dim)]">
+          Envelope is not configured on {network.label}. Switch networks from the
+          button in the header to look for this envelope elsewhere.
         </p>
       </Shell>
     );

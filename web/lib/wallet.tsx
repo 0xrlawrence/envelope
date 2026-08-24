@@ -17,7 +17,12 @@ import {
   type ReactNode,
 } from "react";
 import { RpcProvider, WalletAccountV6, validateAndParseAddress, walletV6 } from "starknet";
-import { NETWORKS, networkForChainId, type Network } from "./config";
+import {
+  NETWORKS,
+  networkForChainId,
+  type Network,
+  type NetworkId,
+} from "./config";
 
 interface WalletState {
   wallets: WalletWithStarknetFeatures[];
@@ -37,12 +42,15 @@ interface WalletState {
   /** False when the account contract is not on-chain yet. */
   accountDeployed: boolean;
   connecting: boolean;
+  switchingNetwork: boolean;
+  networkError: string;
   error: string;
 }
 
 interface WalletContextValue extends WalletState {
   connect(wallet: WalletWithStarknetFeatures): Promise<void>;
   disconnect(): void;
+  switchNetwork(network: NetworkId): Promise<void>;
   /** Re-scan for extensions that injected after the page first loaded. */
   refreshWallets(): void;
   /** Called when a real STRK20 call reports the method is not served. */
@@ -68,6 +76,8 @@ const INITIAL: WalletState = {
   accountClass: "",
   accountDeployed: true,
   connecting: false,
+  switchingNetwork: false,
+  networkError: "",
   error: "",
 };
 
@@ -79,6 +89,7 @@ const INITIAL: WalletState = {
  * a note about which one to ask.
  */
 const LAST_WALLET = "envelope.wallet";
+const LAST_NETWORK = "envelope.network";
 
 function rememberWallet(name: string): void {
   try {
@@ -104,13 +115,82 @@ function rememberedWallet(): string {
   }
 }
 
+function rememberNetwork(network: NetworkId): void {
+  try {
+    window.localStorage.setItem(LAST_NETWORK, network);
+  } catch {
+    // A blocked store only means the choice starts on Sepolia next time.
+  }
+}
+
+function rememberedNetwork(): Network {
+  try {
+    const saved = window.localStorage.getItem(LAST_NETWORK);
+    return saved === "mainnet" ? NETWORKS.mainnet : NETWORKS.sepolia;
+  } catch {
+    return NETWORKS.sepolia;
+  }
+}
+
+async function connectedAccount(
+  wallet: WalletWithStarknetFeatures,
+  network: Network,
+  address: string,
+): Promise<{
+  account: WalletAccountV6;
+  accountClass: string;
+}> {
+  const provider = new RpcProvider({ nodeUrl: network.rpcUrl });
+  const account = await WalletAccountV6.connect(provider, wallet);
+  let accountClass = "";
+  try {
+    accountClass = await provider.getClassHashAt(address);
+  } catch {
+    // A missing class means the account has not sent its first transaction on
+    // this network yet. The public address may still hold tokens there.
+  }
+  return { account, accountClass };
+}
+
+function requireKnownNetwork(chainId: string): Network {
+  const network = networkForChainId(chainId);
+  if (!network) {
+    throw new Error(
+      `This wallet is on an unsupported Starknet network (${chainId}). Switch it to Mainnet or Sepolia.`,
+    );
+  }
+  return network;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>(INITIAL);
   const discoveryStore = useRef<Store | null>(null);
   const lateStandardWallets = useRef(new Map<string, WalletWithStarknetFeatures>());
+  const selectedNetwork = useRef<Network>(NETWORKS.sepolia);
+  const connectedWallet = useRef<WalletWithStarknetFeatures | null>(null);
+  const walletEventCleanup = useRef<(() => void) | null>(null);
+  const networkSwitchInFlight = useRef(false);
   // One attempt per load. Discovery fills in over several ticks, so without
   // this the effect below would fire again for every wallet that registers.
   const tried = useRef(false);
+
+  // The choice belongs to the app even before a wallet is connected. Reading
+  // it after mount avoids a server/client mismatch while still making every
+  // route follow the remembered network as soon as the browser is available.
+  useEffect(() => {
+    const preferred = rememberedNetwork();
+    selectedNetwork.current = preferred;
+    setState((previous) =>
+      previous.address ? previous : { ...previous, network: preferred },
+    );
+  }, []);
+
+  useEffect(
+    () => () => {
+      walletEventCleanup.current?.();
+    },
+    [],
+  );
 
   // Build the discovery store once on mount so wallets have time to register
   // themselves before anyone opens the picker. `eip1193Adapters: []` keeps
@@ -182,16 +262,66 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const synchronizeConnectedWallet = useCallback(
+    async (wallet: WalletWithStarknetFeatures) => {
+      if (networkSwitchInFlight.current) return;
+      try {
+        const chainId = (await walletV6.requestChainId(wallet)) as string;
+        const network = requireKnownNetwork(chainId);
+        const accounts = await walletV6.requestAccounts(wallet, true);
+        if (!Array.isArray(accounts) || accounts.length === 0) {
+          forgetWallet();
+          connectedWallet.current = null;
+          walletEventCleanup.current?.();
+          walletEventCleanup.current = null;
+          setState((previous) => ({
+            ...INITIAL,
+            wallets: previous.wallets,
+            network: previous.network,
+          }));
+          return;
+        }
+
+        const address = validateAndParseAddress(accounts[0]);
+        const details = await connectedAccount(wallet, network, address);
+        selectedNetwork.current = network;
+        rememberNetwork(network.id);
+        setState((previous) => ({
+          ...previous,
+          ...details,
+          address,
+          network,
+          strk20: true,
+          strk20Reason: "",
+          accountDeployed: details.accountClass !== "",
+          switchingNetwork: false,
+          networkError: "",
+        }));
+      } catch (error) {
+        setState((previous) => ({
+          ...previous,
+          networkError: describeNetworkFailure(error),
+        }));
+      }
+    },
+    [],
+  );
+
   const connect = useCallback(async (wallet: WalletWithStarknetFeatures) => {
-    setState((previous) => ({ ...previous, connecting: true, error: "" }));
+    setState((previous) => ({
+      ...previous,
+      connecting: true,
+      error: "",
+      networkError: "",
+    }));
     try {
       // Order matters, and it is not obvious. Ready and Argent X answer almost
       // nothing until the dapp is authorised, and authorisation is what
       // `wallet_requestAccounts` asks for. Leading with any other call, even
       // one as innocuous as asking which chain we are on, is refused with
       // "Not preauthorized" before the user is ever shown a prompt.
-      const accounts = await walletV6.requestAccounts(wallet);
-      if (!Array.isArray(accounts) || accounts.length === 0) {
+      const authorisedAccounts = await walletV6.requestAccounts(wallet);
+      if (!Array.isArray(authorisedAccounts) || authorisedAccounts.length === 0) {
         throw new Error("This wallet did not return an account.");
       }
 
@@ -200,15 +330,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new Error("Account access was declined.");
       }
 
-      // Only now is the wallet willing to talk, so the chain can be read and
-      // the account built against the matching provider.
-      const chainId = (await walletV6.requestChainId(wallet)) as string;
-      const network = networkForChainId(chainId);
-
-      const account = await WalletAccountV6.connect(
-        new RpcProvider({ nodeUrl: network.rpcUrl }),
-        wallet,
+      // Only now is the wallet willing to talk. The network printed in the
+      // header is a real selection, so connection must bring the wallet to it
+      // rather than silently replacing the app's choice with whatever chain
+      // the extension happened to be showing last.
+      const wanted = selectedNetwork.current;
+      let actual = requireKnownNetwork(
+        (await walletV6.requestChainId(wallet)) as string,
       );
+      if (actual.id !== wanted.id) {
+        await walletV6.switchStarknetChain(wallet, wanted.chainId);
+        actual = requireKnownNetwork(
+          (await walletV6.requestChainId(wallet)) as string,
+        );
+        if (actual.id !== wanted.id) {
+          throw new Error(`The wallet is still on ${actual.label}.`);
+        }
+      }
+
+      const accounts = await walletV6.requestAccounts(wallet, true);
+      if (!Array.isArray(accounts) || accounts.length === 0) {
+        throw new Error(`This wallet has no account available on ${wanted.label}.`);
+      }
+      const address = validateAndParseAddress(accounts[0]);
+      const details = await connectedAccount(wallet, wanted, address);
 
       const specs = (await walletV6.supportedSpecs(wallet)) as string[];
 
@@ -223,19 +368,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // only prove for account classes it implements. Driving an imported
       // account of another wallet's class is a common reason for the privacy
       // path to fail with nothing specific to say.
-      let accountClass = "";
       try {
-        accountClass = await new RpcProvider({ nodeUrl: network.rpcUrl }).getClassHashAt(
-          accounts[0],
-        );
+        // Prime the standard wrapper after authorisation so account/network
+        // changes made inside the extension reach this app without another
+        // permission prompt.
+        await walletV6.standardConnect(wallet, true);
       } catch {
-        // No class hash means the account contract is not on-chain yet. Wallets
-        // let you create and fund an account before it is deployed, and it is
-        // only deployed by its first outgoing transaction. Nothing in the pool
-        // can work until then: registration proves against the account's own
-        // storage, and an account that does not exist has none.
-        accountClass = "";
+        // Some native standard wallets do not need this compatibility step.
       }
+
+      walletEventCleanup.current?.();
+      walletEventCleanup.current = walletV6.subscribeWalletEvent(wallet, () => {
+        void synchronizeConnectedWallet(wallet);
+      });
+      connectedWallet.current = wallet;
 
       // No probe here any more. Asking `strk20Balances` whether the method
       // exists costs a "share your private balances" prompt, and the page then
@@ -247,18 +393,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // the method is absent. The read the page already makes answers it.
       setState((previous) => ({
         ...previous,
-        account,
-        address: validateAndParseAddress(accounts[0]),
-        network,
+        ...details,
+        address,
+        network: wanted,
         specs,
         strk20: true,
         strk20Reason: "",
         walletName: wallet.name,
-        accountClass,
-        accountDeployed: accountClass !== "",
+        accountDeployed: details.accountClass !== "",
         connecting: false,
+        switchingNetwork: false,
+        networkError: "",
       }));
       rememberWallet(wallet.name);
+      rememberNetwork(wanted.id);
     } catch (error) {
       setState((previous) => ({
         ...previous,
@@ -266,7 +414,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         error: describeConnectFailure(error),
       }));
     }
-  }, []);
+  }, [synchronizeConnectedWallet]);
 
   /**
    * Withdraw STRK20 support after a real call says the method is absent.
@@ -280,9 +428,83 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const switchNetwork = useCallback(async (networkId: NetworkId) => {
+    const wanted = NETWORKS[networkId];
+    const wallet = connectedWallet.current;
+
+    if (!wallet) {
+      selectedNetwork.current = wanted;
+      rememberNetwork(wanted.id);
+      setState((previous) => ({
+        ...previous,
+        network: wanted,
+        networkError: "",
+      }));
+      return;
+    }
+
+    networkSwitchInFlight.current = true;
+    setState((previous) => ({
+      ...previous,
+      switchingNetwork: true,
+      networkError: "",
+    }));
+    try {
+      const current = requireKnownNetwork(
+        (await walletV6.requestChainId(wallet)) as string,
+      );
+      if (current.id !== wanted.id) {
+        await walletV6.switchStarknetChain(wallet, wanted.chainId);
+      }
+
+      const actual = requireKnownNetwork(
+        (await walletV6.requestChainId(wallet)) as string,
+      );
+      if (actual.id !== wanted.id) {
+        throw new Error(`The wallet is still on ${actual.label}.`);
+      }
+
+      const accounts = await walletV6.requestAccounts(wallet, true);
+      if (!Array.isArray(accounts) || accounts.length === 0) {
+        throw new Error(`This wallet has no account available on ${wanted.label}.`);
+      }
+      const address = validateAndParseAddress(accounts[0]);
+      const details = await connectedAccount(wallet, wanted, address);
+
+      selectedNetwork.current = wanted;
+      rememberNetwork(wanted.id);
+      setState((previous) => ({
+        ...previous,
+        ...details,
+        address,
+        network: wanted,
+        strk20: true,
+        strk20Reason: "",
+        accountDeployed: details.accountClass !== "",
+        switchingNetwork: false,
+        networkError: "",
+      }));
+    } catch (error) {
+      setState((previous) => ({
+        ...previous,
+        switchingNetwork: false,
+        networkError: describeNetworkFailure(error),
+      }));
+    } finally {
+      networkSwitchInFlight.current = false;
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
     forgetWallet();
-    setState((previous) => ({ ...INITIAL, wallets: previous.wallets }));
+    walletEventCleanup.current?.();
+    walletEventCleanup.current = null;
+    connectedWallet.current = null;
+    setState((previous) => ({
+      ...INITIAL,
+      wallets: previous.wallets,
+      network: selectedNetwork.current,
+    }));
   }, []);
 
   /**
@@ -307,6 +529,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         forgetWallet();
         return;
       }
+
+      try {
+        const actual = requireKnownNetwork(
+          (await walletV6.requestChainId(wallet)) as string,
+        );
+        const wanted = selectedNetwork.current;
+        if (actual.id !== wanted.id) {
+          setState((previous) => ({
+            ...previous,
+            networkError: `Your wallet is on ${actual.label}. Click Connect to switch it to ${wanted.label}.`,
+          }));
+          return;
+        }
+      } catch (error) {
+        setState((previous) => ({
+          ...previous,
+          networkError: describeNetworkFailure(error),
+        }));
+        return;
+      }
       await connect(wallet);
     },
     [connect],
@@ -325,20 +567,34 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     void reconnect(wallet);
   }, [state.wallets, state.address, state.connecting, reconnect]);
 
+  const provider = useMemo(
+    () => new RpcProvider({ nodeUrl: state.network.rpcUrl }),
+    [state.network.rpcUrl],
+  );
+
   const value = useMemo<WalletContextValue>(
     () => ({
       ...state,
       connect,
       disconnect,
+      switchNetwork,
       refreshWallets,
       reportStrk20Unsupported,
-      provider: new RpcProvider({ nodeUrl: state.network.rpcUrl }),
+      provider,
       // A wallet without STRK20 can still sign an ordinary call, which is all
       // the public claim path needs, but cannot shield, seal, or claim
       // privately.
       supportsStrk20: state.strk20,
     }),
-    [state, connect, disconnect, refreshWallets, reportStrk20Unsupported],
+    [
+      state,
+      connect,
+      disconnect,
+      switchNetwork,
+      refreshWallets,
+      reportStrk20Unsupported,
+      provider,
+    ],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
@@ -379,6 +635,15 @@ function describeConnectFailure(error: unknown): string {
     return "Connection was declined in the wallet.";
   }
   return message || "Could not connect to that wallet.";
+}
+
+function describeNetworkFailure(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  if (/reject|refused|denied|declined/i.test(message)) {
+    return "The network switch was declined in the wallet. The app stayed on the previous network.";
+  }
+  return message || "The wallet could not switch networks. Try again from the network button.";
 }
 
 /** Recognise a wallet saying it does not serve a method. */

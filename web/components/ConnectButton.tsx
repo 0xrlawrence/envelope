@@ -11,7 +11,6 @@ export function ConnectButton() {
   const {
     wallets,
     address,
-    network,
     connect,
     disconnect,
     refreshWallets,
@@ -90,10 +89,7 @@ export function ConnectButton() {
 
   if (address) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="hidden font-mono text-xs tracking-widest text-[var(--paper-faint)] uppercase sm:inline">
-          {network.label}
-        </span>
+      <div className="flex items-center">
         <button
           onClick={() => {
             play("tap");

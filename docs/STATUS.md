@@ -5,13 +5,13 @@ the honest version with the caveats attached.
 
 | | State |
 |---|---|
-| `EnvelopeAnonymizer` contract | Written, 28 tests passing. The private-claim-only patch requires a new deployment. |
-| `strk20-envelope` SDK | Written, 8 tests passing, pinned to the contract by a shared vector |
+| `EnvelopeAnonymizer` contract | Written, 28 tests passing. The private-claim-only release is deployed on Mainnet. |
+| `strk20-envelope` SDK | Written, 39 tests passing, pinned to the contract by a shared vector |
 | Sepolia declare + deploy | **Done**. [`0x05c5cd…`](https://sepolia.voyager.online/contract/0x05c5cdd9a2983bb4842d1a2c0b7ccdfa29d704e7217623349eb76cb237805604) |
 | Signature scheme, on a live chain | **Done**. See below |
 | Web app | **Built**. Seal / claim / return, on the Wallet API route via `WalletAccountV6` |
 | Fund and claim driven by the real pool | **Done on Sepolia**, see below |
-| Mainnet deploy | Not yet |
+| Mainnet deploy | **Done**. [`0x07d2bc…`](https://voyager.online/contract/0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e), block `13772008` |
 | Three mainnet pool transactions | Not yet |
 | Demo video | Not yet |
 
@@ -64,7 +64,7 @@ with an invoke.
 
 ## What is still unproven
 
-The contract has not been driven *by the pool*. Everything about the STRK20 side
-of `privacy_invoke` (that funding may return an empty span, that the pool pulls
-an approved amount into an open note) is still only proven against the mock in
-the test suite. See [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
+The Mainnet deployment has been verified by class hash and constructor state,
+but has not yet been funded by the live Mainnet pool. The same integration has
+already been exercised through the Sepolia pool above. See
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).

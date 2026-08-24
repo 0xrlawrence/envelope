@@ -68,6 +68,7 @@ export default function RefundPage() {
   const [gaveUp, setGaveUp] = useState(false);
   /** Whether the wallet reported a refusal, which is not a failure either. */
   const [declined, setDeclined] = useState(false);
+  const loadVersion = useRef(0);
   /** Set by `reclaim`, read by the approvals panel rendered outside it. */
   const stopWaitingRef = useRef<(() => void) | null>(null);
 
@@ -89,14 +90,23 @@ export default function RefundPage() {
   }, []);
 
   const load = useCallback(async () => {
-    if (!claimPublicKey || !network.anonymizer) return;
-    setLoading(true);
-    try {
-      setEnvelope(await readEnvelope(provider, network.anonymizer, claimPublicKey));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not read the envelope.");
-    } finally {
+    const version = ++loadVersion.current;
+    if (!claimPublicKey || !network.anonymizer) {
+      setEnvelope(null);
       setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const found = await readEnvelope(provider, network.anonymizer, claimPublicKey);
+      if (loadVersion.current === version) setEnvelope(found);
+    } catch (cause) {
+      if (loadVersion.current === version) {
+        setError(cause instanceof Error ? cause.message : "Could not read the envelope.");
+      }
+    } finally {
+      if (loadVersion.current === version) setLoading(false);
     }
   }, [claimPublicKey, network.anonymizer, provider]);
 
@@ -251,6 +261,18 @@ export default function RefundPage() {
     );
   }
 
+  if (!network.anonymizer) {
+    return (
+      <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
+        <h1 className="headline">Not deployed here.</h1>
+        <p className="mt-2 text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-4 sm:text-base sm:leading-normal">
+          Envelope is not configured on {network.label}. Switch networks from the
+          button in the header to look for this envelope elsewhere.
+        </p>
+      </div>
+    );
+  }
+
   if (transactionHash && flightDone) {
     return (
       <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
@@ -277,6 +299,18 @@ export default function RefundPage() {
     return (
       <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
         <p className="text-sm text-[var(--paper-faint)]">Reading the envelope…</p>
+      </div>
+    );
+  }
+
+  if (envelope.status === "none") {
+    return (
+      <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-14">
+        <h1 className="headline">No such envelope.</h1>
+        <p className="mt-2 text-[0.8rem] leading-snug text-[var(--paper-dim)] sm:mt-4 sm:text-base sm:leading-normal">
+          Nothing has been sealed against this key on {network.label}. Check you are on
+          the right network.
+        </p>
       </div>
     );
   }

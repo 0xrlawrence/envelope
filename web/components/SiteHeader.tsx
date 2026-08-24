@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSound } from "@/lib/sound";
 import { ConnectButton } from "./ConnectButton";
+import { NetworkSwitch } from "./NetworkSwitch";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteHeader() {
@@ -68,6 +69,7 @@ export function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-3">
           <ThemeToggle />
+          <NetworkSwitch />
           <ConnectButton />
         </div>
       </div>

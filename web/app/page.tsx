@@ -1323,8 +1323,8 @@ export default function CreatePage() {
 
           {notDeployed ? (
             <Callout tone="bad" title="Not deployed here">
-              No Envelope anonymizer on {network.label} yet. Switch networks in your
-              wallet.
+              No Envelope anonymizer is configured on {network.label}. Use the network
+              button in the header to switch back.
               {maker && walletName && !walletName.toLowerCase().includes(maker.toLowerCase()) ? (
                 <p className="mt-2">
                   This account is a <strong>{maker}</strong> account being driven by{" "}

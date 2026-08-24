@@ -35,7 +35,7 @@ const NETWORKS: Record<string, Network> = {
     id: "mainnet",
     label: "Mainnet",
     rpcUrl: "https://api.cartridge.gg/x/starknet/mainnet",
-    anonymizer: "",
+    anonymizer: "0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e",
     token: STRK,
     explorer: "https://voyager.online",
     appOrigin: "https://0xrlawrence.github.io/envelope",

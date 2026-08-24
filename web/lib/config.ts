@@ -8,7 +8,7 @@ export interface Network {
   chainId: string;
   rpcUrl: string;
   pool: string;
-  /** The deployed `EnvelopeAnonymizer`. Empty until it exists on that network. */
+  /** The deployed `EnvelopeAnonymizer`. */
   anonymizer: string;
   /**
    * The block the anonymizer was deployed in.
@@ -33,10 +33,9 @@ export interface Network {
  */
 
 /**
- * Addresses are cross-checked in `docs/MAINNET.md`. The mainnet anonymizer is
- * read from the environment so a deploy does not need a code change. But an
- * empty value is treated as "not deployed" and disables the network in the UI,
- * rather than silently sending transactions to address zero.
+ * Addresses are cross-checked in `docs/MAINNET.md`. Environment overrides keep
+ * preview deployments possible without changing the checked-in production
+ * addresses.
  */
 export const NETWORKS: Record<NetworkId, Network> = {
   mainnet: {
@@ -46,8 +45,10 @@ export const NETWORKS: Record<NetworkId, Network> = {
     rpcUrl:
       process.env.NEXT_PUBLIC_RPC_MAINNET ?? "https://api.cartridge.gg/x/starknet/mainnet",
     pool: POOL_ADDRESS_MAINNET,
-    anonymizer: process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET ?? "",
-    firstBlock: Number(process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET_BLOCK ?? 0),
+    anonymizer:
+      process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET ??
+      "0x07d2bc74168a9af93bc6ead86968ad7bbd92627063a9f82a1dfc0f3c9b996b6e",
+    firstBlock: Number(process.env.NEXT_PUBLIC_ANONYMIZER_MAINNET_BLOCK ?? 13_772_008),
     explorer: "https://voyager.online",
   },
   sepolia: {
@@ -67,8 +68,25 @@ export const NETWORKS: Record<NetworkId, Network> = {
   },
 };
 
-export function networkForChainId(chainId: string | undefined): Network {
-  return chainId === NETWORKS.mainnet.chainId ? NETWORKS.mainnet : NETWORKS.sepolia;
+export function networkForChainId(chainId: string | undefined): Network | undefined {
+  const value = chainId?.toLowerCase();
+  if (value === "sn_main") {
+    return NETWORKS.mainnet;
+  }
+  if (value === "sn_sepolia") {
+    return NETWORKS.sepolia;
+  }
+  try {
+    if (BigInt(value ?? "") === BigInt(NETWORKS.mainnet.chainId)) {
+      return NETWORKS.mainnet;
+    }
+    if (BigInt(value ?? "") === BigInt(NETWORKS.sepolia.chainId)) {
+      return NETWORKS.sepolia;
+    }
+  } catch {
+    // A non-numeric chain id is unsupported unless named explicitly above.
+  }
+  return undefined;
 }
 
 export interface Token {
