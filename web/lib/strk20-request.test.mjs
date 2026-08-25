@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   invalidateStrk20BalanceRead,
   readStrk20BalancesOnce,
+  probeStrk20Once,
   releaseStrk20Request,
   submitStrk20Once,
 } from "./strk20-request.ts";
@@ -145,4 +146,43 @@ test("a settled balance change can invalidate the cached read", async () => {
 
   invalidateStrk20BalanceRead(key);
   assert.equal(await readStrk20BalancesOnce(key, read), 3);
+});
+
+test("one wallet probe for a return, even from two clicks in the same tick", async () => {
+  let probes = 0;
+  let finish;
+  const pending = new Promise((resolve) => {
+    finish = resolve;
+  });
+  const probe = () => {
+    probes += 1;
+    return pending;
+  };
+  const key = `prepare:mainnet:0x${Date.now().toString(16)}`;
+
+  const first = probeStrk20Once(key, probe);
+  const duplicate = probeStrk20Once(key, probe);
+
+  assert.equal(first, duplicate, "the second click observes the first probe");
+  assert.equal(probes, 0, "the wallet is called on the guarded microtask");
+
+  await Promise.resolve();
+  assert.equal(probes, 1, "the wallet is asked exactly once");
+
+  finish("0x1");
+  assert.equal(await first, "0x1");
+});
+
+test("a declined probe can be retried on the same envelope", async () => {
+  let probes = 0;
+  const key = `prepare:mainnet:retry-${Date.now().toString(16)}`;
+  const failing = () => {
+    probes += 1;
+    return Promise.reject(new Error("declined"));
+  };
+
+  await assert.rejects(probeStrk20Once(key, failing));
+  // A probe moves nothing, so refusing it must not lock the envelope out.
+  await assert.rejects(probeStrk20Once(key, failing));
+  assert.equal(probes, 2, "the second attempt reaches the wallet again");
 });

@@ -30,6 +30,38 @@ const activeStrk20Requests = new Map<string, ActiveStrk20Request>();
  */
 const strk20BalanceReads = new Map<string, Promise<unknown>>();
 
+/**
+ * Wallet probes currently in flight.
+ *
+ * Working out where a claim or a return lands means asking the wallet to
+ * assemble the transaction first, and in Ready that assembly is a prompt of its
+ * own. It is a real wallet call, so it needs the same protection the submission
+ * has: the button is disabled through React state, which does not close the gap
+ * between two clicks landing in the same tick, and the second one used to reach
+ * the wallet and open a second dialog for one return.
+ *
+ * Unlike a submission this is dropped once it settles. A submission is kept
+ * forever so a spent note can never be spent twice; a probe moves nothing, and
+ * caching a refusal would leave someone who declined by mistake unable to try
+ * the same envelope again.
+ */
+const strk20Probes = new Map<string, Promise<unknown>>();
+
+export function probeStrk20Once<T>(probeKey: string, probe: () => Promise<T>): Promise<T> {
+  const existing = strk20Probes.get(probeKey);
+  if (existing) return existing as Promise<T>;
+
+  // Registered before the wallet is called on the next microtask, which is what
+  // closes the same-tick re-entry.
+  const request = Promise.resolve().then(probe);
+  strk20Probes.set(probeKey, request);
+  const drop = () => {
+    if (strk20Probes.get(probeKey) === request) strk20Probes.delete(probeKey);
+  };
+  void request.then(drop, drop);
+  return request;
+}
+
 export function submitStrk20Once<T>(
   operationKey: string,
   submit: () => Promise<T>,

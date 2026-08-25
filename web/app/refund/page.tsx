@@ -20,6 +20,7 @@ import { useSound } from "@/lib/sound";
 import {
   releaseStrk20Request,
   submitStrk20Once,
+  probeStrk20Once,
 } from "@/lib/strk20-request";
 import { useWallet } from "@/lib/wallet";
 import { watchEnvelope } from "@/lib/watch";
@@ -52,6 +53,8 @@ export default function RefundPage() {
   const [envelope, setEnvelope] = useState<EnvelopeState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  /** Guards the return against a second entry in the same tick. */
+  const runningRef = useRef(false);
   const [error, setError] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
   const [phase, setPhase] = useState<"idle" | "flying" | "sent" | "returned" | "failed">(
@@ -120,6 +123,11 @@ export default function RefundPage() {
 
   async function reclaim() {
     if (!account || !refundKey || !envelope) return;
+    // Synchronous, because `busy` is React state and does not settle until the
+    // next render: two clicks inside one tick both saw `busy` false and both
+    // ran the whole return, including its wallet prompt.
+    if (runningRef.current) return;
+    runningRef.current = true;
     setBusy(true);
     setError("");
     setDeclined(false);
@@ -164,6 +172,7 @@ export default function RefundPage() {
      */
     stopWaitingRef.current = () => {
       setGaveUp(true);
+      runningRef.current = false;
       setBusy(false);
       setPhase("returned");
       setError(
@@ -199,7 +208,13 @@ export default function RefundPage() {
         noteId: "",
       });
 
-      const noteId = await resolveOpenNoteId(account, probe, claimPublicKey);
+      // Through the same guard the submission uses. Assembling the return is a
+      // wallet prompt of its own, and two clicks landing in one tick used to
+      // open two of them for a single return.
+      const noteId = await probeStrk20Once(
+        `prepare:${refundOperationKey}`,
+        () => resolveOpenNoteId(account, probe, claimPublicKey),
+      );
       if (!noteId) {
         throw new Error("The wallet did not report which open note to return this to.");
       }
@@ -252,6 +267,7 @@ export default function RefundPage() {
       setError(cause instanceof Error ? cause.message : "The return failed.");
     } finally {
       stopWaitingRef.current = null;
+      runningRef.current = false;
       setBusy(false);
     }
   }

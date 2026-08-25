@@ -28,6 +28,7 @@ import {
 import { explainWalletError } from "@/lib/errors";
 import { useSound } from "@/lib/sound";
 import {
+  probeStrk20Once,
   readStrk20BalancesOnce,
   releaseStrk20Request,
   submitStrk20Once,
@@ -47,6 +48,8 @@ export default function ClaimPage() {
   const [envelope, setEnvelope] = useState<EnvelopeState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"" | "private" | "public">("");
+  /** Guards the private claim against a second entry in the same tick. */
+  const runningRef = useRef(false);
   const [error, setError] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   // Claiming into the pool means receiving an open note, and a note needs a
@@ -247,6 +250,10 @@ export default function ClaimPage() {
   /** The path that leaves nothing public about the recipient. */
   async function claimToNote() {
     if (!account || !claimKey || !envelope) return;
+    // Synchronous: `busy` is React state and does not settle until the next
+    // render, so two clicks in one tick both got past it and both prompted.
+    if (runningRef.current) return;
+    runningRef.current = true;
     setBusy("private");
     setError("");
     const { watch, watching } = watchForClaim("private");
@@ -264,7 +271,12 @@ export default function ClaimPage() {
         noteId: "",
       });
 
-      const noteId = await resolveOpenNoteId(account, probe, claimPublicKey);
+      // Same guard as the submission below: assembling the claim is its own
+      // wallet prompt, and it must not be possible to open two of them.
+      const noteId = await probeStrk20Once(
+        `prepare:claim:${network.id}:${address}:${claimPublicKey}`,
+        () => resolveOpenNoteId(account, probe, claimPublicKey),
+      );
       if (!noteId) {
         throw new Error(
           "The wallet did not report which open note this claim would fill. Claim to your address instead.",
@@ -294,6 +306,7 @@ export default function ClaimPage() {
       setError(explainWalletError(cause).message);
       console.error("[envelope] private claim failed", cause);
     } finally {
+      runningRef.current = false;
       setBusy("");
     }
   }
