@@ -45,7 +45,9 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink-deep)_94%,transparent)] backdrop-blur-xl sm:hidden"
+      /* Fixed to the bottom of a scrolling page and 94% opaque: same
+         reasoning as the header, and the same saving on every scroll frame. */
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink-deep)_94%,transparent)] sm:hidden"
     >
       <div className="airmail-edge h-0.5" />
       <div className="grid grid-cols-3 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">

@@ -79,7 +79,13 @@ export function Reel() {
     <video
       ref={videoRef}
       aria-hidden
-      className="reel-video block w-full"
+      className="reel-video block h-auto w-full"
+      /* The intrinsic size, so the browser reserves the right box on the
+         first layout. Without it the element is zero high until the poster
+         decodes and then snaps to its aspect ratio, shoving the list under
+         it down the page. */
+      width={640}
+      height={400}
       muted
       loop
       playsInline

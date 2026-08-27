@@ -103,7 +103,9 @@ export function Approvals({
      * Offset to clear the header, which stays visible for the duration.
      */
     <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(5.6rem+env(safe-area-inset-top))] sm:top-auto sm:bottom-0 sm:px-6 sm:pt-0 sm:pb-[max(clamp(1rem,4vh,2.5rem),env(safe-area-inset-bottom))]">
-      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-3 py-2.5 backdrop-blur-sm sm:px-5 sm:py-4">
+      {/* 92% opaque, and on screen for the one moment the GPU is busy drawing
+          the dart. The blur it was paying for is not visible. */}
+      <div className="w-full max-w-md border border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] px-3 py-2.5 sm:px-5 sm:py-4">
         <div className="flex items-baseline justify-between gap-4">
           <p className="field-label !text-[0.65rem] sm:!text-xs">{title}</p>
           <p className="font-display text-xs font-bold tabular-nums sm:text-sm">

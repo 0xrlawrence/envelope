@@ -10,7 +10,16 @@ export function SiteHeader() {
   const { play } = useSound();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink-deep)_94%,transparent)] backdrop-blur-xl sm:static sm:bg-transparent sm:backdrop-blur-none">
+      /* No backdrop blur.
+       *
+       * The surface is 94% opaque, so a blur behind it can contribute at most
+       * six percent of what is underneath, and a screenshot with it switched
+       * off is indistinguishable. What it costs is real: a backdrop filter on
+       * a sticky or fixed element makes the compositor re-blur the strip
+       * behind it on every scroll frame, which is one of the more reliable
+       * ways to make a phone stutter. The two modals keep theirs, because at
+       * 78% opaque the blur is actually doing something. */
+    <header className="sticky top-0 z-30 border-b border-[var(--ink-line)] bg-[color-mix(in_srgb,var(--ink-deep)_94%,transparent)] sm:static sm:bg-transparent">
       <div className="airmail-edge h-1 sm:h-1.5" />
       {/*
         * Two groups, not four things in a row.
