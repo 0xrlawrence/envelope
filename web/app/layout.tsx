@@ -65,8 +65,36 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          * The directives that cost nothing to be wrong about.
+          *
+          * Deliberately no `script-src`. The obvious hardening here would be
+          * `script-src 'self'` plus a hash for the script below, and on this
+          * site it would be a mistake: a wallet extension reaches the page by
+          * injecting its provider into the main world, and main-world
+          * injection is subject to the page's CSP like any other script. A
+          * strict `script-src` can therefore stop Ready or Braavos from ever
+          * appearing, and the failure looks like "no wallet installed" rather
+          * than like a policy violation. That is not a trade worth making on
+          * the one flow the product exists for, and not one to make untested.
+          *
+          * What is left still closes real doors. `base-uri` stops an injected
+          * `<base>` from re-pointing every relative URL on the page, which is
+          * the cheapest way to turn one injection into a full takeover.
+          * `object-src` removes the plugin surface outright. `form-action`
+          * keeps a submission from being aimed off-site, which is how an
+          * injected form exfiltrates.
+          *
+          * `frame-ancestors` is absent because a meta CSP cannot carry it.
+          * The script below does that job instead.
+          */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="base-uri 'self'; object-src 'none'; form-action 'self'"
+        />
         {/* Before the first paint, so a reader who chose light paper never gets
-            a frame of black on the way in. */}
+            a frame of black on the way in, and so a framed page is hidden
+            before there is anything on it to click. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}>

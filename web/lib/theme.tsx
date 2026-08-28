@@ -9,7 +9,19 @@ export type Theme = "light" | "dark";
 const STORAGE_KEY = "envelope.theme";
 
 /**
- * Read the stored choice before the first paint.
+ * Read the stored choice before the first paint, and refuse to be framed.
+ *
+ * The frame check rides along here because it has to run before anything is
+ * painted, and this is already the one script that does. `frame-ancestors` is
+ * the proper way to say this and it is unavailable: GitHub Pages does not let
+ * a site set response headers, and a `frame-ancestors` in a meta CSP is
+ * ignored by every browser. So it is done in script.
+ *
+ * The page is hidden first and navigated second. A framer can deny the
+ * navigation with a sandbox attribute, and in that case hiding is the whole
+ * defence: what makes clickjacking work is the victim seeing and clicking a
+ * real control, and there is nothing to click on a blank page. On a page that
+ * hands over bearer links, one stolen click is the whole envelope.
  *
  * Injected into the document head and run synchronously, because the
  * alternative is that everyone who chose night gets a cream flash for one
@@ -19,7 +31,8 @@ const STORAGE_KEY = "envelope.theme";
  */
 export const THEME_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   STORAGE_KEY,
-)});if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+)});if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}
+try{if(top!==self){document.documentElement.style.display="none";top.location=self.location.href}}catch(e){document.documentElement.style.display="none"}`;
 
 /**
  * The colour a phone paints its own browser chrome with.
