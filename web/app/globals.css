@@ -781,35 +781,3 @@ body {
   mix-blend-mode: screen;
 }
 
-/*
- * A postage stamp.
- *
- * The perforation is a mask rather than a border image: circles punched out of
- * the element at a regular pitch along each edge, so the notches are true
- * transparency and the stamp sits on whatever is behind it. A border cannot do
- * this, and an SVG frame would not follow the element as it resizes.
- *
- * The holes are drawn as opaque circles and subtracted from a solid mask.
- * Composited the other way round, four layers of "opaque everywhere except a
- * hole" simply fill in each other's holes, and the stamp renders as a plain
- * rectangle with nothing to show for the work.
- */
-.stamp {
-  --perf: 4px;
-  --pitch: 11px;
-  --holes:
-    radial-gradient(var(--perf) at 0 50%, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch)
-      repeat-y,
-    radial-gradient(var(--perf) at 100% 50%, #000 98%, #0000) 100% 0 / var(--pitch)
-      var(--pitch) repeat-y,
-    radial-gradient(var(--perf) at 50% 0, #000 98%, #0000) 0 0 / var(--pitch) var(--pitch)
-      repeat-x,
-    radial-gradient(var(--perf) at 50% 100%, #000 98%, #0000) 0 100% / var(--pitch)
-      var(--pitch) repeat-x,
-    linear-gradient(#000 0 0);
-  -webkit-mask: var(--holes);
-  -webkit-mask-composite: xor, xor, xor, xor, source-over;
-  mask: var(--holes);
-  mask-composite: exclude, exclude, exclude, exclude, add;
-  padding: 5px;
-}
