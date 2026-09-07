@@ -19,7 +19,14 @@ import {
   shortHex,
   timeAgo,
 } from "@/lib/config";
-import { recentEnvelopes, type FundedEnvelope } from "@/lib/activity";
+import {
+  classifyFunding,
+  fundedLedger,
+  recentFrom,
+  type FundedEnvelope,
+  type FundedLedger,
+} from "@/lib/activity";
+import { crowdFor, crowdSizes, type Crowd } from "@/lib/anonymity";
 import { appOrigin } from "@/lib/origin";
 import { useSound } from "@/lib/sound";
 import { useWallet } from "@/lib/wallet";
@@ -43,6 +50,9 @@ export default function SealedPage() {
   const [states, setStates] = useState<Record<string, EnvelopeState>>({});
   const [origin, setOrigin] = useState("");
   const [onChain, setOnChain] = useState<FundedEnvelope[] | null>(null);
+  // Every funding the contract has emitted, which is what both the crowd
+  // figures and the list below are counted from. One scan serves both.
+  const [ledger, setLedger] = useState<FundedLedger | null>(null);
   const [now, setNow] = useState(() => Date.now());
   // Yours first. The other tab is the same contract seen from outside, which is
   // worth showing but is not what anyone opens this page to do.
@@ -84,9 +94,32 @@ export default function SealedPage() {
 
   useEffect(() => {
     let cancelled = false;
-    recentEnvelopes(provider, network.anonymizer, network.pool, network.firstBlock)
-      .then((found) => !cancelled && setOnChain(found))
-      .catch(() => !cancelled && setOnChain([]));
+    (async () => {
+      try {
+        const found = await fundedLedger(
+          provider,
+          network.anonymizer,
+          network.firstBlock,
+        );
+        if (cancelled) return;
+        // Published before the classification below, which costs a receipt per
+        // envelope. The crowd figures do not need it, and holding them back
+        // behind a dozen round trips would leave the rows saying nothing for
+        // several seconds after the answer was already in hand.
+        setLedger(found);
+
+        const classified = await classifyFunding(
+          provider,
+          network.pool,
+          recentFrom(found),
+        );
+        if (!cancelled) setOnChain(classified);
+      } catch {
+        if (cancelled) return;
+        setLedger({ records: [], scannedFrom: network.firstBlock, complete: false });
+        setOnChain([]);
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -159,7 +192,9 @@ export default function SealedPage() {
               {
                 id: "chain",
                 label: "On this anonymizer",
-                count: onChain?.length,
+                // The whole ledger, not the handful listed below it. The list is
+                // capped for reading; the tab is answering how many exist.
+                count: ledger?.records.length,
               },
             ]}
           />
@@ -240,6 +275,7 @@ export default function SealedPage() {
                     key={record.claimPublicKey}
                     record={record}
                     state={states[record.claimPublicKey]}
+                    crowd={ledger ? crowdFor(ledger, record.claimPublicKey) : undefined}
                     origin={origin}
                     now={now}
                     network={network}
@@ -270,6 +306,7 @@ export default function SealedPage() {
                     key={record.claimPublicKey}
                     record={record}
                     state={states[record.claimPublicKey]}
+                    crowd={ledger ? crowdFor(ledger, record.claimPublicKey) : undefined}
                     origin={origin}
                     now={now}
                     network={network}
@@ -301,6 +338,7 @@ export default function SealedPage() {
                     key={record.claimPublicKey}
                     record={record}
                     state={states[record.claimPublicKey]}
+                    crowd={ledger ? crowdFor(ledger, record.claimPublicKey) : undefined}
                     origin={origin}
                     now={now}
                     network={network}
@@ -331,6 +369,7 @@ export default function SealedPage() {
                     key={record.claimPublicKey}
                     record={record}
                     state={states[record.claimPublicKey]}
+                    crowd={ledger ? crowdFor(ledger, record.claimPublicKey) : undefined}
                     origin={origin}
                     now={now}
                     network={network}
@@ -361,6 +400,8 @@ export default function SealedPage() {
           submitted by a relayer rather than by whoever funded it. That separation is the
           privacy claim, visible rather than asserted.
         </p>
+
+        {ledger && ledger.records.length > 0 ? <CrowdSizes ledger={ledger} /> : null}
 
         {onChain === null ? (
           <p className="mt-3 text-sm text-[var(--paper-faint)] sm:mt-4">Reading the chain…</p>
@@ -405,6 +446,13 @@ export default function SealedPage() {
                 </div>
               </div>
             ))}
+
+            {ledger && ledger.records.length > onChain.length ? (
+              <p className="pt-1 font-mono text-xs text-[var(--paper-faint)]">
+                The {onChain.length} most recent of {ledger.complete ? "" : "at least "}
+                {ledger.records.length}.
+              </p>
+            ) : null}
           </div>
         )}
       </div>
@@ -415,6 +463,7 @@ export default function SealedPage() {
 function Row({
   record,
   state,
+  crowd,
   origin,
   now,
   network,
@@ -422,6 +471,8 @@ function Row({
 }: {
   record: SealRecord;
   state?: EnvelopeState;
+  /** Null once the chain has been read and this envelope is not on it. */
+  crowd?: Crowd | null;
   origin: string;
   now: number;
   network: { explorer: string; id: string };
@@ -470,6 +521,11 @@ function Row({
       </div>
 
       {status === "funded" && state ? <Deadline expiry={state.expiry} now={now} /> : null}
+
+      {/* Only on a live envelope. On a receipt the crowd is history and there
+          is nothing left to decide; here it is the second half of the question
+          the countdown asks, which is whether to hand the link over now. */}
+      {status === "funded" && crowd ? <CrowdLine crowd={crowd} /> : null}
 
       {/* Only a live envelope leads with something to send. A finished one is a
           receipt, and a link nobody can use should not be the loudest thing on
@@ -564,6 +620,128 @@ function Deadline({ expiry, now }: { expiry: number; now: number }) {
         {countdown(expiry, now)}
       </span>
     </p>
+  );
+}
+
+/**
+ * How much company an envelope is keeping.
+ *
+ * An envelope's funding and its claim carry the same public amount, so a
+ * distinctive figure links the two and narrows the set of funders a claim could
+ * have come from. What stands between that link and a name is every other
+ * envelope funded at the same size, which is why the app offers a short list of
+ * round denominations rather than an open field.
+ *
+ * The second figure is the one that keeps moving. The crowd an envelope was
+ * sealed into is fixed at that moment, but each envelope of the same size
+ * funded afterwards is one more transaction an observer has to tell apart from
+ * yours on timing alone. Sealing into a quiet hour and handing the link over
+ * straight away is the case this exists to make visible, and it is not visible
+ * anywhere else: nothing else on the page changes after the envelope is sealed.
+ */
+function CrowdLine({ crowd }: { crowd: Crowd }) {
+  const tone =
+    crowd.cover === "none"
+      ? "var(--seal)"
+      : crowd.cover === "thin"
+        ? "var(--frank)"
+        : "var(--credit)";
+
+  // A truncated scan can only ever undercount, so its figures are floors. Saying
+  // so matters more here than anywhere else on the page, because the number
+  // being read is the one that decides whether an envelope looks safe to send.
+  const least = crowd.partial ? "at least " : "";
+
+  // Keyed on the count rather than on the band, so the sentence stays true if
+  // the bands are ever retuned. One envelope of a size is the only claim here
+  // that is structural rather than a judgement, and it should read that way.
+  if (crowd.size === 1) {
+    return (
+      <p
+        className="mt-1.5 font-mono text-xs"
+        title="Nothing else of this size has been funded on this contract, so the amount on the claim ties straight back to the funding."
+      >
+        <span style={{ color: tone }}>Only envelope of this size. </span>
+        <span className="text-[var(--paper-faint)]">Nothing to be mistaken for.</span>
+      </p>
+    );
+  }
+
+  return (
+    <p
+      className="mt-1.5 font-mono text-xs"
+      title={`Both legs of an envelope carry the same public amount, so every envelope funded at this size is one this claim could have come from. ${crowd.after} of them were funded after yours.`}
+    >
+      <span className="text-[var(--paper-faint)]">One of {least}</span>
+      <span className="tabular-nums" style={{ color: tone }}>
+        {crowd.size}
+      </span>
+      <span className="text-[var(--paper-faint)]"> envelopes of this size. </span>
+      {crowd.after > 0 ? (
+        <>
+          <span className="tabular-nums text-[var(--credit)]">{crowd.after}</span>
+          <span className="text-[var(--paper-faint)]"> sealed after yours.</span>
+        </>
+      ) : (
+        <span className="text-[var(--paper-faint)]">None sealed since.</span>
+      )}
+    </p>
+  );
+}
+
+/**
+ * Every denomination the contract holds, and how many sit at each.
+ *
+ * The same figure a row shows, read the other way round: not how well one
+ * envelope is hidden, but which sizes on this contract hide anything at all.
+ * That is worth knowing before sealing rather than after, which is the one
+ * thing the per-row line cannot do.
+ */
+function CrowdSizes({ ledger }: { ledger: FundedLedger }) {
+  const sizes = crowdSizes(ledger);
+  if (sizes.length === 0) return null;
+
+  const largest = sizes.reduce((most, size) => Math.max(most, size.count), 0);
+
+  return (
+    <div className="mt-3 border border-[var(--ink-line)] bg-[var(--ink-raised)] p-3 sm:mt-5 sm:p-4">
+      <p className="field-label">
+        Crowd by size{ledger.complete ? "" : " (at least)"}
+      </p>
+      <p className="mt-1.5 max-w-[58ch] text-[0.72rem] leading-snug text-[var(--paper-faint)] sm:text-xs">
+        Funding and claiming carry the same public amount, so everything sealed at one
+        size is the crowd a claim of that size could have come from. A size holding a
+        single envelope hides nobody.
+      </p>
+
+      <ul className="mt-2.5 space-y-1.5 sm:mt-3.5 sm:space-y-2">
+        {sizes.map((size) => (
+          <li key={`${size.token}:${size.amount}`} className="flex items-center gap-2.5 sm:gap-3">
+            <span className="w-[5.5rem] shrink-0 text-right font-mono text-xs tabular-nums text-[var(--paper-dim)]">
+              {formatAmount(size.amount, STRK, 5)} {STRK.symbol}
+            </span>
+            <span
+              className="h-2 flex-1 bg-[var(--ink-line)]"
+              role="presentation"
+            >
+              {/* Floored at a sliver rather than scaled to nothing: a size with
+                  one envelope in it is the case worth seeing, and a bar too
+                  short to render would hide exactly that. */}
+              <span
+                className="block h-full transition-[width] duration-500 ease-out"
+                style={{
+                  width: `max(3px, ${(size.count / largest) * 100}%)`,
+                  backgroundColor: size.count > 1 ? "var(--frank)" : "var(--seal)",
+                }}
+              />
+            </span>
+            <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-[var(--paper)]">
+              {size.count}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
